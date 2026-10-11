@@ -99,15 +99,20 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 - The wiring is a pending TODO (see `TODO.md`) — ask the user to agree on the feed location and `nuget.config` before setting it up.
 - **Ask before** bumping the `LostInLimbo.LevelGen` version or changing how it is consumed.
 
-## Assets and Game Studio
+## Stride engine
+
+### General
+
+- When you do not know what to do in Stride, browse official documentation and tutorials and search for similar problem on Internet. Do deep dives in engine code only as last resort, when everything else fails.
+- Prefer making script and asking user to hook it up in Game Studio.
+
+### Assets and Game Studio
 
 - `.sd*` files under `Assets/` are **YAML serialized by Stride** (`SerializedVersion`, `Id` GUIDs, `ref!!` references). Prefer editing them through `stride studio` (Game Studio) over hand-editing.
 - Never change an asset's `Id` GUID or a `SerializedVersion`. References between assets are GUID+name based; rewriting IDs silently breaks scenes and prefabs.
 - Hand-editing is acceptable for small, reviewable changes (names, positions, numbers) when Game Studio is impractical — preserve indentation and the exact serialization style, and re-open the asset in Game Studio afterwards to confirm it loads.
 - Asset renames/moves should be done in Game Studio so it rewrites references; if done by hand, search the whole `Assets/` tree for old GUIDs/names first.
 - New assets live in `Assets/`; raw source files (textures, models to import) in `Resources/`. Both folders are declared in the `.sdpkg` — do not change `AssetFolders`/`ResourceFolders` without reason.
-- **Never commit** `Bin/`, `obj/`, `*.user`, `*.sdpkg.user`, `.vs/` — all gitignored.
-
 
 ## Code style
 

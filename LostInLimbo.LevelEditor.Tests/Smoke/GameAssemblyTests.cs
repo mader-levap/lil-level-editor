@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace LostInLimbo.LevelEditor.Tests;
+namespace LostInLimbo.LevelEditor.Tests.Smoke;
 
 /// <summary>
 /// Smoke tests verifying that the game package assembly and its Stride dependencies
