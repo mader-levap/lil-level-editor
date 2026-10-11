@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="LostInLimbo.LevelEditor.Game/LostInLimbo.LevelEditor.Game.csproj" />
+  <Project Path="LostInLimbo.LevelEditor.Windows/LostInLimbo.LevelEditor.Windows.csproj" DefaultStartup="true" />
+</Solution>

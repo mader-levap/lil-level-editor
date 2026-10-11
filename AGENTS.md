@@ -1,0 +1,154 @@
+# Lost in Limbo level editor
+
+## Project overview
+
+`LostInLimbo.LevelEditor` is a **Stride 4.4.0** desktop application that serves as the level editor, level generator front-end and level viewer for the game *Lost in Limbo*.
+
+It does not generate levels itself. Generation logic lives in the engine-neutral library `LostInLimbo.LevelGen` (sibling repository `../lil-level-gen`). This project's job is to:
+
+- Configure and trigger generation (seed, map configuration, player position, chunk scheduling).
+- Turn generated level **data** into Stride entities, components and scenes.
+- Let the user inspect, edit and preview the result in 3D.
+
+The solution targets **.NET 10** (`net10.0`, launcher is `net10.0-windows`).
+
+## Repository layout
+
+```text
+lil-level-editor/
+├ LostInLimbo.LevelEditor.slnx           - Solution (both projects; Windows is startup project).
+├ AGENTS.md                              - This file.
+├ README.md, TODO.md                     - Project notes and current tasks.
+├ Bin/                                   - Build output (gitignored).
+├ LostInLimbo.LevelEditor.Game/          - Stride game package: all engine code, scripts and assets.
+│  ├ LostInLimbo.LevelEditor.Game.sdpkg  - Stride package manifest (asset/resource folders).
+│  ├ *.cs                                - Scripts (namespace LostInLimbo.LevelEditor).
+│  ├ Assets/                             - Stride assets, YAML-serialized (.sdscene, .sdmat, .sdtex, ...).
+│  └ Resources/                          - Raw imported files (.dds textures, ...).
+└ LostInLimbo.LevelEditor.Windows/       - Thin WinExe launcher (Program entry point only).
+   ├ LostInLimbo.LevelEditorApp.cs       - Creates and runs Stride's Game.
+   └ Resources/Icon.ico, app.manifest    - Windows-only packaging files.
+```
+
+- **LostInLimbo.LevelEditor.Game** holds everything game-related. New features (scripts, components, scenes, UI) go here.
+- **LostInLimbo.LevelEditor.Windows** is only the launcher. Do not touch it.
+- Game output goes to `Bin/Windows/<Configuration>/`.
+- Do not add generated or machine-specific files (`Bin/`, `obj/`, `*.user`, `.vs/`) to the repository.
+
+## Build and run
+
+Run commands from the repository root.
+
+Build application with:
+
+```bash
+dotnet build LostInLimbo.LevelEditor.slnx
+```
+
+Building the Game project also runs the **Stride asset compiler**; asset errors surface here, not only at runtime.
+
+Start application with:
+
+```bash
+dotnet run --project LostInLimbo.LevelEditor.Windows
+```
+
+Open **Stride Game Studio** (asset/scene editor) with:
+
+```bash
+stride studio LostInLimbo.LevelEditor.Game/LostInLimbo.LevelEditor.Game.sdpkg --graphics-api Direct3D11
+```
+
+Before considering a task complete:
+
+- Run `dotnet build LostInLimbo.LevelEditor.slnx`.
+- Run `dotnet test LostInLimbo.LevelEditor.slnx`.
+- Fix all warnings introduced by the change when practical.
+- The app launches and the affected scene/feature works (when practical to verify).
+
+## Architecture rules
+
+- **One-way dependency:** this repository consumes `LostInLimbo.LevelGen`; the library must never reference this project, Stride, or any engine.
+- **No generation logic here.** Rooms, corridors, chunk layout, placement rules and randomness live in `LostInLimbo.LevelGen`. This repo only feeds it a seed/context and consumes its output.
+- **Determinism stays in the library.** The editor supplies `WorldGenerationContext`-style inputs (seed, map config, player position, known chunk data); it must not compensate for or re-order generation results.
+- **Isolate the conversion layer.** Keep code that maps level data to Stride objects (`Entity`, `Transform`, models, colliders) in a dedicated, clearly named area (e.g. a scene/chunk builder). Level-data types must not spread through UI/input code, and engine types must not leak into generation decisions.
+- **Engine-specific code is allowed and expected here** (unlike in `lil-level-gen`): scene manipulation, input, rendering, Game Studio integration and asset work are this project's purpose.
+- Chunk lifecycle (scheduling, threading, scene construction, unloading) is a shared concern with the future game; keep it structured so it can be reused.
+
+## LevelGen package workflow
+
+The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as a `ProjectReference`:
+
+- Pack the library from the sibling repo:
+
+  ```bash
+  dotnet pack ../lil-level-gen/src/LostInLimbo.LevelGen/LostInLimbo.LevelGen.csproj -o <local-feed>
+  ```
+
+- Reference it from `LostInLimbo.LevelEditor.Game.csproj` via `PackageReference` resolving from a local feed configured in `nuget.config`.
+- Do **not** add a `ProjectReference` into `../lil-level-gen`; the repositories must stay independently buildable.
+- After changing the library, re-pack (and bump its version when appropriate) before building the editor; NuGet caches aggressively.
+- The wiring is a pending TODO (see `TODO.md`) — ask the user to agree on the feed location and `nuget.config` before setting it up.
+- **Ask before** bumping the `LostInLimbo.LevelGen` version or changing how it is consumed.
+
+## Assets and Game Studio
+
+- `.sd*` files under `Assets/` are **YAML serialized by Stride** (`SerializedVersion`, `Id` GUIDs, `ref!!` references). Prefer editing them through `stride studio` (Game Studio) over hand-editing.
+- Never change an asset's `Id` GUID or a `SerializedVersion`. References between assets are GUID+name based; rewriting IDs silently breaks scenes and prefabs.
+- Hand-editing is acceptable for small, reviewable changes (names, positions, numbers) when Game Studio is impractical — preserve indentation and the exact serialization style, and re-open the asset in Game Studio afterwards to confirm it loads.
+- Asset renames/moves should be done in Game Studio so it rewrites references; if done by hand, search the whole `Assets/` tree for old GUIDs/names first.
+- New assets live in `Assets/`; raw source files (textures, models to import) in `Resources/`. Both folders are declared in the `.sdpkg` — do not change `AssetFolders`/`ResourceFolders` without reason.
+- **Never commit** `Bin/`, `obj/`, `*.user`, `*.sdpkg.user`, `.vs/` — all gitignored.
+
+
+## Code style
+
+### Scripting conventions
+
+Reference implementation: `LostInLimbo.LevelEditor.Game/BasicCameraController.cs`.
+
+- Gameplay/editor behavior lives in components deriving from `SyncScript` (or `AsyncScript` for long-running work), overriding `Start()` and `Update()`.
+- Scripts operate on `Entity.Transform`, `Input`, and the scene; keep `Update()` cheap. Do **not** perform blocking file I/O, network calls, or generation inside `Update()` — run them async or trigger them from a menu/action.
+- Expose tunable values as public properties with `[Display(name, group)]` (and `[DataMember]` where needed) so they appear in the Game Studio inspector with sensible labels.
+- Use `Stride.Core.Mathematics` (`Vector3`, `Quaternion`, `Matrix`, `MathUtil`) — not `System.Numerics` — so values interoperate with transforms.
+- Use `Game.UpdateTime.Elapsed` for frame-rate-independent movement, as `BasicCameraController` does.
+- Runtime-generated content must be cleaned up when it is replaced or unloaded (no leaked entities/components when regenerating a chunk).
+
+### Code style
+
+These are target conventions; the project is fresh and **nullable reference types are not yet enabled** in the `.csproj`. Enabling `<Nullable>enable</Nullable>` is planned — do it as an explicit, focused change, not silently inside other work.
+
+- Use C# file-scoped namespaces (`namespace LostInLimbo.LevelEditor;`).
+- Use `sealed` for classes not intended to be inherited.
+- Prefer `record` for immutable data-transfer types.
+- Prefer `IReadOnlyList<T>`/arrays in APIs; avoid public mutable collections.
+- Explicit, descriptive names (`BuildChunkScene`, `ChunkData`, `LevelGenAdapter`); avoid abbreviations except `Id`, `X`, `Y`, `Z`.
+- No magic numbers — named constants, options objects or inspector properties.
+- No `async void`; use `CancellationToken` for cancellable/expensive operations.
+- Add XML documentation comments to public types and members (aspirational — the existing generated scripts already follow this).
+- Do not use `DateTime.Now`, machine-specific paths or environment-dependent behavior in editor logic.
+- Validate inputs; do not swallow exceptions; return empty collections rather than `null`.
+
+### Tests
+
+No test project exists yet. Engine-independent editor logic (adapters, serializers, conversion helpers) should be written as plain, injectable classes so it *can* be tested. If such logic grows substantial, propose adding a test project — do not add one unilaterally.
+
+### Documentation
+
+- Code should be well-commented.
+- Add XML documentation comments to all classes, types and members.
+
+### Other
+
+- **Never commit or push.** The user reviews and commits manually.
+
+## When uncertain
+
+Stop and ask before implementing changes that involve:
+
+- A new NuGet package (for this repo or LevelGen).
+- A target-framework or Stride-version change.
+- A `LostInLimbo.LevelGen` API or version change, or any change to how it is consumed.
+- Non-trivial hand-edits of serialized `.sd*` assets, asset GUID changes, or `.sdpkg` structure changes.
+- A breaking public-API change in editor code.
+- Anything nondeterministic in generation-related behavior.
