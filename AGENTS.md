@@ -16,7 +16,7 @@ The solution targets **.NET 10** (`net10.0`, launcher is `net10.0-windows`).
 
 ```text
 lil-level-editor/
-├ LostInLimbo.LevelEditor.slnx           - Solution (both projects; Windows is startup project).
+├ LostInLimbo.LevelEditor.slnx           - Solution (all projects; Windows is startup project).
 ├ AGENTS.md                              - This file.
 ├ README.md, TODO.md                     - Project notes and current tasks.
 ├ Bin/                                   - Build output (gitignored).
@@ -25,21 +25,23 @@ lil-level-editor/
 │  ├ *.cs                                - Scripts (namespace LostInLimbo.LevelEditor).
 │  ├ Assets/                             - Stride assets, YAML-serialized (.sdscene, .sdmat, .sdtex, ...).
 │  └ Resources/                          - Raw imported files (.dds textures, ...).
+├ LostInLimbo.LevelEditor.Tests/         - xUnit test project (namespace LostInLimbo.LevelEditor.Tests).
+│  ├ LostInLimbo.LevelEditor.Tests.csproj - References the Game project; net10.0.
+│  └ *.cs                                - Tests.
 └ LostInLimbo.LevelEditor.Windows/       - Thin WinExe launcher (Program entry point only).
    ├ LostInLimbo.LevelEditorApp.cs       - Creates and runs Stride's Game.
    └ Resources/Icon.ico, app.manifest    - Windows-only packaging files.
 ```
 
 - **LostInLimbo.LevelEditor.Game** holds everything game-related. New features (scripts, components, scenes, UI) go here.
+- **LostInLimbo.LevelEditor.Tests** holds xUnit tests for editor code (see *Code style → Tests*).
 - **LostInLimbo.LevelEditor.Windows** is only the launcher. Do not touch it.
 - Game output goes to `Bin/Windows/<Configuration>/`.
 - Do not add generated or machine-specific files (`Bin/`, `obj/`, `*.user`, `.vs/`) to the repository.
 
-## Build and run
+## Basic commands
 
-Run commands from the repository root.
-
-Build application with:
+Build application:
 
 ```bash
 dotnet build LostInLimbo.LevelEditor.slnx
@@ -47,23 +49,29 @@ dotnet build LostInLimbo.LevelEditor.slnx
 
 Building the Game project also runs the **Stride asset compiler**; asset errors surface here, not only at runtime.
 
-Start application with:
+Start application:
 
 ```bash
 dotnet run --project LostInLimbo.LevelEditor.Windows
 ```
 
-Open **Stride Game Studio** (asset/scene editor) with:
+Open **Stride Game Studio** (asset/scene editor):
 
 ```bash
 stride studio LostInLimbo.LevelEditor.Game/LostInLimbo.LevelEditor.Game.sdpkg --graphics-api Direct3D11
+```
+
+Run tests:
+
+```bash
+dotnet test LostInLimbo.LevelEditor.slnx
 ```
 
 Before considering a task complete:
 
 - Run `dotnet build LostInLimbo.LevelEditor.slnx`.
 - Run `dotnet test LostInLimbo.LevelEditor.slnx`.
-- Fix all warnings introduced by the change when practical.
+- Fix all warnings introduced by the change when practical. Ignore warnings that are related to Stride engine, we can't do much about these.
 - The app launches and the affected scene/feature works (when practical to verify).
 
 ## Architecture rules
@@ -103,6 +111,22 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 
 ## Code style
 
+### General coding rules
+
+- Use C# file-scoped namespaces (`namespace LostInLimbo.LevelEditor;`).
+- Write null-aware code and do not silence nullable warnings with `null!` without a documented reason. Note that Stride 4.4 assemblies are nullable-oblivious (no annotations), so the compiler cannot warn about engine API misuse — only our own code is checked.
+- Use `sealed` for classes not intended to be inherited.
+- Prefer `record` for immutable data-transfer types.
+- Prefer `IReadOnlyList<T>`/arrays in APIs.
+- Avoid public mutable collections where practical.
+- Use explicit, descriptive names: `BuildChunkScene`, `LevelGenAdapter`.
+- Avoid abbreviations except widely understood ones such as `Id`, `X`, `Y`, and `Z`.
+- Avoid magic numbers; use named constants, options objects, configuration records or inspector properties.
+- Use `CancellationToken` for potentially expensive or cancellable operations.
+- Do not use `async void`.
+- Do not use `DateTime.Now`, machine-specific paths or environment-dependent behavior in editor logic.
+- Validate inputs; do not swallow exceptions; return empty collections rather than `null`.
+
 ### Scripting conventions
 
 Reference implementation: `LostInLimbo.LevelEditor.Game/BasicCameraController.cs`.
@@ -114,24 +138,14 @@ Reference implementation: `LostInLimbo.LevelEditor.Game/BasicCameraController.cs
 - Use `Game.UpdateTime.Elapsed` for frame-rate-independent movement, as `BasicCameraController` does.
 - Runtime-generated content must be cleaned up when it is replaced or unloaded (no leaked entities/components when regenerating a chunk).
 
-### Code style
-
-These are target conventions; the project is fresh and **nullable reference types are not yet enabled** in the `.csproj`. Enabling `<Nullable>enable</Nullable>` is planned — do it as an explicit, focused change, not silently inside other work.
-
-- Use C# file-scoped namespaces (`namespace LostInLimbo.LevelEditor;`).
-- Use `sealed` for classes not intended to be inherited.
-- Prefer `record` for immutable data-transfer types.
-- Prefer `IReadOnlyList<T>`/arrays in APIs; avoid public mutable collections.
-- Explicit, descriptive names (`BuildChunkScene`, `ChunkData`, `LevelGenAdapter`); avoid abbreviations except `Id`, `X`, `Y`, `Z`.
-- No magic numbers — named constants, options objects or inspector properties.
-- No `async void`; use `CancellationToken` for cancellable/expensive operations.
-- Add XML documentation comments to public types and members (aspirational — the existing generated scripts already follow this).
-- Do not use `DateTime.Now`, machine-specific paths or environment-dependent behavior in editor logic.
-- Validate inputs; do not swallow exceptions; return empty collections rather than `null`.
-
 ### Tests
 
-No test project exists yet. Engine-independent editor logic (adapters, serializers, conversion helpers) should be written as plain, injectable classes so it *can* be tested. If such logic grows substantial, propose adding a test project — do not add one unilaterally.
+Tests reference the Game project directly (`ProjectReference`); Stride packages flow transitively. The Stride asset compiler does not run for test builds (it is gated on executable projects), so tests only need the compiled assemblies.
+
+Rules:
+- Tests must not initialize the engine, load scenes or require graphics — keep them fast and headless. Engine-independent editor logic (adapters, serializers, conversion helpers) should be written as plain, injectable classes so it *can* be tested.
+- If bug is known, create test first, run it to make sure test catches bug, then fix bug.
+- Comment tests. Use Arrange/Act/Assert convention, for example `// Assert: Value is correct.`.
 
 ### Documentation
 
