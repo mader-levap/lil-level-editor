@@ -99,7 +99,6 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 - Reference it from `LostInLimbo.LevelEditor.Game.csproj` via `PackageReference` resolving from a local feed configured in `nuget.config`.
 - Do **not** add a `ProjectReference` into `../lil-level-gen`; the repositories must stay independently buildable.
 - After changing the library, re-pack (and bump its version when appropriate) before building the editor; NuGet caches aggressively.
-- The wiring is a pending TODO (see `TODO.md`) — ask the user to agree on the feed location and `nuget.config` before setting it up.
 - **Ask before** bumping the `LostInLimbo.LevelGen` version or changing how it is consumed.
 
 ## Stride engine
