@@ -4,12 +4,12 @@ using LostInLimbo.LevelGen.Api;
 using Stride.Engine;
 
 /// <summary>
-/// Startup script that prints some data about LevelGen library to Stride console. For testing.
+/// Startup script that prints some data about the LevelGen library to the Stride console. For testing.
 /// </summary>
 public class StartInfoScript : StartupScript
 {
   public override void Start()
   {
     Log.Warning($"LevelGen: Name = {LibraryInfo.Name}, Version = {LibraryInfo.Version}.");
-  }  
+  }
 }
