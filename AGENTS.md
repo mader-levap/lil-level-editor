@@ -55,10 +55,10 @@ Start application:
 dotnet run --project LostInLimbo.LevelEditor.Windows
 ```
 
-Open **Stride Game Studio** (asset/scene editor):
+Open **Stride Game Studio** for user (asset/scene editor):
 
 ```bash
-stride studio LostInLimbo.LevelEditor.Game/LostInLimbo.LevelEditor.Game.sdpkg --graphics-api Direct3D11
+stride studio LostInLimbo.LevelEditor.Game/LostInLimbo.LevelEditor.Game.sdpkg
 ```
 
 Run tests:
