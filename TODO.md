@@ -1,5 +1,6 @@
 # TODO
 
 - Finish configuration and setup of project.
-  - Use level generation library. For now in simplest way possible: print data from `LibraryInfo` to Stride console.
-    We already added `StartInfoScript.cs` manually. This file is not visible in Stride's Game Studio for some reason, so I can't hook it up inside. How annoying.
+  - How to make UI in Stride. For now we need button that will start generation. In future we will have full-fledged user interface.
+  - Check how to implement game system in Stride, so we can have placeholder for code that handles calling generation and processing results.
+  - Check how to package game so you can run it standalone.

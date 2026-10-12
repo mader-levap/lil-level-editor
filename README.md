@@ -4,6 +4,8 @@ This is level generator, editor and viewer for future game codenamed Lost in Lim
 
 ## Commands
 
+All commands must be issued from root directory.
+
 Build application:
 
 ```bash
@@ -21,7 +23,7 @@ dotnet run --project LostInLimbo.LevelEditor.Windows
 Open **Stride Game Studio** for user (asset/scene editor):
 
 ```bash
-stride studio LostInLimbo.LevelEditor.Game/LostInLimbo.LevelEditor.Game.sdpkg
+stride studio
 ```
 
 Run tests:
@@ -29,6 +31,14 @@ Run tests:
 ```bash
 dotnet test LostInLimbo.LevelEditor.slnx
 ```
+
+## Debugging
+
+For development we use Visual Studio Code with C# Dev Kit extension.
+- Always build application first to make sure PDB match. Make sure it is debug build.
+- Start the game (from terminal or Game Studio).
+- Attach in VS Code: `Ctrl+Shift+D` -> select "Attach to running game" -> press `F5` → in the process picker find `LostInLimbo.LevelEditor.Windows`.
+
 
 ## Resources
 
