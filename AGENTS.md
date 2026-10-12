@@ -157,7 +157,7 @@ Rules:
 ### Documentation
 
 - Code should be well-commented.
-- Add XML documentation comments to all classes, types and members.
+- Add XML documentation comments to all classes, types and members. Exception: overrided methods.
 
 ### Other
 
