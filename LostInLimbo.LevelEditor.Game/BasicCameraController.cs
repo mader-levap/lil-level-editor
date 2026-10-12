@@ -7,7 +7,7 @@ using Stride.Input;
 namespace LostInLimbo.LevelEditor;
 
 /// <summary>
-/// A script that allows to move and rotate an entity through keyboard, mouse and touch input to provide basic camera navigation.
+/// A script that allows moving and rotating an entity through keyboard, mouse and touch input to provide basic camera navigation.
 /// </summary>
 /// <remarks>
 /// The entity can be moved using W, A, S, D, Q and E, arrow keys, a gamepad's left stick or dragging/scaling using multi-touch.
@@ -21,7 +21,7 @@ public class BasicCameraController : SyncScript
   /// </summary>
   private const float MaximumPitch = MathUtil.PiOverTwo * 0.99f;
 
-  /// <summary>World-space up direction used as the pitch rotation axis.</summary>
+  /// <summary>World-space up direction; used as the pitch and yaw rotation axis and to derive the camera basis.</summary>
   private Vector3 upVector;
 
   /// <summary>Camera-space translation accumulated during the current frame, applied in <see cref="UpdateTransform"/>.</summary>
@@ -83,7 +83,8 @@ public class BasicCameraController : SyncScript
   /// <summary>
   /// Reads keyboard, gamepad, mouse and touch input for the elapsed frame and accumulates
   /// the resulting camera-space <c>translation</c>, <c>yaw</c> and <c>pitch</c>.
-  /// All values are scaled by the frame time so movement is frame-rate independent.
+  /// Keyboard and gamepad input is scaled by the frame time so movement is frame-rate independent;
+  /// mouse and touch input already arrive as per-frame deltas and are used as-is.
   /// </summary>
   private void ProcessInput()
   {
@@ -94,7 +95,7 @@ public class BasicCameraController : SyncScript
     yaw = 0f;
     pitch = 0f;
 
-    // Keyboard and Gamepad based movement
+    // Keyboard- and gamepad-based movement
     {
       float speed = 1f * deltaTime;
 
@@ -145,13 +146,13 @@ public class BasicCameraController : SyncScript
       translation += dir * KeyboardMovementSpeed * speed;
     }
 
-    // Keyboard and Gamepad based Rotation
+    // Keyboard- and gamepad-based rotation
     {
       float speed = 1f * deltaTime;
       Vector2 rotation = Vector2.Zero;
       if (Gamepad && Input.HasGamePad)
       {
-        // Right stick: X drives pitch, Y drives yaw (X is negated to match screen direction).
+        // Right stick: stick Y drives pitch, stick X drives yaw (the stick's X axis is negated to match screen direction).
         GamePadState padState = Input.DefaultGamePad.State;
         rotation.X += padState.RightThumb.Y;
         rotation.Y += -padState.RightThumb.X;
@@ -159,7 +160,7 @@ public class BasicCameraController : SyncScript
 
       if (Input.HasKeyboard)
       {
-        // Numpad: 2/8 pitch down/up, 4/6 yaw left/right.
+        // Numpad: 2/8 pitch up/down, 4/6 yaw left/right.
         if (Input.IsKeyDown(Keys.NumPad2)) rotation.X += 1;
         if (Input.IsKeyDown(Keys.NumPad8)) rotation.X -= 1;
 

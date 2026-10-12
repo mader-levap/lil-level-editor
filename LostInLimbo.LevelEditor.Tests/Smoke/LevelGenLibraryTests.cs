@@ -14,7 +14,7 @@ public sealed class LevelGenLibraryTests
   [Fact]
   public void Name_ReturnsExpectedName()
   {
-    // Assert: Library returns correct name of library.
+    // Assert: Library returns the expected name.
     Assert.Equal("LostInLimbo.LevelGen", LibraryInfo.Name);
   }
 }

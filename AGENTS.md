@@ -22,9 +22,10 @@ lil-level-editor/
 ├ Bin/                                   - Build output (gitignored).
 ├ LostInLimbo.LevelEditor.Game/          - Stride game package: all engine code, scripts and assets.
 │  ├ LostInLimbo.LevelEditor.Game.sdpkg  - Stride package manifest (asset/resource folders).
-│  ├ *.cs                                - Scripts (namespace LostInLimbo.LevelEditor).
 │  ├ Assets/                             - Stride assets, YAML-serialized (.sdscene, .sdmat, .sdtex, ...).
-│  └ Resources/                          - Raw imported files (.dds textures, ...).
+│  ├ Generator/                          - All scripts related to generator handling.
+│  └ Resources/                          - Raw imported files, usually binary (.dds textures, ...).
+│  └ Ui/                                 - All scripts related to user interface.
 ├ LostInLimbo.LevelEditor.Tests/         - xUnit test project (namespace LostInLimbo.LevelEditor.Tests).
 │  ├ LostInLimbo.LevelEditor.Tests.csproj - References the Game project; net10.0.
 │  └ *.cs                                - Tests.
@@ -41,7 +42,7 @@ lil-level-editor/
 
 ## Basic commands
 
-All commands must be issued from root directory.
+All commands must be issued from the root directory.
 
 Build application:
 
@@ -57,7 +58,7 @@ Start application:
 dotnet run --project LostInLimbo.LevelEditor.Windows
 ```
 
-Open **Stride Game Studio** for user (asset/scene editor):
+Open **Stride Game Studio** (the asset/scene editor):
 
 ```bash
 stride studio
@@ -73,7 +74,7 @@ Before considering a task complete:
 
 - Run `dotnet build LostInLimbo.LevelEditor.slnx`.
 - Run `dotnet test LostInLimbo.LevelEditor.slnx`.
-- Fix all warnings introduced by the change when practical. Ignore warnings that are related to Stride engine, we can't do much about these.
+- Fix all warnings introduced by the change when practical. Ignore warnings that are related to Stride engine; we can't do much about these.
 - The app launches and the affected scene/feature works (when practical to verify).
 
 ## Architecture rules
@@ -83,7 +84,7 @@ Before considering a task complete:
 - **Determinism stays in the library.** The editor supplies `WorldGenerationContext`-style inputs (seed, map config, player position, known chunk data); it must not compensate for or re-order generation results.
 - **Isolate the conversion layer.** Keep code that maps level data to Stride objects (`Entity`, `Transform`, models, colliders) in a dedicated, clearly named area (e.g. a scene/chunk builder). Level-data types must not spread through UI/input code, and engine types must not leak into generation decisions.
 - **Engine-specific code is allowed and expected here** (unlike in `lil-level-gen`): scene manipulation, input, rendering, Game Studio integration and asset work are this project's purpose.
-- Chunk lifecycle (scheduling, threading, scene construction, unloading) is a shared concern with the future game; keep it structured so it can be reused.
+- Chunk lifecycle (scheduling, threading, scene construction, unloading) is a shared concern of the future game; keep it structured so it can be reused.
 
 ## LevelGen package workflow
 
@@ -105,8 +106,8 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 
 ### General
 
-- When you do not know what to do in Stride, browse official documentation and tutorials and search for similar problem on Internet. Do deep dives in engine code only as last resort, when everything else fails.
-- Prefer making script and asking user to hook it up in Game Studio.
+- When you do not know what to do in Stride, browse official documentation and tutorials and search for similar problems on the Internet. Do deep dives in engine code only as a last resort, when everything else fails.
+- Prefer writing a script and asking the user to hook it up in Game Studio.
 
 ### Assets and Game Studio
 
@@ -151,13 +152,13 @@ Tests reference the Game project directly (`ProjectReference`); Stride packages 
 
 Rules:
 - Tests must not initialize the engine, load scenes or require graphics — keep them fast and headless. Engine-independent editor logic (adapters, serializers, conversion helpers) should be written as plain, injectable classes so it *can* be tested.
-- If bug is known, create test first, run it to make sure test catches bug, then fix bug.
-- Comment tests. Use Arrange/Act/Assert convention, for example `// Assert: Value is correct.`.
+- If a bug is known, create a test first, run it to make sure the test catches the bug, then fix the bug.
+- Comment tests. Use Arrange/Act/Assert convention, for example `// Assert: Value is correct.`
 
 ### Documentation
 
 - Code should be well-commented.
-- Add XML documentation comments to all classes, types and members. Exception: overrided methods.
+- Add XML documentation comments to all classes, types and members. Exception: overridden methods.
 
 ### Other
 

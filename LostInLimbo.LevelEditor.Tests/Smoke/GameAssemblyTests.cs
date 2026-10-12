@@ -11,6 +11,9 @@ public sealed class GameAssemblyTests
   /// <summary>Assembly name of the game package under test.</summary>
   private const string GameAssemblyName = "LostInLimbo.LevelEditor.Game";
 
+  /// <summary>
+  /// Verifies a known game script is declared in the game package assembly.
+  /// </summary>
   [Fact]
   public void BasicCameraController_IsDeclaredInGameAssembly()
   {
@@ -18,17 +21,24 @@ public sealed class GameAssemblyTests
     Assert.Equal(GameAssemblyName, typeof(BasicCameraController).Assembly.GetName().Name);
   }
 
+  /// <summary>
+  /// Verifies the game package assembly reports a three-component version number.
+  /// </summary>
   [Fact]
   public void GameAssembly_HasExpectedVersionFormat()
   {
     // Arrange: Get version.
     var version = typeof(BasicCameraController).Assembly.GetName().Version;
 
-    // Assert: Version is d.d.d (informational version may append "+<commit>").
+    // Assert: The version starts with d.d.d (a four-component version or
+    // an informational version appending "+<commit>" may follow).
     Assert.NotNull(version);
     Assert.Matches(@"^\d+\.\d+\.\d+", version.ToString());
   }
 
+  /// <summary>
+  /// Verifies the Stride assemblies referenced by the game package resolve in the test host.
+  /// </summary>
   [Fact]
   public void GameAssembly_StrideDependenciesAreCopiedToTestOutput()
   {

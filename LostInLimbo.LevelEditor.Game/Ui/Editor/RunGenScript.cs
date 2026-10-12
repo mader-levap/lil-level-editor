@@ -1,4 +1,4 @@
-namespace LostInLimbo.LevelEditor.Game.Generator.Info;
+namespace LostInLimbo.LevelEditor.Game.Ui.Editor;
 
 using System;
 using LostInLimbo.LevelGen.Api;
@@ -8,8 +8,9 @@ using Stride.UI.Events;
 using Stride.UI.Controls;
 
 /// <summary>
-/// Hooks up generation button so clicking on it starts generation process.
-/// TODO: for now, it just prints data from library in console.
+/// Hooks up the generation button.
+/// 
+/// TODO For now the click handler only prints library info to the console; it does not start generation yet.
 /// </summary>
 public class RunGenScript : StartupScript
 {
@@ -25,14 +26,14 @@ public class RunGenScript : StartupScript
   }
 
   /// <summary>
-  /// React on generation button click.
+  /// Reacts to the generation button click.
   /// </summary>
   /// <param name="sender">Sender.</param>
   /// <param name="eventArgs">Event arguments.</param>
   private void BtnGenerateClick(object? sender, RoutedEventArgs eventArgs)
   {
-    // TODO: in future, here we will start entire level generation machinery that will go on separate thread.
-    // We will also need to disable button until generation finishes.
-    Log.Warning($"LevelGen: Name = {LibraryInfo.Name}, Version = {LibraryInfo.Version}.");    
+    // TODO: in future, this will start the entire level generation machinery, which will run on a separate thread.
+    // We will also need to keep the button disabled until generation finishes.
+    Log.Warning($"LevelGen: Name = {LibraryInfo.Name}, Version = {LibraryInfo.Version}.");
   }
 }
