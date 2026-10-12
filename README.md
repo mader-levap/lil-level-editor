@@ -39,7 +39,6 @@ For development we use Visual Studio Code with C# Dev Kit extension.
 - Start the game (from terminal or Game Studio).
 - Attach in VS Code: `Ctrl+Shift+D` -> select "Attach to running game" -> press `F5` → in the process picker find `LostInLimbo.LevelEditor.Windows`.
 
-
 ## Resources
 
 ### External libraries

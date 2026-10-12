@@ -6,13 +6,33 @@ ChildrenIds: []
 Offset: {X: 0.0, Y: 0.0, Z: 0.0}
 Hierarchy:
     RootParts:
-        - ref!! 1716d2c8-b130-41e1-b4f3-43c719853068
-        - ref!! a19ed5d8-ddbf-4677-873a-2e4bfc04ee44
-        - ref!! 465e7984-7938-4f32-89e6-cb3f1b0ead5f
-        - ref!! 94aa9d46-e093-4334-8446-2c7d1f915ce9
         - ref!! efaea239-b4a2-4e8f-81ff-125ba88ce575
+        - ref!! 94aa9d46-e093-4334-8446-2c7d1f915ce9
+        - ref!! 465e7984-7938-4f32-89e6-cb3f1b0ead5f
+        - ref!! a19ed5d8-ddbf-4677-873a-2e4bfc04ee44
+        - ref!! 1716d2c8-b130-41e1-b4f3-43c719853068
+        - ref!! 13226d0c-1f77-45e4-a148-24edc7a99523
     Parts:
-        -   Entity:
+        -   Folder: UI
+            Entity:
+                Id: 13226d0c-1f77-45e4-a148-24edc7a99523
+                Name: UiEditor
+                Components:
+                    971d80afd3fd31badc959489eac74edb: !TransformComponent
+                        Id: dbdd8b24-17ef-48b7-a3b8-0f6114ef8985
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    28bb043fdb645b39142c326cacc0787e: !UIComponent
+                        Id: fbd572e3-4efa-4a85-886f-5b99b54af489
+                        Page: bb6d0ca6-3b9f-473d-af60-bae75af3d9d3:UI/UiEditor
+                        Resolution: {X: 1280.0, Y: 720.0, Z: 1000.0}
+                        Size: {X: 1.28, Y: 0.72, Z: 1.0}
+                    0b9e9bb318af39ed815cd5673f566061: !LostInLimbo.LevelEditor.Game.Generator.Info.RunGenScript,LostInLimbo.LevelEditor.Game
+                        Id: cf843bcb-388a-4aed-ba09-9867a88e90f7
+        -   Folder: World
+            Entity:
                 Id: 1716d2c8-b130-41e1-b4f3-43c719853068
                 Name: Camera
                 Components:
@@ -36,7 +56,8 @@ Hierarchy:
                         KeyboardRotationSpeed: {X: 3.0, Y: 3.0}
                         MouseRotationSpeed: {X: 1.0, Y: 1.0}
                         TouchRotationSpeed: {X: 1.0, Y: 0.7}
-        -   Entity:
+        -   Folder: World
+            Entity:
                 Id: 465e7984-7938-4f32-89e6-cb3f1b0ead5f
                 Name: Skybox
                 Components:
@@ -53,7 +74,8 @@ Hierarchy:
                         Id: e3c8082a-6bdf-4e84-b321-ab00b0533ab6
                         Type: !LightSkybox
                             Skybox: da605d46-95b1-464d-b66b-0afad59c4be6:Skybox
-        -   Entity:
+        -   Folder: World
+            Entity:
                 Id: 94aa9d46-e093-4334-8446-2c7d1f915ce9
                 Name: Ground
                 Components:
@@ -67,7 +89,8 @@ Hierarchy:
                         Id: 1e25452d-d6cd-45d5-bdfd-85cf094ccba6
                         Model: 078a6282-3589-468b-bf67-e40543418f8e:Ground
                         Materials: {}
-        -   Entity:
+        -   Folder: World
+            Entity:
                 Id: a19ed5d8-ddbf-4677-873a-2e4bfc04ee44
                 Name: Directional light
                 Components:
@@ -92,7 +115,8 @@ Hierarchy:
                                 ComputeTransmittance: false
                                 BiasParameters: {}
                         Intensity: 20.0
-        -   Entity:
+        -   Folder: World
+            Entity:
                 Id: efaea239-b4a2-4e8f-81ff-125ba88ce575
                 Name: Sphere
                 Components:
