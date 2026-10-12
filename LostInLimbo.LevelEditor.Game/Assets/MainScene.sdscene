@@ -106,5 +106,3 @@ Hierarchy:
                         Id: 9072435f-a9cd-4a92-bcf3-f216fb600291
                         Model: b8b5f438-4208-45a8-a192-57a3b9a2fefa:Sphere
                         Materials: {}
-                    939ad5acbdbf82279d789c4ccf05f579: !LostInLimbo.LevelEditor.Game.Generator.Info.StartInfoScript,LostInLimbo.LevelEditor.Game
-                        Id: 94935c3b-b3a7-4f56-8c2c-ab1ca9bc8124

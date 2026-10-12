@@ -41,6 +41,8 @@ lil-level-editor/
 
 ## Basic commands
 
+All commands must be issued from root directory.
+
 Build application:
 
 ```bash
@@ -58,7 +60,7 @@ dotnet run --project LostInLimbo.LevelEditor.Windows
 Open **Stride Game Studio** for user (asset/scene editor):
 
 ```bash
-stride studio LostInLimbo.LevelEditor.Game/LostInLimbo.LevelEditor.Game.sdpkg
+stride studio
 ```
 
 Run tests:
