@@ -1,63 +1,84 @@
 !SceneAsset
-Id: 7E20115C-6509-4885-BBE9-8C945A742052
+Id: 7e20115c-6509-4885-bbe9-8c945a742052
 SerializedVersion: {Stride: 3.1.0.1}
 Tags: []
 ChildrenIds: []
 Offset: {X: 0.0, Y: 0.0, Z: 0.0}
 Hierarchy:
     RootParts:
-        - ref!! 1716D2C8-B130-41E1-B4F3-43C719853068
-        - ref!! A19ED5D8-DDBF-4677-873A-2E4BFC04EE44
-        - ref!! 465E7984-7938-4F32-89E6-CB3F1B0EAD5F
-        - ref!! 94AA9D46-E093-4334-8446-2C7D1F915CE9
-        - ref!! EFAEA239-B4A2-4E8F-81FF-125BA88CE575
+        - ref!! 1716d2c8-b130-41e1-b4f3-43c719853068
+        - ref!! a19ed5d8-ddbf-4677-873a-2e4bfc04ee44
+        - ref!! 465e7984-7938-4f32-89e6-cb3f1b0ead5f
+        - ref!! 94aa9d46-e093-4334-8446-2c7d1f915ce9
+        - ref!! efaea239-b4a2-4e8f-81ff-125ba88ce575
     Parts:
         -   Entity:
-                Id: 1716D2C8-B130-41E1-B4F3-43C719853068
+                Id: 1716d2c8-b130-41e1-b4f3-43c719853068
                 Name: Camera
                 Components:
                     36b359e68b0290ee214d73ef7f738119: !TransformComponent
-                        Id: FA068A20-9414-44C4-817A-161911D256D9
+                        Id: fa068a20-9414-44c4-817a-161911d256d9
                         Position: {X: 2.6, Y: 0.6, Z: -1.0}
                         Rotation: {X: 0.0, Y: 0.82903755, Z: 0.0, W: 0.5591929}
                         Scale: {X: 1.0, Y: 1.0, Z: 1.0}
                         Children: {}
                     b726fc1f69cda6d15dd325f4bcba02c6: !CameraComponent
-                        Id: B58927A3-D67F-45B5-9CC4-8CB1EB1F5B90
+                        Id: b58927a3-d67f-45b5-9cc4-8cb1eb1f5b90
                         Name: null
                         Projection: Perspective
-                        Slot: AD755DEC-C32B-4528-95F8-B2A30870D896
+                        Slot: ad755dec-c32b-4528-95f8-b2a30870d896
                     ca3e7a5c012aff45b1d7e89014bd58cf: !LostInLimbo.LevelEditor.BasicCameraController,LostInLimbo.LevelEditor.Game
-                        Id: E84191EF-D6B8-4A63-97D0-E92F28A4F81B
+                        Id: e84191ef-d6b8-4a63-97d0-e92f28a4f81b
+                        Gamepad: false
+                        KeyboardMovementSpeed: {X: 5.0, Y: 5.0, Z: 5.0}
+                        TouchMovementSpeed: {X: 0.7, Y: 0.7, Z: 0.3}
+                        SpeedFactor: 5.0
+                        KeyboardRotationSpeed: {X: 3.0, Y: 3.0}
+                        MouseRotationSpeed: {X: 1.0, Y: 1.0}
+                        TouchRotationSpeed: {X: 1.0, Y: 0.7}
         -   Entity:
-                Id: 465E7984-7938-4F32-89E6-CB3F1B0EAD5F
+                Id: 465e7984-7938-4f32-89e6-cb3f1b0ead5f
                 Name: Skybox
                 Components:
                     206c788bf63948dea65f1aa997f4c95f: !TransformComponent
-                        Id: 3CF38521-E1FB-4472-83C4-A0267B0A5DB0
+                        Id: 3cf38521-e1fb-4472-83c4-a0267b0a5db0
                         Position: {X: 0.0, Y: 2.0, Z: -2.0}
                         Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
                         Scale: {X: 1.0, Y: 1.0, Z: 1.0}
                         Children: {}
                     50ab9d07393b0d80a6cff9ffb3104e4a: !BackgroundComponent
-                        Id: C074F8BF-BE4C-4E7D-B38C-3598F70F8058
-                        Texture: AB87DF41-1448-4D9D-ADB9-FD79F89A52EC:Skybox texture
+                        Id: c074f8bf-be4c-4e7d-b38c-3598f70f8058
+                        Texture: ab87df41-1448-4d9d-adb9-fd79f89a52ec:Skybox texture
                     5733ca1e623fcf399f389e2b0e7c54ec: !LightComponent
-                        Id: E3C8082A-6BDF-4E84-B321-AB00B0533AB6
+                        Id: e3c8082a-6bdf-4e84-b321-ab00b0533ab6
                         Type: !LightSkybox
-                            Skybox: DA605D46-95B1-464D-B66B-0AFAD59C4BE6:Skybox
+                            Skybox: da605d46-95b1-464d-b66b-0afad59c4be6:Skybox
         -   Entity:
-                Id: A19ED5D8-DDBF-4677-873A-2E4BFC04EE44
+                Id: 94aa9d46-e093-4334-8446-2c7d1f915ce9
+                Name: Ground
+                Components:
+                    d5c7ca36f804083db3f15ac9ab641c02: !TransformComponent
+                        Id: a6d060e3-b053-492f-ad7b-42d14a8de4bc
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    deb336a23085d13904bc8d091ff606d6: !ModelComponent
+                        Id: 1e25452d-d6cd-45d5-bdfd-85cf094ccba6
+                        Model: 078a6282-3589-468b-bf67-e40543418f8e:Ground
+                        Materials: {}
+        -   Entity:
+                Id: a19ed5d8-ddbf-4677-873a-2e4bfc04ee44
                 Name: Directional light
                 Components:
                     a3294146fd186c7e2c4ba3f89c23bda9: !TransformComponent
-                        Id: FE1AC515-3707-491E-B222-2CBA21EFB07C
+                        Id: fe1ac515-3707-491e-b222-2cba21efb07c
                         Position: {X: 0.0, Y: 2.0, Z: 0.0}
                         Rotation: {X: 1.131334E-08, Y: -0.9659258, Z: -0.25881904, W: -4.222196E-08}
                         Scale: {X: 1.0, Y: 1.0, Z: 1.0}
                         Children: {}
                     1392ba253a6ff62041052ab2bd43f031: !LightComponent
-                        Id: FF54CBA6-491A-4D0A-B055-B2D4BC0878AF
+                        Id: ff54cba6-491a-4d0a-b055-b2d4bc0878af
                         Type: !LightDirectional
                             Color: !ColorRgbProvider
                                 Value: {R: 1.0, G: 1.0, B: 1.0}
@@ -72,30 +93,18 @@ Hierarchy:
                                 BiasParameters: {}
                         Intensity: 20.0
         -   Entity:
-                Id: 94AA9D46-E093-4334-8446-2C7D1F915CE9
-                Name: Ground
-                Components:
-                    d5c7ca36f804083db3f15ac9ab641c02: !TransformComponent
-                        Id: A6D060E3-B053-492F-AD7B-42D14A8DE4BC
-                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
-                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
-                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
-                        Children: {}
-                    deb336a23085d13904bc8d091ff606d6: !ModelComponent
-                        Id: 1E25452D-D6CD-45D5-BDFD-85CF094CCBA6
-                        Model: 078A6282-3589-468B-BF67-E40543418F8E:Ground
-                        Materials: {}
-        -   Entity:
-                Id: EFAEA239-B4A2-4E8F-81FF-125BA88CE575
+                Id: efaea239-b4a2-4e8f-81ff-125ba88ce575
                 Name: Sphere
                 Components:
                     2d1d22ce4d18e913447be67497aeb7e7: !TransformComponent
-                        Id: DF0A9AD8-3514-4FA9-8DAB-3EBDF0553553
+                        Id: df0a9ad8-3514-4fa9-8dab-3ebdf0553553
                         Position: {X: 0.0, Y: 0.5, Z: 0.0}
                         Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
                         Scale: {X: 1.0, Y: 1.0, Z: 1.0}
                         Children: {}
                     2bc6cbcb769b386cc620e7fd8d6de816: !ModelComponent
-                        Id: 9072435F-A9CD-4A92-BCF3-F216FB600291
-                        Model: B8B5F438-4208-45A8-A192-57A3B9A2FEFA:Sphere
+                        Id: 9072435f-a9cd-4a92-bcf3-f216fb600291
+                        Model: b8b5f438-4208-45a8-a192-57a3b9a2fefa:Sphere
                         Materials: {}
+                    939ad5acbdbf82279d789c4ccf05f579: !LostInLimbo.LevelEditor.Game.Generator.Info.StartInfoScript,LostInLimbo.LevelEditor.Game
+                        Id: 94935c3b-b3a7-4f56-8c2c-ab1ca9bc8124
