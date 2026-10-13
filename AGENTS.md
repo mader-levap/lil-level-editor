@@ -105,6 +105,7 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 
 ### General
 
+- A lot of work will have to be done by user by nature of 3D game application.
 - When you do not know what to do in Stride, browse official documentation and tutorials and search for similar problems on the Internet. Do deep dives in engine code only as a last resort, when everything else fails.
 - Prefer writing a script and asking the user to hook it up in Game Studio.
 
