@@ -1,5 +1,10 @@
 # TODO
 
+- We need slightly fancier UI for our generator screen:
+  - More buttons for pause/cancel.
+  - Buttons need visible disabled feedback.
+  - Maybe small window with result?
+
 - Check how to implement generation subsystem in Stride (apparently Stride's equivalent is called services?), so we can have a placeholder for code that handles calling generation and processing results. What does this subsystem do?
   - Loads a JSON file that contains all data needed for generation. In future, we will have UI to be able to set at least some config.
   - Runs generation asynchronously. Note that it won't generate everything at once, only some chunks.
@@ -11,3 +16,5 @@
 - Check how to package the game so you can run it standalone.
 
 - Add a test for RunGenScript once it runs generation system (or rather its mockup).
+
+- Loading config from JSON file.
