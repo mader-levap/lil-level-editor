@@ -1,6 +1,7 @@
 # TODO
 
 - We need slightly fancier UI for our generator screen:
+  - It is likely there is better way to pool results from generation than checking every tick. Investigate.
   - More buttons for pause/cancel.
   - Buttons need visible disabled feedback.
   - Maybe small window with result?

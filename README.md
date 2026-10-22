@@ -44,4 +44,7 @@ For development we use Visual Studio Code with the C# Dev Kit extension.
 
 ### External libraries
 
-The editor uses the **LevelGen** library. See README.md in that project for information on how to wire it up.
+The editor uses the **LevelGen** library. See `README.md` in that project for information on how to release it.
+To update library on this side, after release change its version in `LostInLimbo.LevelEditor.Game.csproj`, for example:
+```<PackageReference Include="LostInLimbo.LevelGen" Version="0.0.5" />```
+Build and run.
