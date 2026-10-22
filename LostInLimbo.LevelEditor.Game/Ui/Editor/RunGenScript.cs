@@ -6,8 +6,8 @@ using Stride.Engine;
 using Stride.UI;
 using Stride.UI.Events;
 using Stride.UI.Controls;
-using LostInLimbo.LevelGen.Data.Other;
 using LostInLimbo.LevelGen.Data.Config;
+using LostInLimbo.LevelGen.Data.Status;
 
 /// <summary>
 /// Hooks up the generation button: starts a level generation run on click, keeps the button
@@ -16,6 +16,7 @@ using LostInLimbo.LevelGen.Data.Config;
 public class RunGenScript : SyncScript
 {
   private Button? btnGenerate;
+  LevelGenerationSession levelGenerationSession = new LevelGenerationSession(); // TODO: move to service
 
   /// <summary>
   /// <see langword="true"/> while a run started by <see cref="BtnGenerateClick"/> has not yet
@@ -36,7 +37,7 @@ public class RunGenScript : SyncScript
   {
     if (!awaitingResult) return;
 
-    var status = LevelGeneration.Status();
+    var status = levelGenerationSession.Status();
     if (status.Result == EnGenResult.Running) return;
 
     // Terminal state reached: hand the button back to the user and report the outcome.
@@ -44,7 +45,7 @@ public class RunGenScript : SyncScript
     btnGenerate!.IsEnabled = true;
 
     if (status.Result == EnGenResult.Finished)
-      Log.Info($"LevelGen: Finished (steps: {LevelGeneration.World()?.Stats.Steps ?? 0}).");
+      Log.Info($"LevelGen: Finished (nodes:  {levelGenerationSession.World()?.Graph.Nodes.Count ?? 0}, steps: {levelGenerationSession.World()?.Stats.Steps ?? 0}).");
     else if (status.Result == EnGenResult.Error)
       Log.Error($"LevelGen: Error - {status.Error}");
     else
@@ -74,7 +75,7 @@ public class RunGenScript : SyncScript
     try
     {
       Log.Info("LevelGen: starting...");
-      started = LevelGeneration.Start(EnRunKind.All, config);
+      started = levelGenerationSession.Start(EnRunKind.All, config);
     }
     catch (Exception exception)
     {
