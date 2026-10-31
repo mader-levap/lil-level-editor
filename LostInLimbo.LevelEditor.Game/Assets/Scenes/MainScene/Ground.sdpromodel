@@ -1,5 +1,5 @@
 !ProceduralModelAsset
-Id: 078A6282-3589-468B-BF67-E40543418F8E
+Id: 078a6282-3589-468b-bf67-e40543418f8e
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
 Type: !PlaneProceduralModel
@@ -10,4 +10,4 @@ Type: !PlaneProceduralModel
     LocalOffset: {X: 0.0, Y: 0.0, Z: 0.0}
     NumberOfTextureCoordinates: 10
     MaterialInstance:
-        Material: CC372268-14C3-49DE-ADA9-028ACB020075:Ground Material
+        Material: cc372268-14c3-49de-ada9-028acb020075:Scenes/MainScene/Ground Material

@@ -2,7 +2,7 @@
 Id: 27869974-cdf4-4a87-8f61-2147c412d58d
 SerializedVersion: {Stride: 3.1.0.1}
 Tags: []
-DefaultScene: 7e20115c-6509-4885-bbe9-8c945a742052:MainScene
+DefaultScene: 7e20115c-6509-4885-bbe9-8c945a742052:Scenes/MainScene/MapScene
 GraphicsCompositor: ffa2b801-dd8b-471c-8745-f8cad37bbde0:GraphicsCompositor
 Defaults:
     - !Stride.Audio.AudioEngineSettings,Stride.Audio
@@ -12,7 +12,7 @@ Defaults:
     - !Stride.Graphics.RenderingSettings,Stride.Graphics
         DefaultBackBufferWidth: 1280
         DefaultBackBufferHeight: 720
-        AdaptBackBufferToScreen: false
+        AdaptBackBufferToScreen: true
         DefaultGraphicsProfile: Level_10_0
         ColorSpace: Linear
         DisplayOrientation: Default

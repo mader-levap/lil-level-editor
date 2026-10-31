@@ -26,10 +26,10 @@ Hierarchy:
                         Children: {}
                     28bb043fdb645b39142c326cacc0787e: !UIComponent
                         Id: fbd572e3-4efa-4a85-886f-5b99b54af489
-                        Page: bb6d0ca6-3b9f-473d-af60-bae75af3d9d3:UI/UiEditor
+                        Page: bb6d0ca6-3b9f-473d-af60-bae75af3d9d3:UI/Editor/UiEditor
                         Resolution: {X: 1280.0, Y: 720.0, Z: 1000.0}
                         Size: {X: 1.28, Y: 0.72, Z: 1.0}
-                    0b9e9bb318af39ed815cd5673f566061: !LostInLimbo.LevelEditor.Ui.Editor.RunGenScript,LostInLimbo.LevelEditor.Game
+                    0b9e9bb318af39ed815cd5673f566061: !LostInLimbo.LevelEditor.Ui.Editor.EditorScript,LostInLimbo.LevelEditor.Game
                         Id: cf843bcb-388a-4aed-ba09-9867a88e90f7
         -   Folder: World
             Entity:
@@ -69,11 +69,11 @@ Hierarchy:
                         Children: {}
                     50ab9d07393b0d80a6cff9ffb3104e4a: !BackgroundComponent
                         Id: c074f8bf-be4c-4e7d-b38c-3598f70f8058
-                        Texture: ab87df41-1448-4d9d-adb9-fd79f89a52ec:Skybox texture
+                        Texture: ab87df41-1448-4d9d-adb9-fd79f89a52ec:Scenes/MainScene/Skybox texture
                     5733ca1e623fcf399f389e2b0e7c54ec: !LightComponent
                         Id: e3c8082a-6bdf-4e84-b321-ab00b0533ab6
                         Type: !LightSkybox
-                            Skybox: da605d46-95b1-464d-b66b-0afad59c4be6:Skybox
+                            Skybox: da605d46-95b1-464d-b66b-0afad59c4be6:Scenes/MainScene/Skybox
         -   Folder: World
             Entity:
                 Id: 94aa9d46-e093-4334-8446-2c7d1f915ce9
@@ -87,7 +87,7 @@ Hierarchy:
                         Children: {}
                     deb336a23085d13904bc8d091ff606d6: !ModelComponent
                         Id: 1e25452d-d6cd-45d5-bdfd-85cf094ccba6
-                        Model: 078a6282-3589-468b-bf67-e40543418f8e:Ground
+                        Model: 078a6282-3589-468b-bf67-e40543418f8e:Scenes/MainScene/Ground
                         Materials: {}
         -   Folder: World
             Entity:
@@ -128,5 +128,5 @@ Hierarchy:
                         Children: {}
                     2bc6cbcb769b386cc620e7fd8d6de816: !ModelComponent
                         Id: 9072435f-a9cd-4a92-bcf3-f216fb600291
-                        Model: b8b5f438-4208-45a8-a192-57a3b9a2fefa:Sphere
+                        Model: b8b5f438-4208-45a8-a192-57a3b9a2fefa:Scenes/MainScene/Sphere
                         Materials: {}

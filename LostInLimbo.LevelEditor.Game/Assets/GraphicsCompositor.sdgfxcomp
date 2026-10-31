@@ -38,6 +38,10 @@ RenderStages:
         Name: GBuffer
         EffectSlotName: GBuffer
         SortMode: !FrontToBackSortMode {}
+    170f9f6490c3196bcb3455bdb0b9c1ec*:
+        Id: a550487e-8411-4b54-902f-b7050c9f85a6
+        Name: UiStage
+        EffectSlotName: Main
 RenderFeatures:
     d8fb80b0e7995140a46bca8dc36ee8a2: !Stride.Rendering.MeshRenderFeature,Stride.Rendering
         RenderStageSelectors:
@@ -107,8 +111,13 @@ RenderFeatures:
     93933ad00d0c357d4915ad462cbfd04c: !Stride.Rendering.UI.UIRenderFeature,Stride.UI
         RenderStageSelectors:
             14a071694411235038a102ac3794bb4d: !Stride.Rendering.SimpleGroupToRenderStageSelector,Stride.Rendering
+                RenderGroup*: Group0, Group1, Group2, Group3, Group4, Group5, Group6, Group7, Group8, Group9, Group10, Group11, Group12, Group13, Group14, Group15, Group16, Group17, Group18, Group19, Group20, Group21, Group22, Group23, Group24, Group25, Group26, Group27, Group28, Group29, Group30
                 RenderStage: ref!! 198e9db6-93ad-48a3-aef5-f2999e678f71
                 EffectName: Test
+            e7a1065fd815c10cdbef4841ceed39d4*: !Stride.Rendering.SimpleGroupToRenderStageSelector,Stride.Rendering
+                RenderGroup: Group31
+                RenderStage: ref!! a550487e-8411-4b54-902f-b7050c9f85a6
+                EffectName: null
     9013eab3ea0ef6c98bf133b86c173d45: !Stride.Particles.Rendering.ParticleEmitterRenderFeature,Stride.Particles
         RenderStageSelectors:
             af1bd241305893ef8ff7952184e1cb0b: !Stride.Particles.Rendering.ParticleEmitterTransparentRenderStageSelector,Stride.Particles

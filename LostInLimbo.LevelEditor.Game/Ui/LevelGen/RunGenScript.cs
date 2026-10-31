@@ -1,4 +1,4 @@
-namespace LostInLimbo.LevelEditor.Ui.Editor;
+namespace LostInLimbo.LevelEditor.Ui.LevelGen;
 
 using System;
 using Stride.Engine;
@@ -10,8 +10,7 @@ using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelGen.Data.Result;
 
 /// <summary>
-/// Hooks up the generation button: starts a level generation run on click, keeps the button
-/// disabled while the run is in flight and reports the terminal status to the Stride console.
+/// Hooks up the generation to buttons.
 /// </summary>
 public class RunGenScript : SyncScript
 {
