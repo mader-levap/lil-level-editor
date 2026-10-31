@@ -1,4 +1,5 @@
 using Stride.Engine;
+using LostInLimbo.LevelEditor.Main;
 
-using var game = new Game();
+using Game game = new LostInLimboEditor();
 game.Run();

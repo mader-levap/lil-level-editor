@@ -1,13 +1,13 @@
-namespace LostInLimbo.LevelEditor.Game.Ui.Editor;
+namespace LostInLimbo.LevelEditor.Ui.Editor;
 
 using System;
-using LostInLimbo.LevelGen.Api;
 using Stride.Engine;
 using Stride.UI;
 using Stride.UI.Events;
 using Stride.UI.Controls;
-using LostInLimbo.LevelGen.Data.Config;
 using LostInLimbo.LevelGen.Data.Status;
+using LostInLimbo.LevelEditor.Services.LevelGen;
+using LostInLimbo.LevelGen.Data.Result;
 
 /// <summary>
 /// Hooks up the generation button: starts a level generation run on click, keeps the button
@@ -15,19 +15,25 @@ using LostInLimbo.LevelGen.Data.Status;
 /// </summary>
 public class RunGenScript : SyncScript
 {
+  /// <summary>Button used to start level generation.</summary>
   private Button? btnGenerate;
-  LevelGenerationSession levelGenerationSession = new LevelGenerationSession(); // TODO: move to service
+
+  /// <summary>Level generation service.</summary>
+  private ILevelGenService levelGenService = default!;
 
   /// <summary>
-  /// <see langword="true"/> while a run started by <see cref="BtnGenerateClick"/> has not yet
-  /// reached a terminal state; gates re-entry and drives the poll in <see cref="Update"/>.
+  /// <see langword="true"/> while a run started by <see cref="Start"/> has not yet
+  /// reached a terminal state; gates re-entry and drives the poll in <see cref="IsFinished"/>.
   /// </summary>
-  private bool awaitingResult;
+  private bool awaitingResult = false;
 
   public override void Start()
   {
+    levelGenService = Services.GetService<ILevelGenService>()
+      ?? throw new InvalidOperationException("ILevelGenService was not registered.");
+
     var page = Entity.Get<UIComponent>().Page;
-    btnGenerate = page.RootElement.FindVisualChildOfType<Button>("BtnGenerate")
+    btnGenerate = page.RootElement.FindVisualChildOfType<Button>("BtnGenerate") 
       ?? throw new InvalidOperationException("UI element 'BtnGenerate' not found.");
 
     btnGenerate.Click += BtnGenerateClick;
@@ -35,18 +41,18 @@ public class RunGenScript : SyncScript
 
   public override void Update()
   {
-    if (!awaitingResult) return;
-
-    var status = levelGenerationSession.Status();
-    if (status.Result == EnGenResult.Running) return;
+    if (!awaitingResult) return; // no run ongoing
+    var status = levelGenService.Status();
+    if (status.Result == EnGenResult.Running) return; // still running
 
     // Terminal state reached: hand the button back to the user and report the outcome.
     awaitingResult = false;
     btnGenerate!.IsEnabled = true;
 
-    if (status.Result == EnGenResult.Finished)
-      Log.Info($"LevelGen: Finished (nodes:  {levelGenerationSession.World()?.Graph.Nodes.Count ?? 0}, steps: {levelGenerationSession.World()?.Stats.Steps ?? 0}).");
-    else if (status.Result == EnGenResult.Error)
+    if (status.Result == EnGenResult.Finished) {
+      LilWorld? world = levelGenService.World();
+      Log.Info($"LevelGen: Finished. Graph: nodes={world?.Graph.Nodes.Count ?? 0}, edges={world?.Graph.Edges.Count ?? 0}. Map: steps={world?.Stats.Steps ?? 0}).");
+    } else if (status.Result == EnGenResult.Error)
       Log.Error($"LevelGen: Error - {status.Error}");
     else
       Log.Info($"LevelGen: {status.Result}.");
@@ -59,36 +65,10 @@ public class RunGenScript : SyncScript
   /// <param name="eventArgs">Event arguments.</param>
   private void BtnGenerateClick(object? sender, RoutedEventArgs eventArgs)
   {
-    if (awaitingResult) return;
     btnGenerate!.IsEnabled = false;
 
-    // For now use custom placeholder config.
-    CnfLevelGeneration config = new()
-    {
-      Debug = new()
-      {
-        PlaceholderSleep = 3000,
-      }
-    };
-
-    bool started;
-    try
-    {
-      Log.Info("LevelGen: starting...");
-      started = levelGenerationSession.Start(EnRunKind.All, config);
-    }
-    catch (Exception exception)
-    {
-      // Invalid config: no run was claimed, so the button can be enabled again immediately.
-      Log.Error($"LevelGen: Could not start generation - {exception}");
-      btnGenerate.IsEnabled = true;
-      return;
-    }
-
-    if (!started)
-    {
-      // Another run already holds the claim, or the worker thread failed to launch.
-      Log.Warning("LevelGen: Generation was not started; a run is already in flight or the worker failed to launch.");
+    bool started = levelGenService.Start();
+    if (!started) { // failed to start generation, re-enable button
       btnGenerate.IsEnabled = true;
       return;
     }
