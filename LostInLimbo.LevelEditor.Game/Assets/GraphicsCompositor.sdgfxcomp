@@ -214,17 +214,22 @@ SharedRenderers:
     ee80a20a9bd99f2d70711114e15fe7ca: !Stride.Rendering.Compositing.DebugRenderer,Stride.Rendering
         Id: ef854efe-33da-4e65-a396-a483f96ebe56
         DebugRenderStages: {}
-Game: !Stride.Rendering.Compositing.SceneCameraRenderer,Stride.Engine
-    Id: 6412f5b2-1ebc-4512-8ffc-7210b04a22ad
-    Enabled*: true
-    Camera: ref!! ad755dec-c32b-4528-95f8-b2a30870d896
-    Child: !Stride.Rendering.Compositing.SceneRendererCollection,Stride.Rendering
-        Id: 63200eba-6645-4035-8b89-8fb6154f60b3
-        Enabled*: true
-        Children:
-            d39c5ddbf8b7d5ca02bafb6496b1cc3c: null
-            01d338078e9b21121ead0868932613dd: !Stride.Rendering.Compositing.DebugRenderer,Stride.Rendering ref!! ef854efe-33da-4e65-a396-a483f96ebe56
-    RenderMask: All
+Game*: !Stride.Rendering.Compositing.SceneRendererCollection,Stride.Rendering
+    Id: 0af9a2f5-442f-42b4-bd62-7d49f1262b6d
+    Children:
+        5f45e8adbbc3ba975dda46d29352e0be: !Stride.Rendering.Compositing.SceneCameraRenderer,Stride.Engine
+            Id: 65ecd9f1-f316-4772-9c61-3f02374bb98f
+            Camera: ref!! ad755dec-c32b-4528-95f8-b2a30870d896
+            Child: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 9c2cdd6f-9354-4a85-867f-912c17f2f219
+            RenderMask: Group0, Group1, Group2, Group3, Group4, Group5, Group6, Group7, Group8, Group9, Group10, Group11, Group12, Group13, Group14, Group15, Group16, Group17, Group18, Group19, Group20, Group21, Group22, Group23, Group24, Group25, Group26, Group27, Group28, Group29, Group30
+        60cc77cb7f356d84c83c5df90bcb20e2: !Stride.Rendering.Compositing.SceneCameraRenderer,Stride.Engine
+            Id: 272d18e0-314d-4a01-a043-080ecb0bb9c1
+            Camera: ref!! ad755dec-c32b-4528-95f8-b2a30870d896
+            Child: !Stride.Rendering.Compositing.SingleStageRenderer,Stride.Rendering
+                Id: 6a383978-b2be-4a71-a29f-6f19cb60613a
+                RenderStage: ref!! a550487e-8411-4b54-902f-b7050c9f85a6
+            RenderMask: Group31
+        27eb1a2b272e8ab415795ec9e14c60b0: !Stride.Rendering.Compositing.DebugRenderer,Stride.Rendering ref!! ef854efe-33da-4e65-a396-a483f96ebe56
 SingleView: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 063f3808-5814-4fff-9b8a-87f61059d0ec
 Editor*: !Stride.Rendering.Compositing.SceneRendererCollection,Stride.Rendering
     Id: 4a050382-6cb0-477e-a1c9-61a746d171e4

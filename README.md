@@ -48,3 +48,7 @@ The editor uses the **LevelGen** library. See `README.md` in that project for in
 To update library on this side, after release change its version in `LostInLimbo.LevelEditor.Game.csproj`, for example:
 ```<PackageReference Include="LostInLimbo.LevelGen" Version="0.0.5" />```
 Build and run.
+
+## Notes
+
+- Ui elements on scene need to have `Render Group` set to `Group31`. That will ensure these do not have post-process.
