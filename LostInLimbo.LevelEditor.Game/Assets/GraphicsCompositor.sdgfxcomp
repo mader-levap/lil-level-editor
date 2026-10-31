@@ -216,13 +216,21 @@ SharedRenderers:
         DebugRenderStages: {}
 Game: !Stride.Rendering.Compositing.SceneCameraRenderer,Stride.Engine
     Id: 6412f5b2-1ebc-4512-8ffc-7210b04a22ad
+    Enabled*: true
     Camera: ref!! ad755dec-c32b-4528-95f8-b2a30870d896
     Child: !Stride.Rendering.Compositing.SceneRendererCollection,Stride.Rendering
         Id: 63200eba-6645-4035-8b89-8fb6154f60b3
+        Enabled*: true
         Children:
-            d39c5ddbf8b7d5ca02bafb6496b1cc3c: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 9c2cdd6f-9354-4a85-867f-912c17f2f219
+            d39c5ddbf8b7d5ca02bafb6496b1cc3c: null
             01d338078e9b21121ead0868932613dd: !Stride.Rendering.Compositing.DebugRenderer,Stride.Rendering ref!! ef854efe-33da-4e65-a396-a483f96ebe56
     RenderMask: All
 SingleView: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 063f3808-5814-4fff-9b8a-87f61059d0ec
-Editor: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 9c2cdd6f-9354-4a85-867f-912c17f2f219
+Editor*: !Stride.Rendering.Compositing.SceneRendererCollection,Stride.Rendering
+    Id: 4a050382-6cb0-477e-a1c9-61a746d171e4
+    Children:
+        7cc1cf3ca6622123f5eb8d9372ab6e7c: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 9c2cdd6f-9354-4a85-867f-912c17f2f219
+        7725deeb2b0748d9abd06beb099b3e14: !Stride.Rendering.Compositing.SingleStageRenderer,Stride.Rendering
+            Id: 4ebbfbe4-3d17-4aca-90e1-f9ea01b6c860
+            RenderStage: ref!! a550487e-8411-4b54-902f-b7050c9f85a6
 BlockPositions: {}
