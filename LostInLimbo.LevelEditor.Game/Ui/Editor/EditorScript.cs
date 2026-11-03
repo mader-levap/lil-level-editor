@@ -13,21 +13,21 @@ using Stride.UI.Controls;
 public class EditorScript : StartupScript
 {
   /// <summary>Show/hide level gen UI overlay.</summary>
-  private Button? btnUiLevelGen;
+  private Button? _btnUiLevelGen;
   /// <summary>Show/hide some other UI overlay.</summary>
-  private Button? btnUiSomethingElse;
+  private Button? _btnUiSomethingElse;
 
   public override void Start()
   {
     var page = Entity.Get<UIComponent>().Page;
 
-    btnUiLevelGen = page.RootElement.FindVisualChildOfType<Button>("BtnUiLevelGen") 
+    _btnUiLevelGen = page.RootElement.FindVisualChildOfType<Button>("BtnUiLevelGen")
       ?? throw new InvalidOperationException("UI element 'BtnUiLevelGen' not found.");
-    btnUiSomethingElse = page.RootElement.FindVisualChildOfType<Button>("BtnUiSomethingElse") 
+    _btnUiSomethingElse = page.RootElement.FindVisualChildOfType<Button>("BtnUiSomethingElse")
       ?? throw new InvalidOperationException("UI element 'BtnUiSomethingElse' not found.");
 
-    btnUiLevelGen.Click += BtnUiLevelGenClick;
-    btnUiSomethingElse.Click += BtnUiSomethingElseClick;
+    _btnUiLevelGen.Click += BtnUiLevelGenClick;
+    _btnUiSomethingElse.Click += BtnUiSomethingElseClick;
   }
 
   // Icon buttons handling.

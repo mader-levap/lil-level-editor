@@ -32,12 +32,12 @@ public interface ILevelGenService
 }
 
 /// <summary>
-/// Level generation service.
+/// Level generation service. Acts as wrapper for <c>LevelGenSession</c>.
 /// </summary>
 public sealed class LevelGenService : GameServiceBase, ILevelGenService
 {
   /// <summary>Level generation session.</summary>
-  private readonly LevelGenSession levelGenSession = new();
+  private readonly LevelGenSession _levelGenSession = new();
 
   /// <summary>
   /// Try to start level generation.
@@ -45,7 +45,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   /// <returns>True if start succeeded, otherwise false.</returns>
   public bool Start()
   {
-    var status = levelGenSession.Status();
+    var status = _levelGenSession.Status();
     if (status.Result == EnGenResult.Running) return false; // already running
 
     // For now use hardcoded props.
@@ -55,7 +55,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     try
     {
       Log.Info("LevelGen: starting...");
-      started = levelGenSession.Start(EnRunKind.All, config);
+      started = _levelGenSession.Start(EnRunKind.All, config);
     }
     catch (Exception exception)
     {
@@ -63,7 +63,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
       Log.Error($"LevelGen: Could not start generation - {exception}");
       return false;
     }
-    
+
     if (!started)
     {
       // Another run already holds the claim, or the worker thread failed to launch.
@@ -78,7 +78,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   /// <returns>Status of generation.</returns>
   public GenerationStatus Status()
   {
-    return levelGenSession.Status();
+    return _levelGenSession.Status();
   }
 
   /// <summary>
@@ -87,6 +87,6 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   /// <returns>Generated world or null if world is not available.</returns>
   public LilWorld? World()
   {
-    return levelGenSession.World();
+    return _levelGenSession.World();
   }
 }

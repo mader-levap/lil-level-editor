@@ -15,41 +15,41 @@ using LostInLimbo.LevelGen.Data.Result;
 public class RunGenScript : SyncScript
 {
   /// <summary>Button used to start level generation.</summary>
-  private Button? btnGenerate;
+  private Button? _btnGenerate;
 
   /// <summary>Level generation service.</summary>
-  private ILevelGenService levelGenService = default!;
+  private ILevelGenService _levelGenService = default!;
 
   /// <summary>
   /// <see langword="true"/> while a run started by <see cref="Start"/> has not yet
   /// reached a terminal state; gates re-entry and drives the poll in <see cref="IsFinished"/>.
   /// </summary>
-  private bool awaitingResult = false;
+  private bool _awaitingResult = false;
 
   public override void Start()
   {
-    levelGenService = Services.GetService<ILevelGenService>()
+    _levelGenService = Services.GetService<ILevelGenService>()
       ?? throw new InvalidOperationException("ILevelGenService was not registered.");
 
     var page = Entity.Get<UIComponent>().Page;
-    btnGenerate = page.RootElement.FindVisualChildOfType<Button>("BtnGenerate") 
+    _btnGenerate = page.RootElement.FindVisualChildOfType<Button>("BtnGenerate")
       ?? throw new InvalidOperationException("UI element 'BtnGenerate' not found.");
 
-    btnGenerate.Click += BtnGenerateClick;
+    _btnGenerate.Click += BtnGenerateClick;
   }
 
   public override void Update()
   {
-    if (!awaitingResult) return; // no run ongoing
-    var status = levelGenService.Status();
+    if (!_awaitingResult) return; // no run ongoing
+    var status = _levelGenService.Status();
     if (status.Result == EnGenResult.Running) return; // still running
 
     // Terminal state reached: hand the button back to the user and report the outcome.
-    awaitingResult = false;
-    btnGenerate!.IsEnabled = true;
+    _awaitingResult = false;
+    _btnGenerate!.IsEnabled = true;
 
     if (status.Result == EnGenResult.Finished) {
-      LilWorld? world = levelGenService.World();
+      LilWorld? world = _levelGenService.World();
       Log.Info($"LevelGen: Finished. Graph: nodes={world?.Graph.Nodes.Count ?? 0}, edges={world?.Graph.Edges.Count ?? 0}. Map: steps={world?.Stats.Steps ?? 0}).");
     } else if (status.Result == EnGenResult.Error)
       Log.Error($"LevelGen: Error - {status.Error}");
@@ -64,14 +64,14 @@ public class RunGenScript : SyncScript
   /// <param name="eventArgs">Event arguments.</param>
   private void BtnGenerateClick(object? sender, RoutedEventArgs eventArgs)
   {
-    btnGenerate!.IsEnabled = false;
+    _btnGenerate!.IsEnabled = false;
 
-    bool started = levelGenService.Start();
+    bool started = _levelGenService.Start();
     if (!started) { // failed to start generation, re-enable button
-      btnGenerate.IsEnabled = true;
+      _btnGenerate.IsEnabled = true;
       return;
     }
 
-    awaitingResult = true;
+    _awaitingResult = true;
   }
 }

@@ -1,6 +1,7 @@
 # TODO
 
 - UI:
+  - Research how to make UI programmatically.
   - UiEditor: provides basic data and icons that turn on/off other overlays
   - UiLevelGen: overlay that manages level generation. For now just generate button.
 
