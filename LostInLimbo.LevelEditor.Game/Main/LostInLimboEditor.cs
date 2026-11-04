@@ -1,11 +1,11 @@
 using LostInLimbo.LevelEditor.Services.LevelGen;
-using Stride.Core.Diagnostics;
+using LostInLimbo.LevelEditor.Services.SystemInfo;
 using Stride.Engine;
 using Stride.Games;
 
 namespace LostInLimbo.LevelEditor.Main;
 
-public sealed class LostInLimboEditor : Stride.Engine.Game
+public sealed class LostInLimboEditor : Game
 {
   /// <summary>
   /// Prepares context.
@@ -15,6 +15,7 @@ public sealed class LostInLimboEditor : Stride.Engine.Game
     base.PrepareContext();
 
     // Register global services here.
+    Services.AddService<ISystemInfoService>(new SystemInfoService());
     Services.AddService<ILevelGenService>(new LevelGenService());
   }
 

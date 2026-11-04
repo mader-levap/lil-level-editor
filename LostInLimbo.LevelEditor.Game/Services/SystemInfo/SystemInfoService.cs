@@ -7,6 +7,29 @@ namespace LostInLimbo.LevelEditor.Services.SystemInfo;
 /// </summary>
 public interface ISystemInfoService
 {
+  /// <summary>
+  /// Retrieve name of application.
+  /// </summary>
+  /// <returns>Name of application.</returns>
+  string GetName();
+
+  /// <summary>
+  /// Retrieve author of application.
+  /// </summary>
+  /// <returns>Author of application.</returns>
+  public string GetAuthor();
+
+  /// <summary>
+  /// Retrieve version of application.
+  /// </summary>
+  /// <returns>Version of application.</returns>
+  public string GetVersion();
+
+  /// <summary>
+  /// Retrieve build type of application.
+  /// </summary>
+  /// <returns>Build type of application.</returns>
+  public EnBuildType GetBuild();
 }
 
 /// <summary>

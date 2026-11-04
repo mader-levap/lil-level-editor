@@ -11,27 +11,8 @@ Hierarchy:
         - ref!! 465e7984-7938-4f32-89e6-cb3f1b0ead5f
         - ref!! a19ed5d8-ddbf-4677-873a-2e4bfc04ee44
         - ref!! 1716d2c8-b130-41e1-b4f3-43c719853068
-        - ref!! 13226d0c-1f77-45e4-a148-24edc7a99523
+        - ref!! a4d74fdb-2dd5-4c22-8245-927040222ce4
     Parts:
-        -   Folder: UI
-            Entity:
-                Id: 13226d0c-1f77-45e4-a148-24edc7a99523
-                Name: UiEditor
-                Components:
-                    971d80afd3fd31badc959489eac74edb: !TransformComponent
-                        Id: dbdd8b24-17ef-48b7-a3b8-0f6114ef8985
-                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
-                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
-                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
-                        Children: {}
-                    28bb043fdb645b39142c326cacc0787e: !UIComponent
-                        Id: fbd572e3-4efa-4a85-886f-5b99b54af489
-                        Page: bb6d0ca6-3b9f-473d-af60-bae75af3d9d3:UI/Editor/UiEditor
-                        Resolution: {X: 1280.0, Y: 720.0, Z: 1000.0}
-                        Size: {X: 1.28, Y: 0.72, Z: 1.0}
-                        RenderGroup: Group31
-                    0b9e9bb318af39ed815cd5673f566061: !LostInLimbo.LevelEditor.Ui.Editor.EditorScript,LostInLimbo.LevelEditor.Game
-                        Id: cf843bcb-388a-4aed-ba09-9867a88e90f7
         -   Folder: World
             Entity:
                 Id: 1716d2c8-b130-41e1-b4f3-43c719853068
@@ -116,6 +97,19 @@ Hierarchy:
                                 ComputeTransmittance: false
                                 BiasParameters: {}
                         Intensity: 20.0
+        -   Folder: UI
+            Entity:
+                Id: a4d74fdb-2dd5-4c22-8245-927040222ce4
+                Name: UIMain
+                Components:
+                    21d6e6f934475a1fecc40c4defc67965: !TransformComponent
+                        Id: f580d23b-8d51-468f-a0b9-104c6091798d
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    a871cba7afbcf1ea893d708be0f6f304: !LostInLimbo.LevelEditor.Ui.Editor.UiMain,LostInLimbo.LevelEditor.Game
+                        Id: 764066b4-e589-4e0c-b2e9-d94d0ecce29e
         -   Folder: World
             Entity:
                 Id: efaea239-b4a2-4e8f-81ff-125ba88ce575

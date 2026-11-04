@@ -122,7 +122,8 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 ### General coding rules
 
 - Use C# file-scoped namespaces (`namespace LostInLimbo.LevelEditor;`).
-- Write null-aware code and do not silence nullable warnings with `null!` without a documented reason. Note that Stride 4.4 assemblies are nullable-oblivious (no annotations), so the compiler cannot warn about engine API misuse — only our own code is checked.
+- Write null-aware code and do not silence nullable warnings with `null!` without a documented reason. Exception: filling class fields that are initialized later (not in constructor), typically in `Start()`.
+  Note that Stride 4.4 assemblies are nullable-oblivious (no annotations), so the compiler cannot warn about engine API misuse — only our own code is checked.
 - Use `sealed` for classes not intended to be inherited.
 - Prefer `record` for immutable data-transfer types.
 - Prefer `IReadOnlyList<T>`/arrays in APIs.

@@ -1,0 +1,8 @@
+!SpriteFont
+Id: d5f9e8bf-cc60-4761-a5ca-114ddf93e805
+SerializedVersion: {Stride: 2.1.0.0}
+Tags: []
+FontSource: !SystemFontProvider
+    FontName: Noto Sans
+    Style: Regular
+FontType: !RuntimeRasterizedSpriteFontType {}

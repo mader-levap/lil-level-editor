@@ -1,11 +1,11 @@
-namespace LostInLimbo.LevelEditor.Services.LevelGen;
-
 using System;
 using LostInLimbo.LevelGen.Api;
 using LostInLimbo.LevelGen.Data.Config;
 using LostInLimbo.LevelGen.Data.Prop;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
+
+namespace LostInLimbo.LevelEditor.Services.LevelGen;
 
 /// <summary>
 /// Interface for level generation service.

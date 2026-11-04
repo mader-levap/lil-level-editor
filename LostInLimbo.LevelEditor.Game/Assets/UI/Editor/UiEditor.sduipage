@@ -104,7 +104,7 @@ Hierarchy:
                 MaximumHeight: 3.4028235E+38
                 MaximumDepth: 3.4028235E+38
                 Source: !SpriteFromTexture
-                    Texture: 18c2b6ca-674f-42a0-adc1-6a524d64625e:Graphics/Icons/icon_gears
+                    Texture: 18c2b6ca-674f-42a0-adc1-6a524d64625e:Graphics/Icons/IconGears
                     Center: {X: 0.0, Y: 0.0}
                 Color: {R: 255, G: 255, B: 255, A: 255}
         -   UIElement: !ImageElement
@@ -116,7 +116,7 @@ Hierarchy:
                 MaximumHeight: 3.4028235E+38
                 MaximumDepth: 3.4028235E+38
                 Source: !SpriteFromTexture
-                    Texture: 5c6290a4-4fc8-4d47-a693-975c5f955511:Graphics/Icons/icon_question
+                    Texture: 5c6290a4-4fc8-4d47-a693-975c5f955511:Graphics/Icons/IconQuestion
                     Center: {X: 0.0, Y: 0.0}
                 Color: {R: 255, G: 255, B: 255, A: 255}
         -   UIElement: !UniformGrid

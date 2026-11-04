@@ -1,5 +1,3 @@
-namespace LostInLimbo.LevelEditor.Ui.LevelGen;
-
 using System;
 using Stride.Engine;
 using Stride.UI;
@@ -8,6 +6,8 @@ using Stride.UI.Controls;
 using LostInLimbo.LevelGen.Data.Status;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelGen.Data.Result;
+
+namespace LostInLimbo.LevelEditor.Ui.LevelGen;
 
 /// <summary>
 /// Hooks up the generation to buttons.
