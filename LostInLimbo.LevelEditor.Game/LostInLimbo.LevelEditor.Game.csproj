@@ -1,10 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <AssemblyTitle>Lost in Limbo: level generator/editor</AssemblyTitle>
+    <Product>Lost in Limbo: level generator/editor</Product>
+    <Company>Mader Levap</Company>
+    <InformationalVersion>0.0.2</InformationalVersion>
+    <Description>Editor for Lost in Limbo.</Description>
+
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>LostInLimbo.LevelEditor</RootNamespace>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+
   <ItemGroup>
+    <AssemblyMetadata Include="BuildType" Value="$(Configuration)" />
+
     <PackageReference Include="LostInLimbo.LevelGen" Version="0.0.6" />
     <PackageReference Include="Stride.Engine" Version="4.4.1" />
     <PackageReference Include="Stride.Video" Version="4.4.1" />

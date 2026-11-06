@@ -1,4 +1,8 @@
+using System.Reflection;
+using System.Linq;
+using LostInLimbo.LevelEditor.Main;
 using LostInLimbo.LevelEditor.Services.SystemInfo.Data;
+using System;
 
 namespace LostInLimbo.LevelEditor.Services.SystemInfo;
 
@@ -45,13 +49,59 @@ public sealed class SystemInfoService : GameServiceBase, ISystemInfoService
   /// </summary>
   public SystemInfoService()
   {
+    Assembly assembly = typeof(LostInLimboEditor).Assembly;
     _systemInfo = new()
     {
-      Name = "Lost in Limbo: level generator/editor",
-      Author = "Mader Levap",
-      Version = "0.0.1",
-      Build = EnBuildType.Development,
+      Name = ResolveName(assembly),
+      Author = ResolveAuthor(assembly),
+      Version = ResolveVersion(assembly),
+      Build = ResolveBuildType(assembly),
     };
+  }
+
+  /// <summary>
+  /// Resolves name of application.
+  /// </summary>
+  /// <param name="assembly">Game assembly.</param>
+  /// <returns>Name of application.</returns>
+  private static string ResolveName(Assembly assembly)
+  {
+    return assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product
+      ?? assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? "unknown";
+  }
+
+  /// <summary>
+  /// Resolves author of application.
+  /// </summary>
+  /// <param name="assembly">Game assembly.</param>
+  /// <returns>Author of application.</returns>
+  private static string ResolveAuthor(Assembly assembly)
+  {
+    return assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company ?? "unknown";
+  }
+
+  /// <summary>
+  /// Resolves version of application.
+  /// </summary>
+  /// <param name="assembly">Game assembly.</param>
+  /// <returns>Version of application.</returns>
+  private static string ResolveVersion(Assembly assembly)
+  {
+    return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
+  }
+
+  /// <summary>
+  /// Resolves build type enum.
+  /// </summary>
+  /// <param name="assembly">Game assembly.</param>
+  /// <returns>Build type.</returns>
+  private static EnBuildType ResolveBuildType(Assembly assembly)
+  {
+    string buildTypeStr = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(x => x.Key == "BuildType")?.Value ?? "unknown";
+    EnBuildType foundBuildType = Enum.TryParse<EnBuildType>(buildTypeStr, ignoreCase: true, out var buildType) ? buildType : EnBuildType.Development;
+    if (Enum.IsDefined(buildType)) return foundBuildType;
+    return EnBuildType.Development;
   }
 
   // ///////////////////////////////////////////////////////////////////////////
