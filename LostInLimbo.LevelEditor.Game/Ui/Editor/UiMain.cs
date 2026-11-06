@@ -13,13 +13,9 @@ using Stride.Rendering.Sprites;
 namespace LostInLimbo.LevelEditor.Ui.Editor;
 
 /// <summary>
-/// Script for main editor UI overlay. This UI is main overlay and contains only some basic data (like app name or version) and icons
-/// that show/hide other UI overlays.
+/// Script for main editor UI overlay. This UI is main overlay and contains only some basic data (like app name or version)
+/// and icons that show/hide other UI overlays.
 /// </summary>
-// TODO:
-// - _appBarPanel should be actually at bottom (currently is just under _overlayPanel)
-// - _appBarPanel is already at width of screen, but needs to properly adjust children:
-//   some content on left, some on right
 public class UiMain : StartupScript
 {
   /// <summary>System info service.</summary>
@@ -41,10 +37,10 @@ public class UiMain : StartupScript
   /// <summary>Build text.</summary>
   private TextBlock _buildText = default!;
   /// <summary>Stack panel for app bar.</summary>
-  private StackPanel _appBarPanel = default!;
+  private Grid _appBarPanel = default!;
 
   /// <summary>Main panel.</summary>
-  private StackPanel _mainPanel = default!;
+  private Grid _mainPanel = default!;
 
   public override void Start()
   {
@@ -223,19 +219,31 @@ public class UiMain : StartupScript
   /// Create app bar panel.
   /// </summary>
   /// <returns>App bar panel.</returns>
-  private StackPanel CreateAppBarPanel()
+  private Grid CreateAppBarPanel()
   {
-    return new StackPanel
+    var panel = new Grid
+    {
+      BackgroundColor = new Color(0, 0, 0, 64), // very translucent
+      HorizontalAlignment = HorizontalAlignment.Stretch,
+      VerticalAlignment = VerticalAlignment.Bottom,
+      ColumnDefinitions =
       {
-        BackgroundColor = new Color(0, 0, 0, 64), // very translucent
-        Orientation = Orientation.Horizontal,
-        HorizontalAlignment = HorizontalAlignment.Stretch,
-        VerticalAlignment = VerticalAlignment.Bottom,
-        Children =
-        {
-          _appText, _versionText, _buildText
-        }
-      };
+        new StripDefinition(StripType.Auto), // app name
+        new StripDefinition(StripType.Star), // spacer
+        new StripDefinition(StripType.Auto), // version
+        new StripDefinition(StripType.Auto), // build
+      },
+      Children =
+      {
+        _appText, _versionText, _buildText
+      }
+    };
+
+    _appText.SetGridColumn(0);
+    _versionText.SetGridColumn(2);
+    _buildText.SetGridColumn(3);
+
+    return panel;
   }
 
   #endregion
@@ -246,17 +254,27 @@ public class UiMain : StartupScript
   /// Create main panel.
   /// </summary>
   /// <returns>Main panel.</returns>
-  private StackPanel CreateMainPanel()
+  private Grid CreateMainPanel()
   {
-    return new StackPanel
+    var panel = new Grid
+    {
+      HorizontalAlignment = HorizontalAlignment.Stretch,
+      VerticalAlignment = VerticalAlignment.Stretch,
+      RowDefinitions =
       {
-        HorizontalAlignment = HorizontalAlignment.Stretch,
-        VerticalAlignment = VerticalAlignment.Stretch,
-        Children =
-        {
-          _overlayPanel, _appBarPanel
-        }
-      };
+        new StripDefinition(StripType.Auto), // buttons
+        new StripDefinition(StripType.Star), // spacer
+        new StripDefinition(StripType.Auto), // app bar
+      },
+      Children =
+      {
+        _overlayPanel, _appBarPanel
+      }
+    };
+
+     _overlayPanel.SetGridRow(0);
+     _appBarPanel.SetGridRow(2);
+    return panel;
   }
 
   #endregion
