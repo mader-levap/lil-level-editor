@@ -22,8 +22,17 @@ public class UiLevelGen : StartupScript
 
   public override void Start()
   {
+    InitResources();
     BuildComponents();
     BuildLayout();
+  }
+
+  /// <summary>
+  /// Initialize resources.
+  /// </summary>
+  private void InitResources()
+  {
+    _font = Content.Load<SpriteFont>("UI/Fonts/BasicFont");
   }
 
   /// <summary>
@@ -31,8 +40,6 @@ public class UiLevelGen : StartupScript
   /// </summary>
   private void BuildComponents()
   {
-    _font = Content.Load<SpriteFont>("UI/Fonts/BasicFont");
-
     // TODO: call subpanels like BuildOverlayPanel();
     _mainPanel = CreateMainPanel();
   }

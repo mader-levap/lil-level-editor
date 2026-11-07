@@ -22,6 +22,10 @@ public class UiMain : StartupScript
   private ISystemInfoService _systemInfoService = default!;
   /// <summary>Font used by text.</summary>
   private SpriteFont _font = default!;
+  /// <summary>Button for unselected overlay.</summary>
+  private SpriteSheet _spriteBtnUnselected = default!;
+  /// <summary>Button for selected overlay.</summary>
+  private SpriteSheet _spriteBtnSelected = default!;
 
   /// <summary>Shows/hides level generation overlay.</summary>
   private Button _btnLevelGen = default!;
@@ -44,11 +48,22 @@ public class UiMain : StartupScript
 
   public override void Start()
   {
-    _systemInfoService = Services.GetService<ISystemInfoService>()
-      ?? throw new InvalidOperationException("ISystemInfoService was not registered.");
-
+    InitResources();
     BuildComponents();
     BuildLayout();
+  }
+
+  /// <summary>
+  /// Initialize resources.
+  /// </summary>
+  private void InitResources()
+  {
+    _systemInfoService = Services.GetService<ISystemInfoService>()
+      ?? throw new InvalidOperationException("ISystemInfoService was not registered.");
+      
+    _font = Content.Load<SpriteFont>("UI/Fonts/BasicFont");
+    _spriteBtnUnselected = Content.Load<SpriteSheet>("/LostInLimbo.LevelEditor/Graphics/Ui/BtnUnselected");
+    _spriteBtnSelected = Content.Load<SpriteSheet>("/LostInLimbo.LevelEditor/Graphics/Ui/BtnSelected");
   }
 
   /// <summary>
@@ -56,8 +71,6 @@ public class UiMain : StartupScript
   /// </summary>
   private void BuildComponents()
   {
-    _font = Content.Load<SpriteFont>("UI/Fonts/BasicFont");
-
     BuildOverlayPanel();
     BuildAppBarPanel();
     _mainPanel = CreateMainPanel();
@@ -97,7 +110,6 @@ public class UiMain : StartupScript
   /// <returns>Button.</returns>
   private Button CreateButton(string name, string imageUrl)
   {
-    var buttonImage = Content.Load<SpriteSheet>("/LostInLimbo.LevelEditor/Graphics/Ui/StrideUIDesigns");
     var button = new Button()
     {
       Name = name,
@@ -108,17 +120,17 @@ public class UiMain : StartupScript
       VerticalAlignment = VerticalAlignment.Center,
       PressedImage = new SpriteFromSheet
       {
-        Sheet = buttonImage,
+        Sheet = _spriteBtnUnselected,
         CurrentFrame = 2,
       },
       NotPressedImage = new SpriteFromSheet
       {
-        Sheet = buttonImage,
+        Sheet = _spriteBtnUnselected,
         CurrentFrame = 1,
       },
       MouseOverImage = new SpriteFromSheet
       {
-        Sheet = buttonImage,
+        Sheet = _spriteBtnUnselected,
         CurrentFrame = 0,
       },
       Content = CreateImage(imageUrl)
