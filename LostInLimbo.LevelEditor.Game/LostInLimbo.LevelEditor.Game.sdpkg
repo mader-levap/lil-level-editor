@@ -15,4 +15,5 @@ RootAssets:
     - 38c623c1-2993-4667-9221-13ff9a44046a:/LostInLimbo.LevelEditor/Graphics/Ui/BtnUnselected
     - 5c6290a4-4fc8-4d47-a693-975c5f955511:/LostInLimbo.LevelEditor/Graphics/Icons/IconQuestion
     - 83fa09c5-4085-4bde-978f-a26754dc5163:/LostInLimbo.LevelEditor/Graphics/Ui/BtnSelected
+    - b40d32df-d77a-4ecb-9d55-892c32de5917:/LostInLimbo.LevelEditor/Graphics/Icons/IconInfo
     - d5f9e8bf-cc60-4761-a5ca-114ddf93e805:/LostInLimbo.LevelEditor/UI/Fonts/BasicFont

@@ -1,38 +1,32 @@
+using LostInLimbo.LevelEditor.Ui.Main;
 using Stride.Core.Mathematics;
-using Stride.Engine;
-using Stride.Graphics;
 using Stride.UI;
 using Stride.UI.Controls;
 using Stride.UI.Panels;
 
-namespace LostInLimbo.LevelEditor.Ui.LevelGen;
+namespace LostInLimbo.LevelEditor.Ui.Info;
 
 /// <summary>
-/// Script for level generation overlay.
+/// Builder for general information overlay.
 /// </summary>
-public class UiLevelGen : StartupScript
+public class UiLevelInfoBuilder : UiBuilderBase
 {
-  /// <summary>Font used by text.</summary>
-  private SpriteFont _font = default!;
-
   /// <summary>Test text.</summary>
   private TextBlock _testText = default!;
   /// <summary>Main panel.</summary>
-  private Grid _mainPanel = default!;
+  private Grid _infoPanel = default!;
 
-  public override void Start()
+  /// <summary>Build level information overlay.</summary>
+  /// <returns>Panel.</returns>
+  public override Panel Build()
   {
-    InitResources();
     BuildComponents();
-    BuildLayout();
+    return _infoPanel;
   }
 
-  /// <summary>
-  /// Initialize resources.
-  /// </summary>
-  private void InitResources()
+  public override void Update()
   {
-    _font = Content.Load<SpriteFont>("UI/Fonts/BasicFont");
+
   }
 
   /// <summary>
@@ -41,36 +35,23 @@ public class UiLevelGen : StartupScript
   private void BuildComponents()
   {
     // TODO: call subpanels like BuildOverlayPanel();
-    _mainPanel = CreateMainPanel();
+    _infoPanel = CreateLevelGenPanel();
   }
 
-  /// <summary>
-  /// Build layout.
-  /// </summary>
-  private void BuildLayout()
-  {
-    var ui = Entity.GetOrCreate<UIComponent>();
-    ui.RenderGroup = Stride.Rendering.RenderGroup.Group31; // UI render group.
-    ui.Page = new UIPage
-    {
-      RootElement = _mainPanel
-    };
-  }
-
-  #region Main panel
+  #region Level information panel
 
   /// <summary>
-  /// Create main panel.
+  /// Create level information panel.
   /// </summary>
-  /// <returns>Main panel.</returns>
-  private Grid CreateMainPanel()
+  /// <returns>Level information panel.</returns>
+  private Grid CreateLevelGenPanel()
   {
     _testText = new TextBlock
     {
-      Text = "TEST TEXT",
+      Text = "TODO: HERE WILL BE LEVEL INFORMATION OVERLAY",
       TextColor = Color.White,
       OutlineThickness = 1,
-      Font = _font,
+      Font = UiRes.Font,
       Margin = new Thickness(5, 0, 5, 0),
       HorizontalAlignment = HorizontalAlignment.Center,
       VerticalAlignment = VerticalAlignment.Center,
@@ -100,6 +81,8 @@ public class UiLevelGen : StartupScript
 
     _testText.SetGridColumn(1);
     _testText.SetGridRow(1);
+
+    panel.Visibility = Visibility.Hidden; // hidden by default
     return panel;
   }
 
