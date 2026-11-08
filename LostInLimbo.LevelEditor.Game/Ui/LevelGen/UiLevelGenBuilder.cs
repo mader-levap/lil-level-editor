@@ -1,7 +1,10 @@
 using LostInLimbo.LevelEditor.Ui.Main;
+using LostInLimbo.LevelGen.Data.Result;
+using LostInLimbo.LevelGen.Data.Status;
 using Stride.Core.Mathematics;
 using Stride.UI;
 using Stride.UI.Controls;
+using Stride.UI.Events;
 using Stride.UI.Panels;
 
 namespace LostInLimbo.LevelEditor.Ui.LevelGen;
@@ -11,10 +14,26 @@ namespace LostInLimbo.LevelEditor.Ui.LevelGen;
 /// </summary>
 public class UiLevelGenBuilder : UiBuilderBase
 {
-  /// <summary>Test text.</summary>
-  private TextBlock _testText = default!;
   /// <summary>Main panel.</summary>
   private Grid _levelGenPanel = default!;
+
+  /// <summary>Starts generation.</summary>
+  private Button _btnStart = default!;
+  /// <summary>Starts generation.</summary>
+  private Button _btnStep = default!;
+  /// <summary>Pauses generation.</summary>
+  private Button _btnPause = default!;
+  /// <summary>Starts generation.</summary>
+  private Button _btnStop = default!;
+  /// <summary>Panel for level gen buttons.</summary>
+  private StackPanel _buttonsPanel = default!;
+
+  /// <summary>Status text.</summary>
+  private TextBlock _statusText = default!;
+  /// <summary>View scroller for status text.</summary>
+  private ScrollViewer _scrollStatusText = default!;
+  /// <summary>Panel for level generation status.</summary>
+  private StackPanel _statusPanel = default!;
 
   /// <summary>Build level generation overlay.</summary>
   /// <returns>Panel.</returns>
@@ -26,7 +45,7 @@ public class UiLevelGenBuilder : UiBuilderBase
 
   public override void Update()
   {
-
+    PollRun();
   }
 
   /// <summary>
@@ -34,7 +53,8 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// </summary>
   private void BuildComponents()
   {
-    // TODO: call subpanels like BuildOverlayPanel();
+    BuildButtonsPanel();
+    BuildStatusPanel();
     _levelGenPanel = CreateLevelGenPanel();
   }
 
@@ -46,17 +66,6 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// <returns>Level generation panel.</returns>
   private Grid CreateLevelGenPanel()
   {
-    _testText = new TextBlock
-    {
-      Text = "TEST TEXT",
-      TextColor = Color.White,
-      OutlineThickness = 1,
-      Font = UiRes.Font,
-      Margin = new Thickness(5, 0, 5, 0),
-      HorizontalAlignment = HorizontalAlignment.Center,
-      VerticalAlignment = VerticalAlignment.Center,
-    };
-
     var panel = new Grid()
     {
       HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -65,25 +74,274 @@ public class UiLevelGenBuilder : UiBuilderBase
       {
         new StripDefinition(StripType.Star), // spacer
         new StripDefinition(StripType.Auto), // entry
-        new StripDefinition(StripType.Star), // spacer
       },
       ColumnDefinitions =
       {
         new StripDefinition(StripType.Star), // spacer
         new StripDefinition(StripType.Auto), // entry
-        new StripDefinition(StripType.Star), // spacer
       },
       Children =
       {
-        _testText
+        _buttonsPanel, _statusPanel
       }
     };
 
-    _testText.SetGridColumn(1);
-    _testText.SetGridRow(1);
-    
+    _buttonsPanel.SetGridRow(0);
+    _buttonsPanel.SetGridColumn(1);
+    _statusPanel.SetGridRow(1);
+    _statusPanel.SetGridColumn(0);
+    _statusPanel.SetGridColumnSpan(2);
+
     panel.Visibility = Visibility.Hidden; // hidden by default
     return panel;
+  }
+
+  #endregion
+
+  #region Buttons panel
+
+  /// <summary>
+  /// Build buttons panel.
+  /// </summary>
+  private void BuildButtonsPanel()
+  {
+    _btnStart = CreateImgButton("BtnStart", "Graphics/Icons/IconStart");
+    _btnStep = CreateImgButton("BtnStep", "Graphics/Icons/IconStep");
+    _btnPause = CreateImgButton("BtnPause", "Graphics/Icons/IconPause");
+    _btnStop = CreateImgButton("BtnStop", "Graphics/Icons/IconStop");
+    ReenableButtons(EnGenResult.None);
+    _buttonsPanel = CreateButtonsPanel();
+
+    _btnStart.Click += BtnStartClick;
+    _btnStep.Click += BtnStepClick;
+    _btnPause.Click += BtnPauseClick;
+    _btnStop.Click += BtnStopClick;
+  }
+
+  /// <summary>
+  /// Create buttons panel.
+  /// </summary>
+  /// <returns>Buttons panel.</returns>
+  private StackPanel CreateButtonsPanel()
+  {
+    return new StackPanel
+      {
+        Orientation = Orientation.Vertical,
+        Margin = new Thickness(5, 5, 5, 5),
+        HorizontalAlignment = HorizontalAlignment.Right,
+        VerticalAlignment = VerticalAlignment.Top,
+        Children =
+        {
+          _btnStart, _btnStep, _btnPause, _btnStop
+        }
+      };
+  }
+
+  #endregion
+
+  #region Status panel
+
+  /// <summary>
+  /// Build status panel.
+  /// </summary>
+  private void BuildStatusPanel()
+  {
+    _statusText = CreateStatusText();
+    _scrollStatusText = CreateScrollStatusText();
+    _statusPanel = CreateStatusPanel();
+  }
+
+  /// <summary>
+  /// Create status text.
+  /// </summary>
+  /// <returns>Text block.</returns>
+  private static TextBlock CreateStatusText()
+  {
+    return new TextBlock
+    {
+      Text = "A\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\n",
+      WrapText = true,
+      TextColor = Color.White,
+      OutlineThickness = 1,
+      Font = UiRes.Font,
+      Margin = new Thickness(5, 0, 5, 0),
+      HorizontalAlignment = HorizontalAlignment.Left,
+      VerticalAlignment = VerticalAlignment.Center,
+    };
+  }
+
+  /// <summary>
+  /// Create scroller for status text.
+  /// </summary>
+  /// <returns>Scroll viewer.</returns>
+  private ScrollViewer CreateScrollStatusText()
+  {
+    // TODO it does not scroll properly
+    return new ScrollViewer
+    {
+      Content = _statusText,
+      ScrollMode = ScrollingMode.Vertical,
+      HorizontalAlignment = HorizontalAlignment.Stretch,
+      VerticalAlignment = VerticalAlignment.Stretch,
+    };
+  }
+
+  /// <summary>
+  /// Create status panel.
+  /// </summary>
+  /// <returns>Status panel.</returns>
+  private StackPanel CreateStatusPanel()
+  {
+    return new StackPanel
+      {
+        BackgroundColor = new Color(0, 0, 0, 64), // somewhat translucent
+        Orientation = Orientation.Horizontal,
+        Margin = new Thickness(5, 5, 5, 5),
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        VerticalAlignment = VerticalAlignment.Stretch,
+        Children =
+        {
+          _scrollStatusText
+        }
+      };
+  }
+
+  #endregion
+
+  #region Button code
+
+  /// <summary>
+  /// Is <see langword="true"/> when a level generation run started and has not yet reached a terminal state;
+  /// gates re-entry and drives the poll.
+  /// </summary>
+  private bool _awaitingResult = false;
+
+  /// <summary>
+  /// Start level generation.
+  /// </summary>
+  /// <param name="sender">Sender.</param>
+  /// <param name="eventArgs">Event arguments.</param>
+  private void BtnStartClick(object? sender, RoutedEventArgs eventArgs)
+  {
+    bool started = UiRes.LevelGenService.Start();
+    if (!started) return; // failed to start generation
+
+    ReenableButtons(EnGenResult.Running);
+    _awaitingResult = true;
+  }
+
+  /// <summary>
+  /// Advance one step in level generation.
+  /// </summary>
+  /// <param name="sender">Sender.</param>
+  /// <param name="eventArgs">Event arguments.</param>
+  private void BtnStepClick(object? sender, RoutedEventArgs eventArgs)
+  {
+    bool step = UiRes.LevelGenService.Step();
+    if (!step) return; // failed to make step
+
+    ReenableButtons(EnGenResult.Paused);
+    _awaitingResult = true;
+  }
+
+  /// <summary>
+  /// Pause level generation.
+  /// </summary>
+  /// <param name="sender">Sender.</param>
+  /// <param name="eventArgs">Event arguments.</param>
+  private void BtnPauseClick(object? sender, RoutedEventArgs eventArgs)
+  {
+    bool step = UiRes.LevelGenService.Pause();
+    if (!step) return; // failed to pause
+
+    ReenableButtons(EnGenResult.Paused);
+    _awaitingResult = true;
+  }
+
+  /// <summary>
+  /// Stop level generation.
+  /// </summary>
+  /// <param name="sender">Sender.</param>
+  /// <param name="eventArgs">Event arguments.</param>
+  private void BtnStopClick(object? sender, RoutedEventArgs eventArgs)
+  {
+    bool step = UiRes.LevelGenService.Cancel();
+    if (!step) return; // failed to cancel
+
+    ReenableButtons(EnGenResult.Cancelled);
+    _awaitingResult = true;
+  }
+
+  #endregion
+
+  #region Button code
+
+  /// <summary>Check state of run and update stuff that needs to be updated.</summary>
+  private void PollRun()
+  {
+    if (!_awaitingResult) return; // no run ongoing
+    var status = UiRes.LevelGenService.Status();
+    if (status.Result == EnGenResult.Running) return; // still running
+
+    // Terminal state reached: hand the button back to the user and report the outcome.
+    _awaitingResult = false;
+    ReenableButtons(status.Result);
+
+    if (status.Result == EnGenResult.Finished) {
+      LilWorld? world = UiRes.LevelGenService.World();
+      Log.Info($"LevelGen: Finished. Graph: nodes={world?.Graph.Nodes.Count ?? 0}, edges={world?.Graph.Edges.Count ?? 0}. Map: steps={world?.Stats.Steps ?? 0}).");
+    } else if (status.Result == EnGenResult.ValidationError) {
+      LilWorld? world = UiRes.LevelGenService.World();
+      Log.Info($"LevelGen: ValidationError. Graph: nodes={world?.Graph.Nodes.Count ?? 0}, edges={world?.Graph.Edges.Count ?? 0}. Map: steps={world?.Stats.Steps ?? 0}).");
+    } else if (status.Result == EnGenResult.Error)
+      Log.Error($"LevelGen: Error - {status.Error}");
+    else
+      Log.Info($"LevelGen: {status.Result}.");
+  }
+
+  /// <summary>
+  /// Set up enable status of all buttons.
+  /// </summary>
+  /// <param name="genResult">Generation result. Note null is allowed (disables all buttons).</param>
+  private void ReenableButtons(EnGenResult? genResult)
+  {
+    switch (genResult)
+    {
+      case null:
+        EnableButton(_btnStart, false);
+        EnableButton(_btnStep, false);
+        EnableButton(_btnPause, false);
+        EnableButton(_btnStop, false);
+        return;
+      case EnGenResult.None:
+        EnableButton(_btnStart, true);
+        EnableButton(_btnStep, true);
+        EnableButton(_btnPause, false);
+        EnableButton(_btnStop, false);
+        return;
+      case EnGenResult.Running:
+        EnableButton(_btnStart, false);
+        EnableButton(_btnStep, false);
+        EnableButton(_btnPause, true);
+        EnableButton(_btnStop, true);
+        return;
+      case EnGenResult.Finished:
+      case EnGenResult.Cancelled:
+      case EnGenResult.Error:
+      case EnGenResult.ValidationError:
+        EnableButton(_btnStart, true);
+        EnableButton(_btnStep, true);
+        EnableButton(_btnPause, false);
+        EnableButton(_btnStop, false);
+        return;
+      case EnGenResult.Paused:
+        EnableButton(_btnStart, true);
+        EnableButton(_btnStep, true);
+        EnableButton(_btnPause, false);
+        EnableButton(_btnStop, false);
+        return;
+      default: return;
+    }
   }
 
   #endregion

@@ -1,0 +1,7 @@
+!Texture
+Id: 4f6805d7-1fe7-4a9a-9d84-a75669fdbc64
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Graphics/Icons/IconStop.png
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

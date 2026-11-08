@@ -1,4 +1,5 @@
 using System;
+using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
 using Stride.Core.Diagnostics;
 using Stride.Engine;
@@ -19,6 +20,9 @@ public static class UiRes
 
   /// <summary>System info service.</summary>
   public static ISystemInfoService SystemInfoService { get; private set; } = default!;
+  /// <summary>Level generation service.</summary>
+  public static ILevelGenService LevelGenService { get; private set; } = default!;
+
   /// <summary>Font used by text.</summary>
   public static SpriteFont Font { get; private set; } = default!;
   /// <summary>Button for unselected overlay.</summary>
@@ -37,6 +41,8 @@ public static class UiRes
 
     SystemInfoService = Script.Services.GetService<ISystemInfoService>()
       ?? throw new InvalidOperationException("ISystemInfoService was not registered.");
+    LevelGenService = Script.Services.GetService<ILevelGenService>()
+      ?? throw new InvalidOperationException("ILevelGenService was not registered.");
 
     Font = Script.Content.Load<SpriteFont>("UI/Fonts/BasicFont");
     SpriteBtnUnselected = Script.Content.Load<SpriteSheet>("/LostInLimbo.LevelEditor/Graphics/Ui/BtnUnselected");

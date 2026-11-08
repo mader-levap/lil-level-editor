@@ -13,7 +13,11 @@ ResourceFolders:
 RootAssets:
     - 18c2b6ca-674f-42a0-adc1-6a524d64625e:/LostInLimbo.LevelEditor/Graphics/Icons/IconGears
     - 38c623c1-2993-4667-9221-13ff9a44046a:/LostInLimbo.LevelEditor/Graphics/Ui/BtnUnselected
+    - 4f6805d7-1fe7-4a9a-9d84-a75669fdbc64:/LostInLimbo.LevelEditor/Graphics/Icons/IconStop
+    - 5bac6527-cd6d-4a25-b095-72c1ce08148f:/LostInLimbo.LevelEditor/Graphics/Icons/IconStart
     - 5c6290a4-4fc8-4d47-a693-975c5f955511:/LostInLimbo.LevelEditor/Graphics/Icons/IconQuestion
+    - 68d1e126-e624-46c9-a29c-44178cb2c8f9:/LostInLimbo.LevelEditor/Graphics/Icons/IconPause
     - 83fa09c5-4085-4bde-978f-a26754dc5163:/LostInLimbo.LevelEditor/Graphics/Ui/BtnSelected
+    - 89dfc9e0-66c8-477e-a5e0-5c92eb4654fc:/LostInLimbo.LevelEditor/Graphics/Icons/IconStep
     - b40d32df-d77a-4ecb-9d55-892c32de5917:/LostInLimbo.LevelEditor/Graphics/Icons/IconInfo
     - d5f9e8bf-cc60-4761-a5ca-114ddf93e805:/LostInLimbo.LevelEditor/UI/Fonts/BasicFont

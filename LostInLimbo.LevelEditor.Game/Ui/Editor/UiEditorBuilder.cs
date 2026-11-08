@@ -2,15 +2,11 @@ using Stride.UI;
 using Stride.UI.Events;
 using Stride.UI.Controls;
 using Stride.Graphics;
-using Stride.Core.Mathematics;
-using LostInLimbo.LevelEditor.Services.SystemInfo.Data;
 using Stride.UI.Panels;
 using Stride.Rendering.Sprites;
 using LostInLimbo.LevelEditor.Ui.LevelGen;
 using LostInLimbo.LevelEditor.Ui.Main;
 using LostInLimbo.LevelEditor.Ui.Info;
-using Stride.Shaders.Parsing.SDSL.AST;
-using System.Net;
 
 namespace LostInLimbo.LevelEditor.Ui.Editor;
 
@@ -42,15 +38,6 @@ public class UiEditorBuilder : UiBuilderBase
   /// <summary>Panel for overlay buttons.</summary>
   private StackPanel _buttonsPanel = default!;
 
-  /// <summary>Author and name of app.</summary>
-  private TextBlock _appText = default!;
-  /// <summary>Version text.</summary>
-  private TextBlock _versionText = default!;
-  /// <summary>Build text.</summary>
-  private TextBlock _buildText = default!;
-  /// <summary>Stack panel for app bar.</summary>
-  private Grid _appBarPanel = default!;
-
   /// <summary>Base panel that contains app bar and buttons.</summary>
   private Grid _basePanel = default!;
 
@@ -79,7 +66,6 @@ public class UiEditorBuilder : UiBuilderBase
     _levelGenPanel = _levelGenBuilder.Build();
     _levelInfoPanel = _levelInfoBuilder.Build();
     BuildButtonsPanel();
-    BuildAppBarPanel();
     _basePanel = CreateBasePanel();
     _mainPanel = CreateMainPanel();
   }
@@ -91,53 +77,19 @@ public class UiEditorBuilder : UiBuilderBase
   /// </summary>
   private void BuildButtonsPanel()
   {
-    _btnLevelGen = CreateButton("BtnLevelGen", "Graphics/Icons/IconGears");
-    _btnLevelInfo = CreateButton("BtnLevelInfo", "Graphics/Icons/IconInfo");
-    _buttonsPanel = CreateOverlayPanel();
+    _btnLevelGen = CreateImgButton("BtnLevelGen", "Graphics/Icons/IconGears");
+    _btnLevelInfo = CreateImgButton("BtnLevelInfo", "Graphics/Icons/IconInfo");
+    _buttonsPanel = CreateButtonsPanel();
 
     _btnLevelGen.Click += BtnLevelGenClick;
     _btnLevelInfo.Click += BtnLevelInfoClick;
   }
 
   /// <summary>
-  /// Create new button.
+  /// Create buttons panel.
   /// </summary>
-  /// <returns>Button.</returns>
-  private Button CreateButton(string name, string imageUrl)
-  {
-    var button = new Button()
-    {
-      Name = name,
-      Width = 48,
-      Height = 48,
-      Margin = new Thickness(0, 2, 0, 2),
-      HorizontalAlignment = HorizontalAlignment.Center,
-      VerticalAlignment = VerticalAlignment.Center,
-      PressedImage = new SpriteFromSheet
-      {
-        Sheet = UiRes.SpriteBtnUnselected,
-        CurrentFrame = 2,
-      },
-      NotPressedImage = new SpriteFromSheet
-      {
-        Sheet = UiRes.SpriteBtnUnselected,
-        CurrentFrame = 1,
-      },
-      MouseOverImage = new SpriteFromSheet
-      {
-        Sheet = UiRes.SpriteBtnUnselected,
-        CurrentFrame = 0,
-      },
-      Content = CreateImage(imageUrl)
-    };
-    return button;
-  }
-
-  /// <summary>
-  /// Create app bar panel.
-  /// </summary>
-  /// <returns>App bar panel.</returns>
-  private StackPanel CreateOverlayPanel()
+  /// <returns>Buttons panel.</returns>
+  private StackPanel CreateButtonsPanel()
   {
     return new StackPanel
       {
@@ -150,107 +102,6 @@ public class UiEditorBuilder : UiBuilderBase
           _btnLevelGen, _btnLevelInfo
         }
       };
-  }
-
-  #endregion
-
-  #region App bar panel
-
-  /// <summary>
-  /// Build app bar panel.
-  /// </summary>
-  private void BuildAppBarPanel()
-  {
-    _appText = CreateAppText();
-    _versionText = CreateVersionText();
-    _buildText = CreateBuildText();
-    _appBarPanel = CreateAppBarPanel();
-  }
-
-  /// <summary>
-  /// Create app text.
-  /// </summary>
-  /// <returns>Text block.</returns>
-  private static TextBlock CreateAppText()
-  {
-    return new TextBlock
-    {
-      Text = $"{UiRes.SystemInfoService.GetName()} © by {UiRes.SystemInfoService.GetAuthor()}",
-      TextColor = Color.White,
-      OutlineThickness = 1,
-      Font = UiRes.Font,
-      Margin = new Thickness(5, 0, 5, 0),
-      HorizontalAlignment = HorizontalAlignment.Left,
-      VerticalAlignment = VerticalAlignment.Center,
-    };
-  }
-
-  /// <summary>
-  /// Create version text.
-  /// </summary>
-  /// <returns>Text block.</returns>
-  private static TextBlock CreateVersionText()
-  {
-    return new TextBlock
-    {
-      Text = $"v. {UiRes.SystemInfoService.GetVersion()}",
-      TextColor = Color.White,
-      OutlineThickness = 1,
-      Font = UiRes.Font,
-      Margin = new Thickness(5, 0, 5, 0),
-      HorizontalAlignment = HorizontalAlignment.Right,
-      VerticalAlignment = VerticalAlignment.Center,
-    };
-  }
-
-  /// <summary>
-  /// Create build text.
-  /// </summary>
-  /// <returns>Text block.</returns>
-  private static TextBlock CreateBuildText()
-  {
-    Color color = GetBuildColor(UiRes.SystemInfoService.GetBuild());
-    return new TextBlock
-    {
-      Text = $"{UiRes.SystemInfoService.GetBuild()}",
-      TextColor = color,
-      OutlineThickness = 1,
-      Font = UiRes.Font,
-      Margin = new Thickness(5, 0, 5, 0),
-      HorizontalAlignment = HorizontalAlignment.Right,
-      VerticalAlignment = VerticalAlignment.Center,
-    };
-  }
-
-  /// <summary>
-  /// Create app bar panel.
-  /// </summary>
-  /// <returns>App bar panel.</returns>
-  private Grid CreateAppBarPanel()
-  {
-    var panel = new Grid
-    {
-      BackgroundColor = new Color(0, 0, 0, 64), // very translucent
-      HorizontalAlignment = HorizontalAlignment.Stretch,
-      VerticalAlignment = VerticalAlignment.Bottom,
-      ColumnDefinitions =
-      {
-        new StripDefinition(StripType.Auto), // app name
-        new StripDefinition(StripType.Star), // spacer
-        new StripDefinition(StripType.Auto), // version
-        new StripDefinition(StripType.Auto), // build
-      },
-      Children =
-      {
-        _appText, _versionText, _buildText
-      }
-    };
-
-    _appText.SetGridColumn(0);
-    _versionText.SetGridColumn(2);
-    _buildText.SetGridColumn(3);
-
-    return panel;
   }
 
   #endregion
@@ -269,18 +120,16 @@ public class UiEditorBuilder : UiBuilderBase
       VerticalAlignment = VerticalAlignment.Stretch,
       RowDefinitions =
       {
-        new StripDefinition(StripType.Auto), // app bar
         new StripDefinition(StripType.Auto), // buttons
         new StripDefinition(StripType.Star), // spacer
       },
       Children =
       {
-        _buttonsPanel, _appBarPanel
+        _buttonsPanel
       }
     };
 
-     _appBarPanel.SetGridRow(0);
-     _buttonsPanel.SetGridRow(1);
+    _buttonsPanel.SetGridRow(0);
     return panel;
   }
 
@@ -419,39 +268,6 @@ public class UiEditorBuilder : UiBuilderBase
       EnOverlay.LevelInfo => _levelInfoPanel,
       _ => null
     };
-
-  #endregion
-
-  #region Utils
-
-  /// <summary>
-  /// Create image for given URL.
-  /// </summary>
-  /// <param name="imageUrl">URL of image.</param>
-  /// <returns></returns>
-  private ImageElement CreateImage(string imageUrl)
-  {
-    return new ImageElement()
-    {
-      Source = new SpriteFromTexture
-      {
-        Texture = UiRes.Script.Content.Load<Texture>(imageUrl)
-      }
-    };
-  }
-
-  /// <summary>
-  /// Get text color for given build type.
-  /// </summary>
-  /// <param name="enBuildType">Build type.</param>
-  /// <returns>Text color for given build type.</returns>
-  private static Color GetBuildColor(EnBuildType enBuildType) => enBuildType switch
-  {
-    EnBuildType.Development => Color.Orange,
-    EnBuildType.Debug => Color.Yellow,
-    EnBuildType.Release => Color.Green,
-    _ => Color.Red
-  };
 
   #endregion
 }
