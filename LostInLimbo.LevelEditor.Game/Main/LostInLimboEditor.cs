@@ -1,3 +1,4 @@
+using System.Reflection;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
 using Stride.Engine;
@@ -7,6 +8,28 @@ namespace LostInLimbo.LevelEditor.Main;
 
 public sealed class LostInLimboEditor : Game
 {
+  /// <summary>
+  /// Begin run.
+  /// </summary>
+  protected override void BeginRun()
+  {
+    base.BeginRun();
+    Window.Title = ResolveTitle();
+    Window.AllowUserResizing = true;
+  }
+
+  /// <summary>
+  /// Resolve title of application.
+  /// </summary>
+  /// <returns>Title of application.</returns>
+  private static string ResolveTitle()
+  {
+    Assembly assembly = typeof(LostInLimboEditor).Assembly;
+    string appTitle = assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product
+      ?? assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? "unknown";
+    return appTitle;
+  }
+
   /// <summary>
   /// Prepares context.
   /// </summary>

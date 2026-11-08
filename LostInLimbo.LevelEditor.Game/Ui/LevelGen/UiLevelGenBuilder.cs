@@ -1,5 +1,6 @@
 using System;
 using LostInLimbo.LevelEditor.Ui.Main;
+using LostInLimbo.LevelGen.Data.Prop;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
 using Stride.Core.Mathematics;
@@ -35,6 +36,9 @@ public class UiLevelGenBuilder : UiBuilderBase
   private ScrollViewer _scrollStatusText = default!;
   /// <summary>Panel for level generation status.</summary>
   private StackPanel _statusPanel = default!;
+
+  /// <summary>Properties used for configuration generation.</summary>
+  private PropMain _propMain = PropMain.Default;
 
   /// <summary>Build level generation overlay.</summary>
   /// <returns>Panel.</returns>
@@ -224,8 +228,9 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// <param name="eventArgs">Event arguments.</param>
   private void BtnStartClick(object? sender, RoutedEventArgs eventArgs)
   {
+    RebuildProps();
     GenerationStatus status = UiRes.LevelGenService.Status();
-    bool started = UiRes.LevelGenService.Start();
+    bool started = UiRes.LevelGenService.Start(_propMain);
     if (!started) {
       if (status.Result == EnGenResult.Paused) AddStatusLine("Failed to resume generation.", Color.Red);
       else AddStatusLine("Failed to start generation.", Color.Red);
@@ -246,7 +251,8 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// <param name="eventArgs">Event arguments.</param>
   private void BtnStepClick(object? sender, RoutedEventArgs eventArgs)
   {
-    bool step = UiRes.LevelGenService.Step();
+    RebuildProps();
+    bool step = UiRes.LevelGenService.Step(_propMain);
     if (!step) {
       AddStatusLine("Failed to make one generation step.", Color.Red);
       return; // failed to make step
@@ -301,15 +307,27 @@ public class UiLevelGenBuilder : UiBuilderBase
     {
       Text = statusLine,
       TextColor = color,
+      TextSize = 14,
       OutlineThickness = 1,
       Font = UiRes.Font,
-      TextSize = 14,
       Margin = new Thickness(5, 0, 5, 0),
       HorizontalAlignment = HorizontalAlignment.Stretch,
       VerticalAlignment = VerticalAlignment.Center,
     };
     _statusTextPanel.Children.Add(statusTextLine);
     _scrollStatusText.ScrollToEnd(Orientation.Vertical);
+  }
+
+  #endregion
+
+  #region Props
+
+  /// <summary>
+  /// Rebuilds props based on current state of props form.
+  /// </summary>
+  private void RebuildProps()
+  {
+    _propMain = PropMain.Default;
   }
 
   #endregion

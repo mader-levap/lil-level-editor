@@ -15,14 +15,16 @@ public interface ILevelGenService
   /// <summary>
   /// Try to start level generation.
   /// </summary>
+  /// <param name="props">Properties used in config generation.</param>
   /// <returns>True if start succeeded, otherwise false.</returns>
-  bool Start();
+  bool Start(PropMain props);
 
   /// <summary>
   /// Try to advance one step in level generation.
   /// </summary>
+  /// <param name="props">Properties used in config generation.</param>
   /// <returns>True if step succeeded, otherwise false.</returns>
-  bool Step();
+  bool Step(PropMain props);
 
   /// <summary>
   /// Try to pause level generation.
@@ -62,27 +64,29 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   /// <summary>
   /// Try to start level generation.
   /// </summary>
+  /// <param name="props">Properties used in config generation.</param>
   /// <returns>True if start succeeded, otherwise false.</returns>
-  public bool Start()
+  public bool Start(PropMain props)
   {
     var status = _levelGenSession.Status();
     if (status.Result == EnGenResult.Running) return false; // already running
 
     if (status.Result == EnGenResult.Paused) return ResumeGen(EnRunKind.All);
-    return StartGen(EnRunKind.All);
+    return StartGen(EnRunKind.All, props);
   }
 
   /// <summary>
   /// Try to advance one step in level generation.
   /// </summary>
+  /// <param name="props">Properties used in config generation.</param>
   /// <returns>True if step succeeded, otherwise false.</returns>
-  public bool Step()
+  public bool Step(PropMain props)
   {
     var status = _levelGenSession.Status();
     if (status.Result == EnGenResult.Running) return false; // already running
 
     if (status.Result == EnGenResult.Paused) return ResumeGen(EnRunKind.Step);
-    return StartGen(EnRunKind.Step);
+    return StartGen(EnRunKind.Step, props);
   }
 
   /// <summary>
@@ -139,14 +143,14 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   /// Start generation from scratch.
   /// </summary>
   /// <param name="runKind">Run kind.</param>
+  /// <param name="props">Properties used in config generation.</param>
   /// <returns>True if start succeeded, otherwise false.</returns>
-  private bool StartGen(EnRunKind runKind)
+  private bool StartGen(EnRunKind runKind, PropMain props)
   {
-    CnfLevelGeneration config = GenerateConfig();
+    CnfLevelGeneration config = GenerateConfig(props);
     bool started;
     try
     {
-      Log.Info("LevelGen: starting...");
       started = _levelGenSession.Start(runKind, config);
     }
     catch (Exception exception)
@@ -174,7 +178,6 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     bool resumed;
     try
     {
-      Log.Info("LevelGen: resuming...");
       resumed = _levelGenSession.Resume(runKind);
     }
     catch (Exception exception)
@@ -193,13 +196,13 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   }
 
   /// <summary>
-  /// Generate config. For now use hardcoded props.
+  /// Generate config.
   /// </summary>
+  /// <param name="props">Properties used in config generation.</param>
   /// <returns>Generated config for level generation.</returns>
-  private static CnfLevelGeneration GenerateConfig()
+  private static CnfLevelGeneration GenerateConfig(PropMain props)
   {
-    PropMain propMain = new();
-    CnfLevelGeneration config = LevelGenConfig.Execute(propMain);
+    CnfLevelGeneration config = LevelGenConfig.Execute(props);
     return config;
   }
 

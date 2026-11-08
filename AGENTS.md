@@ -6,7 +6,7 @@
 
 It does not generate levels itself. Generation logic lives in the engine-neutral library `LostInLimbo.LevelGen` (sibling repository `../lil-level-gen`). This project's job is to:
 
-- Configure and trigger generation (seed, map configuration, player position, chunk scheduling).
+- Configure and trigger generation (seed, configuration).
 - Turn generated level **data** into Stride entities, components and scenes.
 - Let the user inspect, edit and preview the result in 3D.
 
@@ -81,10 +81,9 @@ Before considering a task complete:
 
 - **One-way dependency:** this repository consumes `LostInLimbo.LevelGen`; the library must never reference this project, Stride, or any engine.
 - **No generation logic here.** Rooms, corridors, chunk layout, placement rules and randomness live in `LostInLimbo.LevelGen`. This repo only feeds it a seed/context and consumes its output.
-- **Determinism stays in the library.** The editor supplies `WorldGenerationContext`-style inputs (seed, map config, player position, known chunk data); it must not compensate for or re-order generation results.
-- **Isolate the conversion layer.** Keep code that maps level data to Stride objects (`Entity`, `Transform`, models, colliders) in a dedicated, clearly named area (e.g. a scene/chunk builder). Level-data types must not spread through UI/input code, and engine types must not leak into generation decisions.
+- **Determinism stays in the library.** The editor supplies `WorldGenerationContext`-style inputs (seed, map config etc); it must not compensate for or re-order generation results.
+- **Isolate the conversion layer.** Keep code that maps level data to Stride objects (`Entity`, `Transform`, models, colliders) in a dedicated, clearly named area (e.g. a scene builder). Level-data types must not spread through UI/input code, and engine types must not leak into generation decisions.
 - **Engine-specific code is allowed and expected here** (unlike in `lil-level-gen`): scene manipulation, input, rendering, Game Studio integration and asset work are this project's purpose.
-- Chunk lifecycle (scheduling, threading, scene construction, unloading) is a shared concern of the future game; keep it structured so it can be reused.
 
 ## LevelGen package workflow
 
