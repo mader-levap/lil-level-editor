@@ -1,3 +1,4 @@
+using System;
 using LostInLimbo.LevelEditor.Ui.Main;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
@@ -28,8 +29,8 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// <summary>Panel for level gen buttons.</summary>
   private StackPanel _buttonsPanel = default!;
 
-  /// <summary>Status text.</summary>
-  private TextBlock _statusText = default!;
+  /// <summary>Panel for status texts.</summary>
+  private StackPanel _statusTextPanel = default!;
   /// <summary>View scroller for status text.</summary>
   private ScrollViewer _scrollStatusText = default!;
   /// <summary>Panel for level generation status.</summary>
@@ -72,8 +73,9 @@ public class UiLevelGenBuilder : UiBuilderBase
       VerticalAlignment = VerticalAlignment.Stretch,
       RowDefinitions =
       {
-        new StripDefinition(StripType.Star), // spacer
-        new StripDefinition(StripType.Auto), // entry
+        new StripDefinition(StripType.Auto), // buttons
+        new StripDefinition(StripType.Star),
+        new StripDefinition(StripType.Star), // status (must be bounded so ScrollViewer can scroll)
       },
       ColumnDefinitions =
       {
@@ -88,7 +90,7 @@ public class UiLevelGenBuilder : UiBuilderBase
 
     _buttonsPanel.SetGridRow(0);
     _buttonsPanel.SetGridColumn(1);
-    _statusPanel.SetGridRow(1);
+    _statusPanel.SetGridRow(2);
     _statusPanel.SetGridColumn(0);
     _statusPanel.SetGridColumnSpan(2);
 
@@ -146,7 +148,7 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// </summary>
   private void BuildStatusPanel()
   {
-    _statusText = CreateStatusText();
+    _statusTextPanel = CreateStatusTextPanel();
     _scrollStatusText = CreateScrollStatusText();
     _statusPanel = CreateStatusPanel();
   }
@@ -155,19 +157,19 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// Create status text.
   /// </summary>
   /// <returns>Text block.</returns>
-  private static TextBlock CreateStatusText()
+  private static StackPanel CreateStatusTextPanel()
   {
-    return new TextBlock
-    {
-      Text = "A\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\nA\n",
-      WrapText = true,
-      TextColor = Color.White,
-      OutlineThickness = 1,
-      Font = UiRes.Font,
-      Margin = new Thickness(5, 0, 5, 0),
-      HorizontalAlignment = HorizontalAlignment.Left,
-      VerticalAlignment = VerticalAlignment.Center,
-    };
+    return new StackPanel
+      {
+        Orientation = Orientation.Vertical,
+        Margin = new Thickness(5, 5, 5, 5),
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        VerticalAlignment = VerticalAlignment.Stretch,
+        Children =
+        {
+          // Will be filled with texts.
+        }
+      };
   }
 
   /// <summary>
@@ -176,10 +178,9 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// <returns>Scroll viewer.</returns>
   private ScrollViewer CreateScrollStatusText()
   {
-    // TODO it does not scroll properly
     return new ScrollViewer
     {
-      Content = _statusText,
+      Content = _statusTextPanel,
       ScrollMode = ScrollingMode.Vertical,
       HorizontalAlignment = HorizontalAlignment.Stretch,
       VerticalAlignment = VerticalAlignment.Stretch,
@@ -223,8 +224,16 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// <param name="eventArgs">Event arguments.</param>
   private void BtnStartClick(object? sender, RoutedEventArgs eventArgs)
   {
+    GenerationStatus status = UiRes.LevelGenService.Status();
     bool started = UiRes.LevelGenService.Start();
-    if (!started) return; // failed to start generation
+    if (!started) {
+      if (status.Result == EnGenResult.Paused) AddStatusLine("Failed to resume generation.", Color.Red);
+      else AddStatusLine("Failed to start generation.", Color.Red);
+      return; // failed to start/resume generation
+    }
+
+    if (status.Result == EnGenResult.Paused) AddStatusLine("Resumed generation.", Color.White);
+    else AddStatusLine("Started generation.", Color.White);
 
     ReenableButtons(EnGenResult.Running);
     _awaitingResult = true;
@@ -238,8 +247,12 @@ public class UiLevelGenBuilder : UiBuilderBase
   private void BtnStepClick(object? sender, RoutedEventArgs eventArgs)
   {
     bool step = UiRes.LevelGenService.Step();
-    if (!step) return; // failed to make step
+    if (!step) {
+      AddStatusLine("Failed to make one generation step.", Color.Red);
+      return; // failed to make step
+    }
 
+    AddStatusLine("Made one generation step.", Color.White);
     ReenableButtons(EnGenResult.Paused);
     _awaitingResult = true;
   }
@@ -252,7 +265,10 @@ public class UiLevelGenBuilder : UiBuilderBase
   private void BtnPauseClick(object? sender, RoutedEventArgs eventArgs)
   {
     bool step = UiRes.LevelGenService.Pause();
-    if (!step) return; // failed to pause
+    if (!step) {
+      AddStatusLine("Failed to pause generation.", Color.Red);
+      return; // failed to pause
+    }
 
     ReenableButtons(EnGenResult.Paused);
     _awaitingResult = true;
@@ -266,15 +282,39 @@ public class UiLevelGenBuilder : UiBuilderBase
   private void BtnStopClick(object? sender, RoutedEventArgs eventArgs)
   {
     bool step = UiRes.LevelGenService.Cancel();
-    if (!step) return; // failed to cancel
+    if (!step) {
+      AddStatusLine("Failed to stop generation.", Color.Red);
+      return; // failed to cancel
+    }
 
     ReenableButtons(EnGenResult.Cancelled);
     _awaitingResult = true;
   }
 
+  /// <summary>
+  /// Add status line.
+  /// </summary>
+  /// <param name="statusLine">Status line.</param>
+  private void AddStatusLine(string statusLine, Color color)
+  {
+    TextBlock statusTextLine = new()
+    {
+      Text = statusLine,
+      TextColor = color,
+      OutlineThickness = 1,
+      Font = UiRes.Font,
+      TextSize = 14,
+      Margin = new Thickness(5, 0, 5, 0),
+      HorizontalAlignment = HorizontalAlignment.Stretch,
+      VerticalAlignment = VerticalAlignment.Center,
+    };
+    _statusTextPanel.Children.Add(statusTextLine);
+    _scrollStatusText.ScrollToEnd(Orientation.Vertical);
+  }
+
   #endregion
 
-  #region Button code
+  #region Polling
 
   /// <summary>Check state of run and update stuff that needs to be updated.</summary>
   private void PollRun()
@@ -287,16 +327,22 @@ public class UiLevelGenBuilder : UiBuilderBase
     _awaitingResult = false;
     ReenableButtons(status.Result);
 
-    if (status.Result == EnGenResult.Finished) {
-      LilWorld? world = UiRes.LevelGenService.World();
-      Log.Info($"LevelGen: Finished. Graph: nodes={world?.Graph.Nodes.Count ?? 0}, edges={world?.Graph.Edges.Count ?? 0}. Map: steps={world?.Stats.Steps ?? 0}).");
-    } else if (status.Result == EnGenResult.ValidationError) {
-      LilWorld? world = UiRes.LevelGenService.World();
-      Log.Info($"LevelGen: ValidationError. Graph: nodes={world?.Graph.Nodes.Count ?? 0}, edges={world?.Graph.Edges.Count ?? 0}. Map: steps={world?.Stats.Steps ?? 0}).");
-    } else if (status.Result == EnGenResult.Error)
-      Log.Error($"LevelGen: Error - {status.Error}");
-    else
-      Log.Info($"LevelGen: {status.Result}.");
+    LilWorld? world = UiRes.LevelGenService.World();
+    switch (status.Result)
+    {
+      case EnGenResult.Finished:
+        AddStatusLine($"LevelGen: Finished. Graph: nodes={world?.Graph.Nodes.Count ?? 0}, edges={world?.Graph.Edges.Count ?? 0}. Map: steps={world?.Stats.Steps ?? 0}).", Color.LightGreen);
+        break;
+      case EnGenResult.ValidationError:
+        AddStatusLine($"LevelGen: ValidationError. Graph: nodes={world?.Graph.Nodes.Count ?? 0}, edges={world?.Graph.Edges.Count ?? 0}. Map: steps={world?.Stats.Steps ?? 0}).", Color.Orange);
+        break;
+      case EnGenResult.Error:
+        AddStatusLine($"LevelGen: Error - {status.Error}", Color.Red);
+        break;
+      default:
+        AddStatusLine($"LevelGen: {status.Result}.", Color.White);
+        break;
+    }
   }
 
   /// <summary>
