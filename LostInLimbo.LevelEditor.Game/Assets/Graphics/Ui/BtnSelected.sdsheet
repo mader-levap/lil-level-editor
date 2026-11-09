@@ -86,21 +86,21 @@ Sprites:
     b801cb7f085e35459b0ac699c6eb4615:
         Source: !file ../../../Resources/Graphics/Ui/BtnSelected.dds
         Name: ToggleButton.Checked
-        TextureRegion: {X: 71, Y: 3, Width: 32, Height: 32}
+        TextureRegion: {X: 37, Y: 3, Width: 32, Height: 32}
         Center: {X: 0.0, Y: 0.0}
         Borders: {X: 8.0, Y: 8.0, Z: 8.0, W: 8.0}
         BorderColor: {R: 0, G: 0, B: 0, A: 0}
     db04a333395b3e478056eec9bac42591:
         Source: !file ../../../Resources/Graphics/Ui/BtnSelected.dds
         Name: ToggleButton.Indeterminate
-        TextureRegion: {X: 37, Y: 3, Width: 32, Height: 32}
+        TextureRegion: {X: 3, Y: 3, Width: 32, Height: 32}
         Center: {X: 0.0, Y: 0.0}
         Borders: {X: 8.0, Y: 8.0, Z: 8.0, W: 8.0}
         BorderColor: {R: 0, G: 0, B: 0, A: 0}
     20c5b413b6517141a9b1ce2330a1ae35:
         Source: !file ../../../Resources/Graphics/Ui/BtnSelected.dds
         Name: ToggleButton.Unchecked
-        TextureRegion: {X: 3, Y: 3, Width: 32, Height: 32}
+        TextureRegion: {X: 71, Y: 3, Width: 32, Height: 32}
         Center: {X: 0.0, Y: 0.0}
         Borders: {X: 8.0, Y: 8.0, Z: 8.0, W: 8.0}
         BorderColor: {R: 0, G: 0, B: 0, A: 0}

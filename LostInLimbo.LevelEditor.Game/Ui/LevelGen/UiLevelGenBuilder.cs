@@ -30,6 +30,21 @@ public class UiLevelGenBuilder : UiBuilderBase
   /// <summary>Panel for level gen buttons.</summary>
   private StackPanel _buttonsPanel = default!;
 
+  /// <summary>Text: Text seed.</summary>
+  private TextBlock _textSeed = default!;
+  /// <summary>Input for Text seed.</summary>
+  private EditText _inpTextSeed = default!;
+  /// <summary>Text: Difficulty.</summary>
+  private TextBlock _difficulty = default!;
+  /// <summary>Input for Difficulty.</summary>
+  private EditText _inpDifficulty = default!;
+  /// <summary>Text: Many themes.</summary>
+  private TextBlock _manyThemes = default!;
+  /// <summary>Checkbox for Many themes.</summary>
+  private ToggleButton _inpManyThemes = default!;
+  /// <summary>Panel for properties used in config generation.</summary>
+  private Grid _propsPanel = default!;
+
   /// <summary>Panel for status texts.</summary>
   private StackPanel _statusTextPanel = default!;
   /// <summary>View scroller for status text.</summary>
@@ -59,6 +74,7 @@ public class UiLevelGenBuilder : UiBuilderBase
   private void BuildComponents()
   {
     BuildButtonsPanel();
+    BuildPropsPanel();
     BuildStatusPanel();
     _levelGenPanel = CreateLevelGenPanel();
   }
@@ -83,20 +99,24 @@ public class UiLevelGenBuilder : UiBuilderBase
       },
       ColumnDefinitions =
       {
-        new StripDefinition(StripType.Star), // spacer
+        new StripDefinition(StripType.Star, 2), // spacer
+        new StripDefinition(StripType.Star, 10), // panel space
+        new StripDefinition(StripType.Star, 1), // spacer
         new StripDefinition(StripType.Auto), // entry
       },
       Children =
       {
-        _buttonsPanel, _statusPanel
+        _buttonsPanel, _propsPanel, _statusPanel
       }
     };
 
     _buttonsPanel.SetGridRow(0);
-    _buttonsPanel.SetGridColumn(1);
+    _buttonsPanel.SetGridColumn(4);
+    _propsPanel.SetGridRow(1);
+    _propsPanel.SetGridColumn(1);
     _statusPanel.SetGridRow(2);
     _statusPanel.SetGridColumn(0);
-    _statusPanel.SetGridColumnSpan(2);
+    _statusPanel.SetGridColumnSpan(4);
 
     panel.Visibility = Visibility.Hidden; // hidden by default
     return panel;
@@ -141,6 +161,72 @@ public class UiLevelGenBuilder : UiBuilderBase
           _btnStart, _btnStep, _btnPause, _btnStop
         }
       };
+  }
+
+  #endregion
+
+  #region Props panel
+
+  /// <summary>
+  /// Build status panel.
+  /// </summary>
+  private void BuildPropsPanel()
+  {
+    _textSeed = CreateTextBlock("Seed:");
+    _inpTextSeed = CreateEditText("");
+    _difficulty = CreateTextBlock("Difficulty:");
+    _inpDifficulty = CreateEditText("");
+    _manyThemes = CreateTextBlock("Can have many themes:");
+    _inpManyThemes = CreateToggleButton();
+
+    _propsPanel = CreatePropsPanel();
+  }
+
+  /// <summary>
+  /// Create props panel.
+  /// </summary>
+  /// <returns>Props panel.</returns>
+  private Grid CreatePropsPanel()
+  {
+    var panel = new Grid()
+    {
+      BackgroundColor = new Color(0, 0, 0, 64), // somewhat translucent
+      Margin = new Thickness(5, 5, 5, 5),
+      HorizontalAlignment = HorizontalAlignment.Stretch,
+      VerticalAlignment = VerticalAlignment.Stretch,
+      RowGap = 5,
+      ColumnGap = 15,
+      RowDefinitions =
+      {
+        new StripDefinition(StripType.Auto),
+        new StripDefinition(StripType.Auto),
+        new StripDefinition(StripType.Auto),
+      },
+      ColumnDefinitions =
+      {
+        new StripDefinition(StripType.Auto), // text
+        new StripDefinition(StripType.Star), // input
+      },
+      Children =
+      {
+        _textSeed, _inpTextSeed, _difficulty, _inpDifficulty, _manyThemes, _inpManyThemes,
+      }
+    };
+
+    _textSeed.SetGridRow(0);
+    _textSeed.SetGridColumn(0);
+    _inpTextSeed.SetGridRow(0);
+    _inpTextSeed.SetGridColumn(1);
+    _difficulty.SetGridRow(1);
+    _difficulty.SetGridColumn(0);
+    _inpDifficulty.SetGridRow(1);
+    _inpDifficulty.SetGridColumn(1);
+    _manyThemes.SetGridRow(2);
+    _manyThemes.SetGridColumn(0);
+    _inpManyThemes.SetGridRow(2);
+    _inpManyThemes.SetGridColumn(1);
+
+    return panel;
   }
 
   #endregion

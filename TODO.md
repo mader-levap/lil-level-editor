@@ -2,6 +2,11 @@
 
 ## Current
 
+- Issues:
+  - When we are in input like EditText, keys still affect movement.
+    - For now do some hacky solution
+    - Report it on Stride discord
+
 - UI:
   - Add panel where we can set props. Default values are from `PropMain.Default`. That panel will vanish during generation and will be back once it finishes.
     - How to save to disk? Does Stride have any support? I want last prop setup to survive restart of app. I guess in worst case we can just save/load json file with props from directory where game is running.

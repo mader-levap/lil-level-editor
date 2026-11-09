@@ -54,7 +54,137 @@ public abstract class UiBuilderBase
 
   #endregion
 
-  #region UI component helpers.
+  #region Static fields.
+
+  /// <summary>
+  /// Create new text block.
+  /// </summary>
+  /// <param name="content">Content of text.</param>
+  /// <returns>Text block.</returns>
+  protected static TextBlock CreateTextBlock(string content)
+  {
+    return CreateTextBlock(content, Color.White);
+  }
+
+  /// <summary>
+  /// Create new text block.
+  /// </summary>
+  /// <param name="content">Content of text.</param>
+  /// <param name="color">Color of text.</param>
+  /// <returns>Text block.</returns>
+  protected static TextBlock CreateTextBlock(string content, Color color)
+  {
+    TextBlock textBlock = new()
+    {
+      Text = content,
+      TextColor = color,
+      OutlineThickness = 1,
+      Font = UiRes.Font,
+      Margin = new Thickness(5, 0, 5, 0),
+      HorizontalAlignment = HorizontalAlignment.Stretch,
+      VerticalAlignment = VerticalAlignment.Center,
+    };
+    return textBlock;
+  }
+
+  /// <summary>
+  /// Create image for given URL.
+  /// </summary>
+  /// <param name="imageUrl">URL of image.</param>
+  /// <returns></returns>
+  protected static ImageElement CreateImage(string imageUrl)
+  {
+    return new ImageElement()
+    {
+      Source = new SpriteFromTexture
+      {
+        Texture = UiRes.Script.Content.Load<Texture>(imageUrl)
+      },
+    };
+  }
+
+  #endregion
+
+  #region Input fields.
+
+  /// <summary>
+  /// Create new toggle block input.
+  /// </summary>
+  /// <returns>Text block.</returns>
+  protected static ToggleButton CreateToggleButton()
+  {
+    ToggleButton toggleButton = new()
+    {
+      Margin = new Thickness(5, 5, 5, 5),
+      HorizontalAlignment = HorizontalAlignment.Left,
+      VerticalAlignment = VerticalAlignment.Stretch,
+      CheckedImage = new SpriteFromSheet
+      {
+        Sheet = UiRes.SpriteBtnSelected,
+        CurrentFrame = 11,
+      },
+      UncheckedImage = new SpriteFromSheet
+      {
+        Sheet = UiRes.SpriteBtnUnselected,
+        CurrentFrame = 13,
+      },
+      IndeterminateImage = new SpriteFromSheet
+      {
+        Sheet = UiRes.SpriteBtnUnselected,
+        CurrentFrame = 12,
+      },
+    };
+    return toggleButton;
+  }
+
+  /// <summary>
+  /// Create new edit text input.
+  /// </summary>
+  /// <param name="content">Content of text.</param>
+  /// <returns>Text block.</returns>
+  protected static EditText CreateEditText(string content)
+  {
+    return CreateEditText(content, Color.White);
+  }
+
+  /// <summary>
+  /// Create new edit text input.
+  /// </summary>
+  /// <param name="content">Content of text.</param>
+  /// <param name="color">Color of text.</param>
+  /// <returns>Text block.</returns>
+  protected static EditText CreateEditText(string content, Color color)
+  {
+    EditText editText = new()
+    {
+      Text = content,
+      TextColor = color,
+      Font = UiRes.Font,
+      Margin = new Thickness(5, 5, 5, 5),
+      HorizontalAlignment = HorizontalAlignment.Stretch,
+      VerticalAlignment = VerticalAlignment.Center,
+      ActiveImage = new SpriteFromSheet
+      {
+        Sheet = UiRes.SpriteBtnUnselected,
+        CurrentFrame = 3,
+      },
+      InactiveImage = new SpriteFromSheet
+      {
+        Sheet = UiRes.SpriteBtnUnselected,
+        CurrentFrame = 4,
+      },
+      MouseOverImage = new SpriteFromSheet
+      {
+        Sheet = UiRes.SpriteBtnUnselected,
+        CurrentFrame = 5,
+      },
+    };
+    return editText;
+  }
+
+  #endregion
+
+  #region Button helpers.
 
   /// <summary>
   /// Create new button with icon.
@@ -88,22 +218,6 @@ public abstract class UiBuilderBase
       Content = CreateImage(imageUrl),
     };
     return button;
-  }
-
-  /// <summary>
-  /// Create image for given URL.
-  /// </summary>
-  /// <param name="imageUrl">URL of image.</param>
-  /// <returns></returns>
-  protected static ImageElement CreateImage(string imageUrl)
-  {
-    return new ImageElement()
-    {
-      Source = new SpriteFromTexture
-      {
-        Texture = UiRes.Script.Content.Load<Texture>(imageUrl)
-      },
-    };
   }
 
   /// <summary>
