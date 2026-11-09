@@ -1,4 +1,5 @@
 using System;
+using LostInLimbo.LevelEditor.Ui;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -12,6 +13,8 @@ namespace LostInLimbo.LevelEditor;
 /// <remarks>
 /// The entity can be moved using W, A, S, D, Q and E, arrow keys, a gamepad's left stick or dragging/scaling using multi-touch.
 /// Rotation is achieved using the Numpad, the mouse while holding the right mouse button, a gamepad's right stick, or dragging using single-touch.
+/// Keyboard input is ignored while a UI text field has focus (see <see cref="UiFocus"/>), so typing never moves the camera;
+/// gamepad, mouse and touch input are not affected by UI focus.
 /// </remarks>
 public class BasicCameraController : SyncScript
 {
@@ -85,6 +88,7 @@ public class BasicCameraController : SyncScript
   /// the resulting camera-space <c>translation</c>, <c>yaw</c> and <c>pitch</c>.
   /// Keyboard and gamepad input is scaled by the frame time so movement is frame-rate independent;
   /// mouse and touch input already arrive as per-frame deltas and are used as-is.
+  /// Keyboard reads are skipped entirely while a UI text field has focus.
   /// </summary>
   private void ProcessInput()
   {
@@ -94,6 +98,10 @@ public class BasicCameraController : SyncScript
     translation = Vector3.Zero;
     yaw = 0f;
     pitch = 0f;
+
+    // While a UI text field has focus, typed keys belong to it (WASD, arrows, numpad, Shift).
+    // Gamepad, mouse and touch input are deliberately not gated: typing only conflicts with the keyboard.
+    bool textInputFocused = UiFocus.IsTextInputFocused(Game.Services);
 
     // Keyboard- and gamepad-based movement
     {
@@ -118,7 +126,7 @@ public class BasicCameraController : SyncScript
         }
       }
 
-      if (Input.HasKeyboard)
+      if (Input.HasKeyboard && !textInputFocused)
       {
         // Forward/backward: W and Up versus S and Down.
         if (Input.IsKeyDown(Keys.W) || Input.IsKeyDown(Keys.Up)) dir.Z += 1;
@@ -158,7 +166,7 @@ public class BasicCameraController : SyncScript
         rotation.Y += -padState.RightThumb.X;
       }
 
-      if (Input.HasKeyboard)
+      if (Input.HasKeyboard && !textInputFocused)
       {
         // Numpad: 2/8 pitch up/down, 4/6 yaw left/right.
         if (Input.IsKeyDown(Keys.NumPad2)) rotation.X += 1;

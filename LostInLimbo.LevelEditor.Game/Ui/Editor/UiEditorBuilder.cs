@@ -254,6 +254,14 @@ public class UiEditorBuilder : UiBuilderBase
   {
     Panel? panel = FindPanel(_currOverlay);
     if (panel == null) return; // No panel selected.
+
+    // The engine keeps keyboard focus (and routes typed keys to) an EditText even after its
+    // panel is hidden; release it so camera input is not blocked by an invisible text field.
+    if (UiFocus.IsInside(UiFocus.GetFocusedElement(UiRes.Script.Services), panel))
+    {
+      UiFocus.ReleaseTextInputFocus(UiRes.Script.Services);
+    }
+
     panel.Visibility = Visibility.Hidden;
   }
 
