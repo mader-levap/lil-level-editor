@@ -1,4 +1,5 @@
 using System.Reflection;
+using LostInLimbo.LevelEditor.Input;
 
 namespace LostInLimbo.LevelEditor.Tests.Smoke;
 

@@ -163,4 +163,74 @@ public sealed class UiFocusTests
     Assert.False(insideNullElement);
     Assert.False(insideNullAncestor);
   }
+
+  /// <summary>
+  /// Verifies that a press never releases when no text field holds capture.
+  /// Non-EditText focus and inactive-EditText focus both map to "no capture"
+  /// (covered by <see cref="IsTextInputFocused_WithNonEditTextElement_ReturnsFalse"/> and
+  /// <see cref="IsTextInputFocused_WithInactiveEditText_ReturnsFalse"/>).
+  /// </summary>
+  [Fact]
+  public void ShouldReleaseTextInputFocusOnPress_WithNullTextCaptureElement_ReturnsFalse()
+  {
+    // Arrange: no capture; the press hit an unrelated panel.
+    Grid panel = new();
+
+    // Act: Evaluate the press.
+    bool shouldRelease = UiFocus.ShouldReleaseTextInputFocusOnPress(null, panel);
+
+    // Assert: Without capture there is nothing to release.
+    Assert.False(shouldRelease);
+  }
+
+  /// <summary>
+  /// Verifies that a press on the 3D viewport (no UI element under the cursor)
+  /// releases the captured text field, returning keyboard input to gameplay.
+  /// </summary>
+  [Fact]
+  public void ShouldReleaseTextInputFocusOnPress_WithNoHitElement_ReturnsTrue()
+  {
+    // Arrange: a text field holds capture; the press hit no UI element.
+    EditText editText = new();
+
+    // Act: Evaluate the press.
+    bool shouldRelease = UiFocus.ShouldReleaseTextInputFocusOnPress(editText, null);
+
+    // Assert: A viewport click outside the field releases capture.
+    Assert.True(shouldRelease);
+  }
+
+  /// <summary>
+  /// Verifies that a press on unrelated UI (another panel or control) releases the captured field.
+  /// </summary>
+  [Fact]
+  public void ShouldReleaseTextInputFocusOnPress_WithHitOutsideTextCaptureElement_ReturnsTrue()
+  {
+    // Arrange: a text field holds capture; the press hit an unrelated panel.
+    EditText editText = new();
+    Grid panel = new();
+
+    // Act: Evaluate the press.
+    bool shouldRelease = UiFocus.ShouldReleaseTextInputFocusOnPress(editText, panel);
+
+    // Assert: A click outside the field releases capture.
+    Assert.True(shouldRelease);
+  }
+
+  /// <summary>
+  /// Verifies that a press on the captured text field itself keeps capture,
+  /// so clicking the field to place the caret never blurs it.
+  /// </summary>
+  [Fact]
+  public void ShouldReleaseTextInputFocusOnPress_WithHitOnTextCaptureElement_ReturnsFalse()
+  {
+    // Arrange: a text field holds capture; the press hit that same field.
+    EditText editText = new();
+
+    // Act: Evaluate the press.
+    bool shouldRelease = UiFocus.ShouldReleaseTextInputFocusOnPress(editText, editText);
+
+    // Assert: Clicking the field itself keeps capture.
+    Assert.False(shouldRelease);
+  }
 }

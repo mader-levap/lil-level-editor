@@ -1,4 +1,5 @@
 using Stride.Core;
+using Stride.Input;
 using Stride.UI;
 using Stride.UI.Controls;
 
@@ -11,8 +12,10 @@ namespace LostInLimbo.LevelEditor.Ui;
 /// Stride's UI does have a focus concept: clicking an <see cref="EditText"/> makes it the
 /// <see cref="UISystem.FocusedElement"/> (with <see cref="EditText.IsSelectionActive"/> set),
 /// and Enter/Escape, clicking another EditText or deactivating the application releases it.
-/// Clicking somewhere else deliberately does not release the focus; callers that hide UI
-/// containing the focused element must release it themselves via <see cref="ReleaseTextInputFocus"/>.
+/// Stride deliberately does not blur on clicks outside the field, so this class provides the
+/// release paths: <see cref="ReleaseTextInputFocusOnOutsidePress"/> polls mouse presses once per
+/// frame (any button; called from <c>UiMain.Update</c>) and <see cref="ReleaseTextInputFocus"/>
+/// is the manual path used when UI containing the focused element is hidden.
 /// </remarks>
 public static class UiFocus
 {
@@ -62,6 +65,64 @@ public static class UiFocus
     if (GetFocusedElement(services) is EditText { IsSelectionActive: true } editText)
     {
       editText.IsSelectionActive = false;
+    }
+  }
+
+  /// <summary>
+  /// Determines whether a mouse press outside the captured text field should release text-input focus.
+  /// </summary>
+  /// <param name="textCaptureElement">
+  /// The active text field currently holding capture, or <see langword="null"/> when nothing holds
+  /// capture (no focus, non-<see cref="EditText"/> focus or an inactive field — all map to null;
+  /// see <see cref="IsTextInputFocused(UIElement?)"/>).
+  /// </param>
+  /// <param name="elementUnderCursor">
+  /// The UI element under the cursor at the press, or <see langword="null"/> when the press hit
+  /// no UI at all (e.g. the 3D viewport).
+  /// </param>
+  /// <returns>
+  /// <see langword="true"/> when a text field holds capture and the press did not land on it;
+  /// otherwise <see langword="false"/>.
+  /// </returns>
+  public static bool ShouldReleaseTextInputFocusOnPress(UIElement? textCaptureElement, UIElement? elementUnderCursor)
+  {
+    // Without capture there is nothing to release.
+    if (textCaptureElement == null) return false;
+
+    // A press on the captured text field itself (or inside it) keeps the focus,
+    // so clicking the field to place the caret never blurs it.
+    if (elementUnderCursor != null && IsInside(elementUnderCursor, textCaptureElement)) return false;
+
+    return true;
+  }
+
+  /// <summary>
+  /// Releases the text-input focus when a mouse button is pressed and the press does not land
+  /// on the focused text field itself, so clicking anywhere else (other UI or the 3D viewport)
+  /// returns keyboard input to gameplay.
+  /// </summary>
+  /// <param name="services">Service registry used to resolve <see cref="UISystem"/> and <see cref="InputManager"/>; may be null.</param>
+  /// <remarks>
+  /// Intended to be polled once per frame (see <c>UiMain.Update</c>). Any mouse button counts,
+  /// and only the press edge does, so holding or dragging (e.g. selecting text out of the field)
+  /// does not release focus. The element under the cursor reflects the last UI picking pass
+  /// (drawn a frame earlier), which is stable while the cursor is stationary; a press evaluates
+  /// against that state, making the result independent of when UI event routing runs.
+  /// Stride itself never releases focus on outside clicks, which is why this helper exists.
+  /// </remarks>
+  public static void ReleaseTextInputFocusOnOutsidePress(IServiceRegistry? services)
+  {
+    if (services?.GetService<UISystem>() is not { } uiSystem) return;
+
+    // Only an active text field holds capture worth releasing.
+    if (!IsTextInputFocused(uiSystem.FocusedElement)) return;
+
+    // Any mouse button counts; edge-triggered by InputManager (pressed this frame only).
+    if (services.GetService<InputManager>() is not { } input || !input.HasPressedMouseButtons) return;
+
+    if (ShouldReleaseTextInputFocusOnPress(uiSystem.FocusedElement, uiSystem.UIElementUnderMouseCursor))
+    {
+      ReleaseTextInputFocus(services);
     }
   }
 

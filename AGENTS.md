@@ -2,7 +2,7 @@
 
 ## Project overview
 
-`LostInLimbo.LevelEditor` is a **Stride 4.4.0** desktop application that serves as the level editor, level generator front-end and level viewer for the game *Lost in Limbo*.
+`LostInLimbo.LevelEditor` is a **Stride 4.4.1** desktop application that serves as the level editor, level generator front-end and level viewer for the game *Lost in Limbo*.
 
 It does not generate levels itself. Generation logic lives in the engine-neutral library `LostInLimbo.LevelGen` (sibling repository `../lil-level-gen`). This project's job is to:
 
@@ -84,7 +84,7 @@ Before considering a task complete:
 - **Determinism stays in the library.** The editor supplies `WorldGenerationContext`-style inputs (seed, map config etc); it must not compensate for or re-order generation results.
 - **Isolate the conversion layer.** Keep code that maps level data to Stride objects (`Entity`, `Transform`, models, colliders) in a dedicated, clearly named area (e.g. a scene builder). Level-data types must not spread through UI/input code, and engine types must not leak into generation decisions.
 - **Engine-specific code is allowed and expected here** (unlike in `lil-level-gen`): scene manipulation, input, rendering, Game Studio integration and asset work are this project's purpose.
-- **Input conventions.** Gameplay scripts read keyboard input through `GameInput` (capture-gated); mouse, gamepad and touch are read from `Input` directly. UI code uses `UiFocus` for focus queries and releasing focus.
+- **Input conventions.** Gameplay scripts read keyboard input through `GameInput` (capture-gated); mouse, gamepad and touch are read from `Input` directly. UI code uses `UiFocus` for focus queries, outside-click blur and releasing focus.
 
 ## LevelGen package workflow
 

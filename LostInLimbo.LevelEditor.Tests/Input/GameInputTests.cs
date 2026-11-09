@@ -1,4 +1,4 @@
-using LostInLimbo.LevelEditor;
+using LostInLimbo.LevelEditor.Input;
 using Stride.Input;
 
 namespace LostInLimbo.LevelEditor.Tests.Input;

@@ -40,6 +40,9 @@ public class UiMain : SyncScript
   public override void Update()
   {
     _editorBuilder.Update();
+
+    // Blur the focused text field when the user clicks anywhere outside of it.
+    UiFocus.ReleaseTextInputFocusOnOutsidePress(Game.Services);
   }
 
   /// <summary>
