@@ -29,7 +29,7 @@ Hierarchy:
                         Name: null
                         Projection: Perspective
                         Slot: ad755dec-c32b-4528-95f8-b2a30870d896
-                    ca3e7a5c012aff45b1d7e89014bd58cf: !LostInLimbo.LevelEditor.BasicCameraController,LostInLimbo.LevelEditor.Game
+                    ca3e7a5c012aff45b1d7e89014bd58cf: !LostInLimbo.LevelEditor.Input.BasicCameraController,LostInLimbo.LevelEditor.Game
                         Id: e84191ef-d6b8-4a63-97d0-e92f28a4f81b
                         Gamepad: false
                         KeyboardMovementSpeed: {X: 5.0, Y: 5.0, Z: 5.0}

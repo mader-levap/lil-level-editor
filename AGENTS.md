@@ -84,6 +84,7 @@ Before considering a task complete:
 - **Determinism stays in the library.** The editor supplies `WorldGenerationContext`-style inputs (seed, map config etc); it must not compensate for or re-order generation results.
 - **Isolate the conversion layer.** Keep code that maps level data to Stride objects (`Entity`, `Transform`, models, colliders) in a dedicated, clearly named area (e.g. a scene builder). Level-data types must not spread through UI/input code, and engine types must not leak into generation decisions.
 - **Engine-specific code is allowed and expected here** (unlike in `lil-level-gen`): scene manipulation, input, rendering, Game Studio integration and asset work are this project's purpose.
+- **Input conventions.** Gameplay scripts read keyboard input through `GameInput` (capture-gated); mouse, gamepad and touch are read from `Input` directly. UI code uses `UiFocus` for focus queries and releasing focus.
 
 ## LevelGen package workflow
 

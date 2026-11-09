@@ -1,11 +1,10 @@
 using System;
-using LostInLimbo.LevelEditor.Ui;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Input;
 
-namespace LostInLimbo.LevelEditor;
+namespace LostInLimbo.LevelEditor.Input;
 
 /// <summary>
 /// A script that allows moving and rotating an entity through keyboard, mouse and touch input to provide basic camera navigation.
@@ -13,8 +12,8 @@ namespace LostInLimbo.LevelEditor;
 /// <remarks>
 /// The entity can be moved using W, A, S, D, Q and E, arrow keys, a gamepad's left stick or dragging/scaling using multi-touch.
 /// Rotation is achieved using the Numpad, the mouse while holding the right mouse button, a gamepad's right stick, or dragging using single-touch.
-/// Keyboard input is ignored while a UI text field has focus (see <see cref="UiFocus"/>), so typing never moves the camera;
-/// gamepad, mouse and touch input are not affected by UI focus.
+/// Keyboard input is read through <see cref="GameInput"/>, which applies keyboard capture, so typing never moves the camera;
+/// gamepad, mouse and touch input are read directly from the input manager and are not affected by capture.
 /// </remarks>
 public class BasicCameraController : SyncScript
 {
@@ -25,16 +24,22 @@ public class BasicCameraController : SyncScript
   private const float MaximumPitch = MathUtil.PiOverTwo * 0.99f;
 
   /// <summary>World-space up direction; used as the pitch and yaw rotation axis and to derive the camera basis.</summary>
-  private Vector3 upVector;
+  private Vector3 _upVector;
 
   /// <summary>Camera-space translation accumulated during the current frame, applied in <see cref="UpdateTransform"/>.</summary>
-  private Vector3 translation;
+  private Vector3 _translation;
 
   /// <summary>Yaw (rotation around the world up axis) accumulated during the current frame, in radians.</summary>
-  private float yaw;
+  private float _yaw;
 
   /// <summary>Pitch accumulated during the current frame, in radians; clamped against <see cref="MaximumPitch"/>.</summary>
-  private float pitch;
+  private float _pitch;
+
+  /// <summary>
+  /// Gameplay keyboard input resolved from the service registry in <see cref="Start"/>;
+  /// applies keyboard capture so typing never moves the camera.
+  /// </summary>
+  private GameInput _gameInput = default!;
 
   /// <summary>Gets a value indicating whether gamepad input is processed in addition to keyboard input.</summary>
   public bool Gamepad { get; set; } = false;
@@ -65,8 +70,12 @@ public class BasicCameraController : SyncScript
   {
     base.Start();
 
+    // Gameplay keyboard input is provided as a service; fail fast when it is not registered.
+    _gameInput = Game.Services.GetService<GameInput>()
+      ?? throw new InvalidOperationException("GameInput is not registered; register it in LostInLimboEditor.PrepareContext.");
+
     // Default up-direction.
-    upVector = Vector3.UnitY;
+    _upVector = Vector3.UnitY;
 
     // Configure touch input.
     if (!Platform.IsWindowsDesktop)
@@ -88,20 +97,16 @@ public class BasicCameraController : SyncScript
   /// the resulting camera-space <c>translation</c>, <c>yaw</c> and <c>pitch</c>.
   /// Keyboard and gamepad input is scaled by the frame time so movement is frame-rate independent;
   /// mouse and touch input already arrive as per-frame deltas and are used as-is.
-  /// Keyboard reads are skipped entirely while a UI text field has focus.
+  /// Keyboard reads are skipped entirely while the keyboard is captured (see <see cref="GameInput"/>).
   /// </summary>
   private void ProcessInput()
   {
     float deltaTime = (float)Game.UpdateTime.Elapsed.TotalSeconds;
 
     // Reset the per-frame accumulators; input from previous frames must not persist.
-    translation = Vector3.Zero;
-    yaw = 0f;
-    pitch = 0f;
-
-    // While a UI text field has focus, typed keys belong to it (WASD, arrows, numpad, Shift).
-    // Gamepad, mouse and touch input are deliberately not gated: typing only conflicts with the keyboard.
-    bool textInputFocused = UiFocus.IsTextInputFocused(Game.Services);
+    _translation = Vector3.Zero;
+    _yaw = 0f;
+    _pitch = 0f;
 
     // Keyboard- and gamepad-based movement
     {
@@ -126,22 +131,22 @@ public class BasicCameraController : SyncScript
         }
       }
 
-      if (Input.HasKeyboard && !textInputFocused)
+      if (_gameInput.HasKeyboard)
       {
         // Forward/backward: W and Up versus S and Down.
-        if (Input.IsKeyDown(Keys.W) || Input.IsKeyDown(Keys.Up)) dir.Z += 1;
-        if (Input.IsKeyDown(Keys.S) || Input.IsKeyDown(Keys.Down)) dir.Z -= 1;
+        if (_gameInput.IsKeyDown(Keys.W) || _gameInput.IsKeyDown(Keys.Up)) dir.Z += 1;
+        if (_gameInput.IsKeyDown(Keys.S) || _gameInput.IsKeyDown(Keys.Down)) dir.Z -= 1;
 
         // Strafe: A and Left versus D and Right.
-        if (Input.IsKeyDown(Keys.A) || Input.IsKeyDown(Keys.Left)) dir.X -= 1;
-        if (Input.IsKeyDown(Keys.D) || Input.IsKeyDown(Keys.Right)) dir.X += 1;
+        if (_gameInput.IsKeyDown(Keys.A) || _gameInput.IsKeyDown(Keys.Left)) dir.X -= 1;
+        if (_gameInput.IsKeyDown(Keys.D) || _gameInput.IsKeyDown(Keys.Right)) dir.X += 1;
 
         // Vertical movement: Q descends, E ascends.
-        if (Input.IsKeyDown(Keys.Q)) dir.Y -= 1;
-        if (Input.IsKeyDown(Keys.E)) dir.Y += 1;
+        if (_gameInput.IsKeyDown(Keys.Q)) dir.Y -= 1;
+        if (_gameInput.IsKeyDown(Keys.E)) dir.Y += 1;
 
         // Shift multiplies the movement speed.
-        if (Input.IsKeyDown(Keys.LeftShift) || Input.IsKeyDown(Keys.RightShift))
+        if (_gameInput.IsKeyDown(Keys.LeftShift) || _gameInput.IsKeyDown(Keys.RightShift))
         {
           speed *= SpeedFactor;
         }
@@ -151,7 +156,7 @@ public class BasicCameraController : SyncScript
       }
 
       // Translation stays in camera space; it is rotated into world space in UpdateTransform.
-      translation += dir * KeyboardMovementSpeed * speed;
+      _translation += dir * KeyboardMovementSpeed * speed;
     }
 
     // Keyboard- and gamepad-based rotation
@@ -166,14 +171,14 @@ public class BasicCameraController : SyncScript
         rotation.Y += -padState.RightThumb.X;
       }
 
-      if (Input.HasKeyboard && !textInputFocused)
+      if (_gameInput.HasKeyboard)
       {
         // Numpad: 2/8 pitch up/down, 4/6 yaw left/right.
-        if (Input.IsKeyDown(Keys.NumPad2)) rotation.X += 1;
-        if (Input.IsKeyDown(Keys.NumPad8)) rotation.X -= 1;
+        if (_gameInput.IsKeyDown(Keys.NumPad2)) rotation.X += 1;
+        if (_gameInput.IsKeyDown(Keys.NumPad8)) rotation.X -= 1;
 
-        if (Input.IsKeyDown(Keys.NumPad4)) rotation.Y += 1;
-        if (Input.IsKeyDown(Keys.NumPad6)) rotation.Y -= 1;
+        if (_gameInput.IsKeyDown(Keys.NumPad4)) rotation.Y += 1;
+        if (_gameInput.IsKeyDown(Keys.NumPad6)) rotation.Y -= 1;
 
         // Clamp combined diagonal rotation like movement.
         if (rotation.Length() > 1f) rotation = Vector2.Normalize(rotation);
@@ -181,8 +186,8 @@ public class BasicCameraController : SyncScript
 
       rotation *= KeyboardRotationSpeed * speed;
 
-      pitch += rotation.X;
-      yaw += rotation.Y;
+      _pitch += rotation.X;
+      _yaw += rotation.Y;
     }
 
     // Mouse movement and gestures
@@ -195,8 +200,8 @@ public class BasicCameraController : SyncScript
           Input.LockMousePosition();
           Game.IsMouseVisible = false;
 
-          yaw -= Input.MouseDelta.X * MouseRotationSpeed.X;
-          pitch -= Input.MouseDelta.Y * MouseRotationSpeed.Y;
+          _yaw -= Input.MouseDelta.X * MouseRotationSpeed.X;
+          _pitch -= Input.MouseDelta.Y * MouseRotationSpeed.Y;
         }
         else
         {
@@ -213,16 +218,16 @@ public class BasicCameraController : SyncScript
           case GestureType.Drag:
             var drag = (GestureEventDrag)gestureEvent;
             var dragDistance = drag.DeltaTranslation;
-            yaw = -dragDistance.X * TouchRotationSpeed.X;
-            pitch = -dragDistance.Y * TouchRotationSpeed.Y;
+            _yaw = -dragDistance.X * TouchRotationSpeed.X;
+            _pitch = -dragDistance.Y * TouchRotationSpeed.Y;
             break;
 
           case GestureType.Composite:
             var composite = (GestureEventComposite)gestureEvent;
             // X/Y pan across the view plane; pinch is mapped to forward movement via a log curve.
-            translation.X = -composite.DeltaTranslation.X * TouchMovementSpeed.X;
-            translation.Y = -composite.DeltaTranslation.Y * TouchMovementSpeed.Y;
-            translation.Z = MathF.Log(composite.DeltaScale + 1) * TouchMovementSpeed.Z;
+            _translation.X = -composite.DeltaTranslation.X * TouchMovementSpeed.X;
+            _translation.Y = -composite.DeltaTranslation.Y * TouchMovementSpeed.Y;
+            _translation.Z = MathF.Log(composite.DeltaScale + 1) * TouchMovementSpeed.Z;
             break;
         }
       }
@@ -240,7 +245,7 @@ public class BasicCameraController : SyncScript
     var rotation = Matrix.RotationQuaternion(Entity.Transform.Rotation);
 
     // Camera basis: right lies in the horizontal plane (perpendicular to up), up is derived from it.
-    var right = Vector3.Cross(rotation.Forward, upVector);
+    var right = Vector3.Cross(rotation.Forward, _upVector);
     var up = Vector3.Cross(right, rotation.Forward);
 
     right.Normalize();
@@ -248,10 +253,10 @@ public class BasicCameraController : SyncScript
 
     // Measure the current pitch from the angle between the view direction and the up axis,
     // then clamp the absolute pitch (current + delta) to ±MaximumPitch and use only the allowed delta.
-    var currentPitch = MathUtil.PiOverTwo - MathF.Acos(Vector3.Dot(rotation.Forward, upVector));
-    pitch = MathUtil.Clamp(currentPitch + pitch, -MaximumPitch, MaximumPitch) - currentPitch;
+    var currentPitch = MathUtil.PiOverTwo - MathF.Acos(Vector3.Dot(rotation.Forward, _upVector));
+    _pitch = MathUtil.Clamp(currentPitch + _pitch, -MaximumPitch, MaximumPitch) - currentPitch;
 
-    Vector3 finalTranslation = translation;
+    Vector3 finalTranslation = _translation;
 
     // The camera looks down its local -Z, so invert Z to make "forward" input move the camera forward.
     finalTranslation.Z = -finalTranslation.Z;
@@ -260,6 +265,6 @@ public class BasicCameraController : SyncScript
     Entity.Transform.Position += finalTranslation;
 
     // Pitch around the camera's right axis, then yaw around the world up axis.
-    Entity.Transform.Rotation *= Quaternion.RotationAxis(right, pitch) * Quaternion.RotationAxis(upVector, yaw);
+    Entity.Transform.Rotation *= Quaternion.RotationAxis(right, _pitch) * Quaternion.RotationAxis(_upVector, _yaw);
   }
 }
