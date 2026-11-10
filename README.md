@@ -58,7 +58,7 @@ Build and run.
 
 ### Other libraries
 
-For user interface we use Gum. It is open-source (MIT) game UI: WYSIWYG tool + layout engine + Forms controls, WPF-like API.
+For user interface we use **Gum**. It is open-source (MIT) game UI: WYSIWYG tool + layout engine + Forms controls, WPF-like API.
 
 ## Notes
 

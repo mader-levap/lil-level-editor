@@ -93,7 +93,7 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 4. ~~Headless tests for pure decision functions (no Gum init).~~ **Done**
    (`GumFocusTests` — 6 cases; total suite 28/28).
 
-**Exit criteria met** (build + tests green; smoke launch; visual checks pending user).
+**Exit criteria met.**
 
 ### Phase 2 — Port panels
 New folder `LostInLimbo.LevelEditor.Game/Ui/Gum/`. Order:

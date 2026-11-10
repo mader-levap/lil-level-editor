@@ -11,7 +11,6 @@
     - Where it should go?
     - Research how to make canvas that I can draw on freely that can update every tick.
 
-
 ## Later
 
 - Test other gen buttons, only start and step is done. Rest is untested because right now generation is practically instant and so it is over before we can use pause/stop buttons.
