@@ -10,7 +10,7 @@ It does not generate levels itself. Generation logic lives in the engine-neutral
 - Turn generated level **data** into Stride entities, components and scenes.
 - Let the user inspect, edit and preview the result in 3D.
 
-The solution targets **.NET 10** (`net10.0`, launcher is `net10.0-windows`).
+The solution targets **.NET 10** (`net10.0-windows7.0` for Game/Tests — required by Gum.Stride's GPU Skia path; launcher `net10.0-windows7.0`).
 
 ## Repository layout
 
@@ -27,7 +27,7 @@ lil-level-editor/
 │  └ Resources/                          - Raw imported files, usually binary (.dds textures, ...).
 │  └ Ui/                                 - All scripts related to user interface.
 ├ LostInLimbo.LevelEditor.Tests/         - xUnit test project (namespace LostInLimbo.LevelEditor.Tests).
-│  ├ LostInLimbo.LevelEditor.Tests.csproj - References the Game project; net10.0.
+│  ├ LostInLimbo.LevelEditor.Tests.csproj - References the Game project; net10.0-windows7.0.
 └ LostInLimbo.LevelEditor.Windows/       - Thin WinExe launcher (Program entry point only).
    ├ LostInLimbo.LevelEditorApp.cs       - Creates and runs Stride's Game.
    └ Resources/Icon.ico, app.manifest    - Windows-only packaging files.

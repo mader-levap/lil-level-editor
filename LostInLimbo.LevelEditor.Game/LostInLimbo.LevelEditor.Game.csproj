@@ -6,7 +6,8 @@
     <InformationalVersion>0.0.2</InformationalVersion>
     <Description>Editor for Lost in Limbo.</Description>
 
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- windows7.0 required: Gum.Stride GPU Skia path (D3D11) is only available on this TFM. -->
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>LostInLimbo.LevelEditor</RootNamespace>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
@@ -15,6 +16,7 @@
   <ItemGroup>
     <AssemblyMetadata Include="BuildType" Value="$(Configuration)" />
 
+    <PackageReference Include="Gum.Stride" Version="2026.11.2.1" />
     <PackageReference Include="LostInLimbo.LevelGen" Version="0.0.6" />
     <PackageReference Include="Stride.Engine" Version="4.4.1" />
     <PackageReference Include="Stride.Video" Version="4.4.1" />

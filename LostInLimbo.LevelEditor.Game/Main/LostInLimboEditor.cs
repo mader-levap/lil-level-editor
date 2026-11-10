@@ -1,8 +1,11 @@
 using System.Reflection;
+using System.Threading.Tasks;
+using Gum;
 using LostInLimbo.LevelEditor.Input;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui;
+using LostInLimbo.LevelEditor.Ui.Gum;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Input;
@@ -11,6 +14,9 @@ namespace LostInLimbo.LevelEditor.Main;
 
 public sealed class LostInLimboEditor : Game
 {
+  /// <summary>Whether Gum has been initialized against the live compositor.</summary>
+  private bool _gumInitialized;
+
   /// <summary>
   /// Begin run.
   /// </summary>
@@ -40,6 +46,11 @@ public sealed class LostInLimboEditor : Game
   {
     base.PrepareContext();
 
+    // Skip the startup splash: an editor should open immediately, and the splash
+    // path loads the graphics compositor asynchronously (Gum must register its
+    // scene renderer on the real compositor, not the SceneSystem placeholder).
+    SceneSystem.SplashScreenUrl = null;
+
     // Register global services here.
     Services.AddService<ISystemInfoService>(new SystemInfoService());
     Services.AddService<ILevelGenService>(new LevelGenService());
@@ -55,13 +66,49 @@ public sealed class LostInLimboEditor : Game
   }
 
   /// <summary>
+  /// Loads content (runs as a script task after game systems, including SceneSystem,
+  /// have loaded the compositor).
+  /// </summary>
+  /// <returns>Base load task.</returns>
+  protected override Task LoadContent()
+  {
+    EnsureGumInitialized();
+    return base.LoadContent();
+  }
+
+  /// <summary>
   /// Called every tick.
   /// </summary>
   /// <param name="gameTime">Game time.</param>
   protected override void Update(GameTime gameTime)
   {
+    // Fallback if LoadContent ran before the compositor was ready (e.g. splash
+    // re-enabled later): initialize on the first frame that has a real compositor.
+    EnsureGumInitialized();
+
     // Optional: update services before base.Update() on every tick.
     base.Update(gameTime);
+  }
+
+  /// <summary>
+  /// Initializes Gum once the SceneSystem holds a real compositor and builds the spike UI.
+  /// </summary>
+  /// <remarks>
+  /// SceneSystem constructs an empty placeholder compositor (<c>Game</c> is null) and
+  /// replaces it with the loaded asset. Gum's default <c>registerSceneRenderer: true</c>
+  /// appends a <c>GumSceneRenderer</c> to the end of the compositor's Game collection
+  /// (after the 3D pass and UGS Group31 stage), so no asset edit is required.
+  /// Stride then ticks Gum Update/Draw every frame through that renderer.
+  /// </remarks>
+  private void EnsureGumInitialized()
+  {
+    if (_gumInitialized) return;
+    if (SceneSystem.GraphicsCompositor?.Game is null) return;
+
+    GumService.Default.Initialize(this);
+    GumService.Default.UseKeyboardDefaults();
+    GumSpikeUi.Build();
+    _gumInitialized = true;
   }
 
   /// <summary>

@@ -7,19 +7,22 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 
 | Phase | State | Notes |
 |-------|-------|-------|
-| 0 — Spike (Gum beside UGS UI) | Not started | |
+| 0 — Spike (Gum beside UGS UI) | **Done** | Build + tests + visual check confirmed (render, click, resize, UGS intact) |
 | 1 — Input seams (focus/capture/camera) | Not started | |
 | 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | Not started | |
 | 3 — Switch to Gum-only | Not started | |
 | 4 — Remove UGS UI + assets | Not started | |
 
-**Current session:** plan approved; no code changes yet.
+**Current session:** Phase 0 complete (see Session log). Next: Phase 1.
 
 **Decisions (locked):**
 - Author UI **code-only** first (Gum tool / `.gumx` later, no rework).
-- **Add `Gum.Stride`** NuGet (preview; AGENTS.md exception approved).
+- **Add `Gum.Stride`** NuGet (AGENTS.md exception approved).
 - **TFM → `net10.0-windows7.0`** now (GPU Skia path; AGENTS.md exception approved).
 - **Strangler migration**: Gum alongside UGS UI, port panel-by-panel, delete last.
+- **Package version:** `Gum.Stride` **2026.11.2.1** (latest stable; not a preview).
+- **Renderer registration:** default `registerSceneRenderer: true` — no `.sdgfxcomp` hand-edit. Gum appends `GumSceneRenderer` at the end of the compositor's `Game` collection (after 3D pass and UGS Group31 stage).
+- **Startup splash disabled** in `LostInLimboEditor.PrepareContext` (`SceneSystem.SplashScreenUrl = null`): editor opens immediately, and the splash path loads the compositor asynchronously (Gum must register on the real compositor, not the SceneSystem placeholder).
 
 ## Findings (2026-11-10)
 
@@ -40,14 +43,14 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 
 ### Integration points (this repo)
 
-1. **Init order:** compositor exists → `GumService.Default.Initialize(this,
-   registerSceneRenderer: false)` → `UseKeyboardDefaults()` (+ optional gamepad).
-2. **Renderer placement:** insert `GumSceneRenderer` as last child of `Game*` in
-   `Assets/GraphicsCompositor.sdgfxcomp` (same slot as Group31/UiStage today),
-   **after** forward renderer so post FX does not touch UI.
-   Hand-edit of `.sdgfxcomp` needs explicit OK (or do it in Game Studio).
+1. **Init order:** compositor exists (`SceneSystem.GraphicsCompositor.Game != null`) →
+   `GumService.Default.Initialize(this)` (default `registerSceneRenderer: true`) →
+   `UseKeyboardDefaults()`. Implemented as lazy once-guard in
+   `LostInLimboEditor.EnsureGumInitialized` (called from `LoadContent` and first `Update`).
+2. **Renderer placement:** runtime-appended to end of compositor `Game` collection —
+   **no asset edit** (confirmed from `GumService.AddSceneRenderer` source).
 3. **Keyboard capture:** `GameInput` predicate in `LostInLimboEditor.PrepareContext`
-   currently `UiFocus.IsTextInputFocused` → switch to Gum focus
+   still `UiFocus.IsTextInputFocused` → switch to Gum focus in Phase 1
    (`FrameworkElement.IsFocused` on `TextBox`). Keep injectable-predicate design;
    during transition OR Gum + UGS predicates.
 4. **Mouse/camera:** camera uses right-drag look only (`BasicCameraController`).
@@ -56,20 +59,25 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
    (not via Stride `Content.Load<SpriteSheet>`).
 6. **Cleanup end-state:** remove `Stride.UI`, `UIComponent`/`Group31`/`UiStage`,
    `BasicFont`, `Btn*.sdsheet`, most of `UiFocus` once UGS UI is gone.
+7. **Splash:** disabled at runtime (see Decisions) — if re-enabled, the Update fallback
+   in `EnsureGumInitialized` still waits for a real compositor.
 
 ## Plan
 
 ### Phase 0 — Spike
-1. Game.csproj: TFM → `net10.0-windows7.0`; add `Gum.Stride` (pinned preview).
-   Tests.csproj: same TFM (ProjectReference to Game).
-2. `LostInLimboEditor`: after compositor ready, `Initialize(this,
-   registerSceneRenderer: false)` + `UseKeyboardDefaults()`.
-3. One Gum `Button` + `Label` on root; leave UGS UI untouched.
-4. Compositor: add `GumSceneRenderer` after forward renderer (confirm asset edit).
-5. Verify: renders over 3D scene without post FX, click works, resize OK.
-6. `dotnet build` + `dotnet test` green.
+1. ~~Game.csproj: TFM → `net10.0-windows7.0`; add `Gum.Stride`.~~ **Done** (`2026.11.2.1`;
+   Tests + Windows launcher TFMs matched).
+2. ~~`LostInLimboEditor`: after compositor ready, `Initialize(this)` + `UseKeyboardDefaults()`.~~
+   **Done** (lazy once-guard; splash disabled so compositor loads synchronously).
+3. ~~One Gum `Button` + `Label` on root; leave UGS UI untouched.~~ **Done**
+   (`Ui/Gum/GumSpikeUi.cs`).
+4. ~~Compositor: add `GumSceneRenderer` after forward renderer (confirm asset edit).~~
+   **N/A — default `registerSceneRenderer: true` appends at end; no asset edit.**
+5. ~~Verify: renders over 3D scene without post FX, click works, resize OK.~~
+   **Done** — user confirmed spike renders, click works, resize OK, UGS UI intact.
+6. ~~`dotnet build` + `dotnet test` green.~~ **Done.**
 
-**Exit:** Gum visible + clickable next to UGS panels; no regressions.
+**Exit criteria met.**
 
 ### Phase 1 — Input seams
 1. Gum-backed `IsTextInputFocused` (TextBox focused) → capture predicate.
@@ -113,9 +121,9 @@ Prefer constructor injection over a new static locator.
 
 | Risk | Mitigation |
 |------|------------|
-| Gum.Stride preview-only | Pin version; read migration notes on upgrade |
-| GPU Skia path new (Oct 2026) | Phase 0 validates; fallback = link Gum source |
-| `.sdgfxcomp` hand-edit | Game Studio preferred; confirm before edit |
+| Gum.Stride package churn | Pinned `2026.11.2.1` (stable); read migration notes on upgrade |
+| GPU Skia path new (Oct 2026) | Phase 0 smoke launch OK; D3D11 adapter present in output |
+| `.sdgfxcomp` hand-edit | **Avoided** — runtime append via default `registerSceneRenderer` |
 | Dual UI input/focus split | Phase 1 OR-predicate; drop UGS per panel fast |
 | Texture loading differs from Stride | Small loader helper; reuse `Resources/` PNGs |
 
@@ -123,3 +131,14 @@ Prefer constructor injection over a new static locator.
 
 - **2026-11-10:** Investigation complete; plan drafted; decisions locked
   (code-only, add Gum.Stride, TFM windows7.0, strangler). No code changes.
+- **2026-11-10 (Phase 0):** Implemented spike.
+  - TFMs: Game/Tests/Windows → `net10.0-windows7.0`; added `Gum.Stride` `2026.11.2.1`.
+  - `LostInLimboEditor`: disabled splash; lazy `GumService.Default.Initialize(this)` +
+    `UseKeyboardDefaults()` once `GraphicsCompositor.Game` is set; spike UI build.
+  - New: `Ui/Gum/GumSpikeUi.cs` (Label + Button on Gum root).
+  - `AGENTS.md` TFM notes updated.
+  - Verified: `dotnet build` 0 errors (no new CS warnings; only pre-existing NU190x
+    transitive advisories); `dotnet test` 22/22; smoke launch stayed alive 10s
+    (`StrideGum`/`SkiaGum`/`SkiaGameRendering.Stride.D3D11` in `Bin/Windows/Debug`).
+  - User visual confirmation: spike label/button visible, click works, resize works,
+    UGS UI intact. **Phase 0 complete.**
