@@ -36,5 +36,13 @@ public static class GumSpikeUi
     };
     button.Click += (_, _) => label.Text = "Gum click works!";
     stackPanel.AddChild(button);
+
+    // Phase 1: focused TextBox must capture the keyboard (typing must not move the camera).
+    var textBox = new TextBox
+    {
+      Width = 220,
+      Placeholder = "Type here (capture check)",
+    };
+    stackPanel.AddChild(textBox);
   }
 }

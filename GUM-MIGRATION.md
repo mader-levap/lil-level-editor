@@ -8,12 +8,12 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 | Phase | State | Notes |
 |-------|-------|-------|
 | 0 — Spike (Gum beside UGS UI) | **Done** | Build + tests + visual check confirmed (render, click, resize, UGS intact) |
-| 1 — Input seams (focus/capture/camera) | Not started | |
+| 1 — Input seams (focus/capture/camera) | **Done** | Capture OR (UGS+Gum), camera right-look gated on `VisualOver`; 28/28 tests |
 | 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | Not started | |
 | 3 — Switch to Gum-only | Not started | |
 | 4 — Remove UGS UI + assets | Not started | |
 
-**Current session:** Phase 0 complete (see Session log). Next: Phase 1.
+**Current session:** Phase 1 complete (see Session log). Next: Phase 2.
 
 **Decisions (locked):**
 - Author UI **code-only** first (Gum tool / `.gumx` later, no rework).
@@ -50,11 +50,15 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 2. **Renderer placement:** runtime-appended to end of compositor `Game` collection —
    **no asset edit** (confirmed from `GumService.AddSceneRenderer` source).
 3. **Keyboard capture:** `GameInput` predicate in `LostInLimboEditor.PrepareContext`
-   still `UiFocus.IsTextInputFocused` → switch to Gum focus in Phase 1
-   (`FrameworkElement.IsFocused` on `TextBox`). Keep injectable-predicate design;
-   during transition OR Gum + UGS predicates.
+   ORs `UiFocus.IsTextInputFocused` (UGS) with `GumFocus.IsTextInputFocused()` (Gum).
+   Gum side: `InteractiveGue.CurrentInputReceiver is TextBoxBase` (focused TextBox takes
+   keyboard; non-text focus leaves the receiver null so WASD still works).
 4. **Mouse/camera:** camera uses right-drag look only (`BasicCameraController`).
-   Gate with `GumService.Default.Cursor.WindowOver == null`.
+   Gate with `GumFocus.ShouldProcessCameraRightLook(GumFocus.IsPointerOverUi())`.
+   Pointer-over uses `Cursor.VisualOver` — Gum obsolete-aliased `WindowOver` → `VisualOver`
+   (same member; `VisualOver` only set when `HasEvents` is true under the default
+   `VisualOverBehavior.IfHasEventsIsTrue`). Non-interactive panels that must block look
+   need `HasEvents = true` when built (Phase 2).
 5. **Icons/textures:** existing PNGs under `Resources/` loadable as Gum textures
    (not via Stride `Content.Load<SpriteSheet>`).
 6. **Cleanup end-state:** remove `Stride.UI`, `UIComponent`/`Group31`/`UiStage`,
@@ -80,10 +84,16 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 **Exit criteria met.**
 
 ### Phase 1 — Input seams
-1. Gum-backed `IsTextInputFocused` (TextBox focused) → capture predicate.
-2. Suppress camera right-look while `Cursor.WindowOver != null`.
-3. Keep old `UiFocus` for UGS panels until Phase 4 (OR during transition).
-4. Headless tests for pure decision functions (no Gum init).
+1. ~~Gum-backed `IsTextInputFocused` (TextBox focused) → capture predicate.~~ **Done**
+   (`GumFocus.IsTextInputFocused` via `CurrentInputReceiver is TextBoxBase`).
+2. ~~Suppress camera right-look while cursor is over Gum UI.~~ **Done**
+   (`GumFocus.IsPointerOverUi` via `Cursor.VisualOver`; pure `ShouldProcessCameraRightLook`).
+3. ~~Keep old `UiFocus` for UGS panels until Phase 4 (OR during transition).~~ **Done**
+   (`GumFocus.IsKeyboardCaptured(ugs, gum)` OR in `PrepareContext`).
+4. ~~Headless tests for pure decision functions (no Gum init).~~ **Done**
+   (`GumFocusTests` — 6 cases; total suite 28/28).
+
+**Exit criteria met** (build + tests green; smoke launch; visual checks pending user).
 
 ### Phase 2 — Port panels
 New folder `LostInLimbo.LevelEditor.Game/Ui/Gum/`. Order:
@@ -116,6 +126,9 @@ Prefer constructor injection over a new static locator.
 - `dotnet test LostInLimbo.LevelEditor.slnx`
 - Manual: show/hide panels, gen start/step, typing doesn’t move camera,
   right-drag over UI doesn’t rotate camera, window resize.
+- Phase 1 manual: Gum spike TextBox typing must not move camera; right-drag over
+  spike UI must not rotate; right-drag on empty 3D still looks; UGS EditText
+  typing still captures.
 
 ## Risks
 
@@ -124,7 +137,8 @@ Prefer constructor injection over a new static locator.
 | Gum.Stride package churn | Pinned `2026.11.2.1` (stable); read migration notes on upgrade |
 | GPU Skia path new (Oct 2026) | Phase 0 smoke launch OK; D3D11 adapter present in output |
 | `.sdgfxcomp` hand-edit | **Avoided** — runtime append via default `registerSceneRenderer` |
-| Dual UI input/focus split | Phase 1 OR-predicate; drop UGS per panel fast |
+| Dual UI input/focus split | Phase 1 OR-predicate (`GumFocus.IsKeyboardCaptured`); drop UGS per panel fast |
+| `Cursor.WindowOver` obsolete | Use `VisualOver` (same member; no CS0618) |
 | Texture loading differs from Stride | Small loader helper; reuse `Resources/` PNGs |
 
 ## Session log
@@ -142,3 +156,18 @@ Prefer constructor injection over a new static locator.
     (`StrideGum`/`SkiaGum`/`SkiaGameRendering.Stride.D3D11` in `Bin/Windows/Debug`).
   - User visual confirmation: spike label/button visible, click works, resize works,
     UGS UI intact. **Phase 0 complete.**
+- **2026-11-10 (Phase 1):** Input seams.
+  - New: `Ui/Gum/GumFocus.cs` — runtime queries (`IsTextInputFocused`,
+    `IsPointerOverUi`) + pure decisions (`IsKeyboardCaptured`, `ShouldProcessCameraRightLook`).
+  - `LostInLimboEditor.PrepareContext`: capture predicate = UGS OR Gum text focus.
+  - `BasicCameraController`: right-look only when right button down AND pointer not over
+    Gum UI (`VisualOver`); unlocks mouse while over UI.
+  - `GumSpikeUi`: added TextBox for manual capture verification.
+  - New: `GumFocusTests` (6 headless cases).
+  - Note: `Cursor.WindowOver` is `[Obsolete]` → use `VisualOver` (identical member).
+  - Verified: `dotnet build` 0 errors (no CS warnings; only pre-existing NU190x);
+    `dotnet test` 28/28; smoke launch alive 10s.
+  - **Manual check for user:** type in Gum spike TextBox → WASD must not move camera;
+    right-drag over Gum spike UI must not rotate camera; right-drag on 3D still looks;
+    typing in UGS fields still captures. Non-interactive panels need `HasEvents = true`
+    to block look (Phase 2).

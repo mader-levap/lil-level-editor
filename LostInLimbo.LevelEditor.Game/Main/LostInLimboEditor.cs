@@ -57,12 +57,14 @@ public sealed class LostInLimboEditor : Game
 
     // Gameplay keyboard input. InputManager and UISystem do not exist yet during
     // PrepareContext (they are created later by Game.Initialize and the UI renderer),
-    // so both are resolved lazily on every query; capture comes from UiFocus, which
-    // only this composition root is allowed to know about.
+    // so both are resolved lazily on every query; capture comes from UiFocus (UGS)
+    // OR GumFocus (Gum), which only this composition root is allowed to compose.
     Services.AddService(new GameInput(
       hasKeyboard: () => Services.GetService<InputManager>()?.HasKeyboard ?? false,
       isKeyDown: key => Services.GetService<InputManager>()?.IsKeyDown(key) ?? false,
-      isKeyboardCaptured: () => UiFocus.IsTextInputFocused(Services)));
+      isKeyboardCaptured: () => GumFocus.IsKeyboardCaptured(
+        ugsTextInputFocused: UiFocus.IsTextInputFocused(Services),
+        gumTextInputFocused: GumFocus.IsTextInputFocused())));
   }
 
   /// <summary>

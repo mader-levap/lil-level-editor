@@ -1,4 +1,5 @@
 using System;
+using LostInLimbo.LevelEditor.Ui.Gum;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -194,7 +195,12 @@ public class BasicCameraController : SyncScript
     {
       if (Input.HasMouse)
       {
-        if (Input.IsMouseButtonDown(MouseButton.Right))
+        // Right-look only when the right button is held and the pointer is not over
+        // Gum UI (WindowOver), so interacting with panels never rotates the camera.
+        bool processRightLook = Input.IsMouseButtonDown(MouseButton.Right)
+          && GumFocus.ShouldProcessCameraRightLook(GumFocus.IsPointerOverUi());
+
+        if (processRightLook)
         {
           // While right-dragging, lock and hide the cursor so the delta drives the look direction.
           Input.LockMousePosition();
