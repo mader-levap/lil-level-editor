@@ -3,7 +3,9 @@
 ## Current
 
 - UI:
+  - Migrate current UI to Gum.
   - Add panel where we can set props. Default values are from `PropMain.Default`. That panel will vanish during generation and will be back once it finishes.
+    - Difficulty level... we need combobox.
     - How to save to disk? Does Stride have any support? I want last prop setup to survive restart of app. I guess in worst case we can just save/load json file with props from directory where game is running.
   - Add panel with graph visualization.
     - Where it should go?

@@ -28,7 +28,6 @@ lil-level-editor/
 │  └ Ui/                                 - All scripts related to user interface.
 ├ LostInLimbo.LevelEditor.Tests/         - xUnit test project (namespace LostInLimbo.LevelEditor.Tests).
 │  ├ LostInLimbo.LevelEditor.Tests.csproj - References the Game project; net10.0.
-│  └ *.cs                                - Tests.
 └ LostInLimbo.LevelEditor.Windows/       - Thin WinExe launcher (Program entry point only).
    ├ LostInLimbo.LevelEditorApp.cs       - Creates and runs Stride's Game.
    └ Resources/Icon.ico, app.manifest    - Windows-only packaging files.

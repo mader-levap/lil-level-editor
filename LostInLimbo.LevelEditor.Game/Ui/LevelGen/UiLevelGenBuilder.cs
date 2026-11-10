@@ -194,7 +194,6 @@ public class UiLevelGenBuilder : UiBuilderBase
       Margin = new Thickness(5, 5, 5, 5),
       HorizontalAlignment = HorizontalAlignment.Stretch,
       VerticalAlignment = VerticalAlignment.Stretch,
-      RowGap = 5,
       ColumnGap = 15,
       RowDefinitions =
       {

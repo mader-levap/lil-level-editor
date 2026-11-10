@@ -2,6 +2,13 @@
 
 This is a level generator front-end, editor and viewer for a future game codenamed Lost in Limbo.
 
+## Stack
+
+- **Language**: C#
+- **Game engine**: Stride
+- **Other**:
+  - **UI library**: Gum
+
 ## Commands
 
 All commands must be issued from the root directory.
@@ -42,13 +49,17 @@ For development we use Visual Studio Code with the C# Dev Kit extension.
 
 ## Resources
 
-### External libraries
+### Our libraries
 
 The editor uses the **LevelGen** library. See `README.md` in that project for information on how to release it.
 To update library on this side, after release change its version in `LostInLimbo.LevelEditor.Game.csproj`, for example:
 ```<PackageReference Include="LostInLimbo.LevelGen" Version="0.0.5" />```
 Build and run.
 
+### Other libraries
+
+For user interface we use Gum. It is open-source (MIT) game UI: WYSIWYG tool + layout engine + Forms controls, WPF-like API.
+
 ## Notes
 
-- Ui elements on scene need to have `Render Group` set to `Group31`. That will ensure these do not have post-process.
+- Ui elements on scene need to have `Render Group` set to `Group31`. That will ensure these do not have post-process. (obsolete after implementing Gum)
