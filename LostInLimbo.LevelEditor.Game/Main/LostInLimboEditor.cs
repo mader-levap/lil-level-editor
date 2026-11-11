@@ -4,7 +4,6 @@ using Gum;
 using LostInLimbo.LevelEditor.Input;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
-using LostInLimbo.LevelEditor.Ui;
 using LostInLimbo.LevelEditor.Ui.Gum;
 using Stride.Engine;
 using Stride.Games;
@@ -55,16 +54,13 @@ public sealed class LostInLimboEditor : Game
     Services.AddService<ISystemInfoService>(new SystemInfoService());
     Services.AddService<ILevelGenService>(new LevelGenService());
 
-    // Gameplay keyboard input. InputManager and UISystem do not exist yet during
-    // PrepareContext (they are created later by Game.Initialize and the UI renderer),
-    // so both are resolved lazily on every query; capture comes from UiFocus (UGS)
-    // OR GumFocus (Gum), which only this composition root is allowed to compose.
+    // Gameplay keyboard input. InputManager does not exist yet during PrepareContext
+    // (Game.Initialize creates it later), so it is resolved lazily on every query.
+    // The keyboard is captured while a Gum text box has focus (null-safe before Gum init).
     Services.AddService(new GameInput(
       hasKeyboard: () => Services.GetService<InputManager>()?.HasKeyboard ?? false,
       isKeyDown: key => Services.GetService<InputManager>()?.IsKeyDown(key) ?? false,
-      isKeyboardCaptured: () => GumFocus.IsKeyboardCaptured(
-        ugsTextInputFocused: UiFocus.IsTextInputFocused(Services),
-        gumTextInputFocused: GumFocus.IsTextInputFocused())));
+      isKeyboardCaptured: GumFocus.IsTextInputFocused));
   }
 
   /// <summary>
@@ -99,7 +95,7 @@ public sealed class LostInLimboEditor : Game
   /// SceneSystem constructs an empty placeholder compositor (<c>Game</c> is null) and
   /// replaces it with the loaded asset. Gum's default <c>registerSceneRenderer: true</c>
   /// appends a <c>GumSceneRenderer</c> to the end of the compositor's Game collection
-  /// (after the 3D pass and UGS Group31 stage), so no asset edit is required.
+  /// (after the 3D pass), so no asset edit is required.
   /// Stride then ticks Gum Update/Draw every frame through that renderer.
   /// </remarks>
   private void EnsureGumInitialized()

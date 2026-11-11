@@ -10,7 +10,7 @@ using Stride.Core.Diagnostics;
 namespace LostInLimbo.LevelEditor.Ui.Gum.Common;
 
 /// <summary>
-/// Shared factory helpers for code-only Gum UI (the Gum counterpart of <c>UiBuilderBase</c>).
+/// Shared factory helpers for code-only Gum UI.
 /// </summary>
 /// <remarks>Call only after <c>GumService.Default.Initialize</c> has returned.</remarks>
 public static class GumUiFactory

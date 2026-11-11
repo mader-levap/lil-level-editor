@@ -83,7 +83,7 @@ Before considering a task complete:
 - **Determinism stays in the library.** The editor supplies `WorldGenerationContext`-style inputs (seed, map config etc); it must not compensate for or re-order generation results.
 - **Isolate the conversion layer.** Keep code that maps level data to Stride objects (`Entity`, `Transform`, models, colliders) in a dedicated, clearly named area (e.g. a scene builder). Level-data types must not spread through UI/input code, and engine types must not leak into generation decisions.
 - **Engine-specific code is allowed and expected here** (unlike in `lil-level-gen`): scene manipulation, input, rendering, Game Studio integration and asset work are this project's purpose.
-- **Input conventions.** Gameplay scripts read keyboard input through `GameInput` (capture-gated); mouse, gamepad and touch are read from `Input` directly. UI code uses `UiFocus` for focus queries, outside-click blur and releasing focus.
+- **Input conventions.** Gameplay scripts read keyboard input through `GameInput` (capture-gated); mouse, gamepad and touch are read from `Input` directly. UI is code-only Gum (`Ui/Gum/`). Use `GumFocus` for text-focus and pointer-over queries; Gum text boxes blur on outside click by themselves (`LosesFocusWhenClickedOff`); overlays release focus they hold when hidden.
 
 ## LevelGen package workflow
 
@@ -129,10 +129,10 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 - Prefer `record` for immutable data-transfer types.
 - Prefer `IReadOnlyList<T>`/arrays in APIs.
 - Avoid public mutable collections where practical.
+- Observe standard C# conventions about naming of variables, classes etc.
 - Use explicit, descriptive names: `BuildChunkScene`, `LevelGenAdapter`.
 - Avoid abbreviations except widely understood ones such as `Id`, `X`, `Y`, and `Z`.
 - Avoid magic numbers; use named constants, options objects, configuration records or inspector properties.
-- Use `CancellationToken` for potentially expensive or cancellable operations.
 - Do not use `async void`.
 - Do not use `DateTime.Now`, machine-specific paths or environment-dependent behavior in editor logic.
 - Validate inputs; do not swallow exceptions; return empty collections rather than `null`.

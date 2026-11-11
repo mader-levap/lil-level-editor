@@ -9,11 +9,11 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 |-------|-------|-------|
 | 0 — Spike (Gum beside UGS UI) | **Done** | Build + tests + visual check confirmed (render, click, resize, UGS intact) |
 | 1 — Input seams (focus/capture/camera) | **Done** | Capture OR (UGS+Gum), camera right-look gated on `VisualOver`; 28/28 tests |
-| 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | **In progress** | Steps 0–3c done + user-verified; step 4 (LevelInfo) done, awaiting manual check |
-| 3 — Switch to Gum-only | Not started | |
+| 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | **Done** | All four panels on Gum; user-verified |
+| 3 — Switch to Gum-only | **Done** (awaiting manual check) | UGS runtime path and C# code removed; keyboard capture Gum-only; 69/69 tests |
 | 4 — Remove UGS UI + assets | Not started | |
 
-**Current session:** Phase 2 step 4 (LevelInfo overlay) done (see Session log). Next: user check; then Phase 2 is complete.
+**Current session:** Phase 3 done (see Session log). Next: user check, then Phase 4 (package, assets, compositor).
 
 **Decisions (locked):**
 - Author UI **code-only** first (Gum tool / `.gumx` later, no rework).
@@ -35,6 +35,8 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 - **Focus indicator bars kept for now:** the orange 2px lines under focused controls are Gum's
   V3 `FocusedIndicator` (keyboard/gamepad focus cue), not a bug. Remove them later in the Gum
   tool (`.gumx`) theme, not with per-screen code (user decision, 2026-11-11).
+- **Phase 3 scope:** dead UGS C# code deleted in Phase 3 (not Phase 4); props JSON
+  persistence is a separate task after Phase 4 (user decisions, 2026-11-11).
 - **Startup splash disabled** in `LostInLimboEditor.PrepareContext` (`SceneSystem.SplashScreenUrl = null`): editor opens immediately, and the splash path loads the compositor asynchronously (Gum must register on the real compositor, not the SceneSystem placeholder).
 
 ## Findings (2026-11-10)
@@ -121,19 +123,24 @@ Per panel: build → verify → test pure logic → hide UGS equivalent.
 Prefer constructor injection over a new static locator.
 
 ### Phase 3 — Switch
-1. `UiMain`/bootstrap attaches Gum only; remove UGS `UIPage` path.
-2. Overlay switching + generation-state UI fully on Gum.
-3. Optional: JSON props persistence (TODO.md).
+1. ~~`UiMain`/bootstrap attaches Gum only; remove UGS `UIPage` path.~~ **Done**
+2. ~~Overlay switching + generation-state UI fully on Gum.~~ **Done** (Phase 2)
+3. ~~Delete dead UGS C# code (`UiBuilderBase`, builders, `UiRes`, `UiFocus` + tests).~~
+   **Done** (moved here from Phase 4, user decision).
+4. JSON props persistence: **moved out** to a separate task after Phase 4 (user decision).
 
 ### Phase 4 — Remove UGS
-1. Delete `UiBuilderBase`, UGS builders, `UiRes` sprite/font loading, UGS `UiFocus`.
-2. Drop `Stride.UI`; clean `UIMain` entity in `MapScene`.
+1. ~~Delete `UiBuilderBase`, UGS builders, `UiRes` sprite/font loading, UGS `UiFocus`.~~
+   Done in Phase 3.
+2. Drop `Stride.UI` PackageReference (ask first; check Gum.Stride doesn't need it).
+   `MapScene` `UIMain` entity needs no change (only the `UiMain` script; `UIComponent` was
+   created at runtime and no longer is).
 3. Compositor: remove Group31/UiStage if unused (Game Studio preferred).
 4. Retire dead assets (`IconQuestion`, sheets/font if unreferenced).
    **Ensure no icon duplication** in the shipped app: delete the `Icon*.sdtex` assets once
    only Gum uses the icons (PNGs copied to `GumContent/Icons/` stay); revisit the csproj
    `*.png` copy rule (e.g. drop unused `icon_question.png`). User request, 2026-11-11.
-5. Update `AGENTS.md` input conventions, README Group31 note, `TODO.md`.
+5. ~~Update `AGENTS.md` input conventions~~ (done in Phase 3); README Group31 note, `TODO.md`.
 6. Full build + test + manual smoke (panels, generation, typing, camera, resize).
 
 ## Verification (every phase)
@@ -306,3 +313,14 @@ Prefer constructor injection over a new static locator.
     nodes/edges/steps.
   - Follow-up (user request): card title centered, bold, 1.25× font size via new
     `GumUiFactory.CreateTitleLabel` (reusable for future screen titles).
+- **2026-11-11 (Phase 3):** Switch to Gum-only.
+  - `UiMain` (sealed) is now a pure Gum host: no `UIComponent`/`UIPage`, no `UiRes`, no UGS
+    outside-click blur (Gum `LosesFocusWhenClickedOff` covers it).
+  - `GameInput` capture = `GumFocus.IsTextInputFocused`; transitional
+    `GumFocus.IsKeyboardCaptured(ugs, gum)` and its 4 tests removed.
+  - Deleted: `UiBuilderBase`, `UiFocus`, `UiRes`, `UiEditorBuilder`, `UiLevelGenBuilder`,
+    `UiLevelInfoBuilder`, `UiFocusTests`. `EnOverlay` moved to `Ui/Gum/Editor/`
+    (namespace `...Ui.Gum.Editor`).
+  - `AGENTS.md` input conventions now describe Gum focus handling.
+  - Verified: full rebuild 0 errors, no CS/GUM warnings; 69/69 tests; screenshots: LevelGen
+    Start → log lines, LevelInfo card after run — both unchanged.

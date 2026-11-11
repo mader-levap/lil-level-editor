@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using LostInLimbo.LevelEditor.Ui.Editor;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Editor;
 

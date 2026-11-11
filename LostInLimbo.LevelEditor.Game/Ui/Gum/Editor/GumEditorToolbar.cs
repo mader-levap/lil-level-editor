@@ -1,6 +1,5 @@
 using System;
 using Gum.Forms.Controls;
-using LostInLimbo.LevelEditor.Ui.Editor;
 using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 

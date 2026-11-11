@@ -3,10 +3,10 @@
 ## Current
 
 - UI:
-  - Migrate current UI to Gum.
-  - Add panel where we can set props. Default values are from `PropMain.Default`. That panel will vanish during generation and will be back once it finishes.
-    - Difficulty level... we need combobox.
-    - How to save to disk? Does Stride have any support? I want last prop setup to survive restart of app. I guess in worst case we can just save/load json file with props from directory where game is running.
+  - Migrate current UI to Gum. Phases 0–3 done; Phase 4 (drop `Stride.UI`, UGS assets, compositor UI stage) left — see `GUM-MIGRATION.md`.
+  - ~~Add panel where we can set props. Default values are from `PropMain.Default`. That panel will vanish during generation and will be back once it finishes.~~ Done (Gum LevelGen overlay).
+    - ~~Difficulty level... we need combobox.~~ Done (Easy/Medium/Hard presets).
+  - Persist last props setup across app restarts (separate task after Gum Phase 4). How to save to disk? Does Stride have any support? I guess in worst case we can just save/load json file with props from directory where game is running.
   - Add panel with graph visualization.
     - Where it should go?
     - Research how to make canvas that I can draw on freely that can update every tick.

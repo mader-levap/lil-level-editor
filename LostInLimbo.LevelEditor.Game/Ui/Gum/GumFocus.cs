@@ -5,16 +5,13 @@ using Gum.Wireframe;
 namespace LostInLimbo.LevelEditor.Ui.Gum;
 
 /// <summary>
-/// Queries and pure decision helpers for Gum focus and pointer-over state, used to
-/// seam Gum input into the editor's existing keyboard-capture and camera-look paths
-/// while UGS and Gum UI coexist (strangler migration).
+/// Queries and pure decision helpers for Gum focus and pointer-over state, used by the
+/// editor's keyboard capture (<c>GameInput</c>) and camera right-look gate.
 /// </summary>
 /// <remarks>
-/// Runtime queries are null-safe before <c>GumService.Default.Initialize</c> and never
-/// require the engine or a live compositor in unit tests — only the pure overloads
-/// (<see cref="IsKeyboardCaptured"/> / <see cref="ShouldProcessCameraRightLook"/>)
-/// are exercised headlessly. During the UGS→Gum transition the composition root ORs
-/// these results with <see cref="UiFocus"/> so both UI stacks can capture the keyboard.
+/// Runtime queries are null-safe before <c>GumService.Default.Initialize</c>. Unit tests
+/// never initialize Gum; only the pure <see cref="ShouldProcessCameraRightLook"/> is
+/// exercised headlessly.
 /// </remarks>
 public static class GumFocus
 {
@@ -50,23 +47,12 @@ public static class GumFocus
   /// only reports elements with <c>HasEvents</c> under the default
   /// <see cref="Gum.Wireframe.VisualOverBehavior.IfHasEventsIsTrue"/>. Non-interactive
   /// panels that must block camera look need <c>HasEvents = true</c> when they are
-  /// built (Phase 2 panels).
+  /// built (see <c>GumUiFactory.CreatePanel</c>).
   /// </remarks>
   public static bool IsPointerOverUi()
   {
     if (!GumService.Default.IsInitialized) return false;
     return GumService.Default.Cursor?.VisualOver != null;
-  }
-
-  /// <summary>
-  /// Decides whether the keyboard should be captured for typing during the UGS↔Gum transition.
-  /// </summary>
-  /// <param name="ugsTextInputFocused">Whether a UGS <c>EditText</c> holds text focus.</param>
-  /// <param name="gumTextInputFocused">Whether a Gum <see cref="TextBoxBase"/> holds focus.</param>
-  /// <returns><see langword="true"/> when either UI stack holds text focus; otherwise <see langword="false"/>.</returns>
-  public static bool IsKeyboardCaptured(bool ugsTextInputFocused, bool gumTextInputFocused)
-  {
-    return ugsTextInputFocused || gumTextInputFocused;
   }
 
   /// <summary>
