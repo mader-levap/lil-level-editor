@@ -8,9 +8,11 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Common;
 /// </summary>
 /// <remarks>
 /// Gum loads images as plain files (not through Stride's content pipeline). The Game project
-/// copies <c>Resources/Graphics/Icons/*.png</c> to <c>GumContent/Icons/</c> in the output
-/// folder; paths are resolved against the application base directory and passed to Gum as
-/// absolute paths, so Gum's own relative-directory setting does not matter.
+/// copies <c>Resources/Graphics/Icons/**/*.png</c> to <c>GumContent/Icons/</c> in the output
+/// folder, keeping subfolders; the PNGs are the only copy (no Stride texture assets). Icon
+/// constants are paths relative to that folder (for example <c>Main/Gears.png</c>). Paths are
+/// resolved against the application base directory and passed to Gum as absolute paths, so
+/// Gum's own relative-directory setting does not matter.
 /// </remarks>
 public static class GumIcons
 {

@@ -10,10 +10,10 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 | 0 — Spike (Gum beside UGS UI) | **Done** | Build + tests + visual check confirmed (render, click, resize, UGS intact) |
 | 1 — Input seams (focus/capture/camera) | **Done** | Capture OR (UGS+Gum), camera right-look gated on `VisualOver`; 28/28 tests |
 | 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | **Done** | All four panels on Gum; user-verified |
-| 3 — Switch to Gum-only | **Done** (awaiting manual check) | UGS runtime path and C# code removed; keyboard capture Gum-only; 69/69 tests |
-| 4 — Remove UGS UI + assets | Not started | |
+| 3 — Switch to Gum-only | **Done** | UGS runtime path and C# code removed; keyboard capture Gum-only; 69/69 tests |
+| 4 — Remove UGS UI + assets | **Done** (awaiting manual check) | `Stride.UI` dropped, compositor UI pipeline and UGS assets removed, icons de-duplicated; 69/69 tests |
 
-**Current session:** Phase 3 done (see Session log). Next: user check, then Phase 4 (package, assets, compositor).
+**Current session:** Migration complete (Phase 4 done, see Session log). Remaining follow-up: Gum tool (`.gumx`) theme (focus bars), props JSON persistence (separate task).
 
 **Decisions (locked):**
 - Author UI **code-only** first (Gum tool / `.gumx` later, no rework).
@@ -35,6 +35,8 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 - **Focus indicator bars kept for now:** the orange 2px lines under focused controls are Gum's
   V3 `FocusedIndicator` (keyboard/gamepad focus cue), not a bug. Remove them later in the Gum
   tool (`.gumx`) theme, not with per-screen code (user decision, 2026-11-11).
+- **Phase 4 `.sd*` work in Game Studio** (compositor, asset deletion) done by the user;
+  code/package/docs by Claude (user decision, 2026-11-11).
 - **Phase 3 scope:** dead UGS C# code deleted in Phase 3 (not Phase 4); props JSON
   persistence is a separate task after Phase 4 (user decisions, 2026-11-11).
 - **Startup splash disabled** in `LostInLimboEditor.PrepareContext` (`SceneSystem.SplashScreenUrl = null`): editor opens immediately, and the splash path loads the compositor asynchronously (Gum must register on the real compositor, not the SceneSystem placeholder).
@@ -132,16 +134,17 @@ Prefer constructor injection over a new static locator.
 ### Phase 4 — Remove UGS
 1. ~~Delete `UiBuilderBase`, UGS builders, `UiRes` sprite/font loading, UGS `UiFocus`.~~
    Done in Phase 3.
-2. Drop `Stride.UI` PackageReference (ask first; check Gum.Stride doesn't need it).
-   `MapScene` `UIMain` entity needs no change (only the `UiMain` script; `UIComponent` was
-   created at runtime and no longer is).
-3. Compositor: remove Group31/UiStage if unused (Game Studio preferred).
-4. Retire dead assets (`IconQuestion`, sheets/font if unreferenced).
-   **Ensure no icon duplication** in the shipped app: delete the `Icon*.sdtex` assets once
-   only Gum uses the icons (PNGs copied to `GumContent/Icons/` stay); revisit the csproj
-   `*.png` copy rule (e.g. drop unused `icon_question.png`). User request, 2026-11-11.
-5. ~~Update `AGENTS.md` input conventions~~ (done in Phase 3); README Group31 note, `TODO.md`.
-6. Full build + test + manual smoke (panels, generation, typing, camera, resize).
+2. ~~Drop `Stride.UI` PackageReference.~~ **Done** (no code used it; Gum.Stride does not depend
+   on it; only the compositor's `UIRenderFeature` did). `MapScene` needed no change.
+3. ~~Compositor: remove UI pipeline.~~ **Done** by user in Game Studio: `UiStage`,
+   `UIRenderFeature` (inherited from the template → recorded as `~(Deleted)`), Group31 camera
+   renderer and Editor UI stage removed; `Game` restored to the original shape (camera
+   renderer, mask All → [Forward, Debug]); Gum still appends its renderer fine.
+4. ~~Retire dead assets; ensure no icon duplication.~~ **Done** by user in Game Studio: all
+   `Icon*.sdtex`, `Btn*.sdsheet`, `BasicFont.sdfnt` (+ their `.dds`/unused PNG) deleted;
+   PNGs renamed/reorganized (`Icons/Main/…`). Csproj copies `Icons/**/*.png` keeping subfolders.
+5. ~~Update `AGENTS.md`, README Group31 note, `TODO.md`.~~ **Done**
+6. ~~Full build + test + smoke.~~ **Done** (manual check by user pending)
 
 ## Verification (every phase)
 
@@ -324,3 +327,16 @@ Prefer constructor injection over a new static locator.
   - `AGENTS.md` input conventions now describe Gum focus handling.
   - Verified: full rebuild 0 errors, no CS/GUM warnings; 69/69 tests; screenshots: LevelGen
     Start → log lines, LevelInfo card after run — both unchanged.
+- **2026-11-11 (Phase 4):** Remove UGS leftovers.
+  - User (Game Studio): removed compositor UI pipeline. First attempt put `ForwardRenderer`
+    directly in a `SceneRendererCollection` → crash `RenderView is null` (ForwardRenderer needs a
+    `SceneCameraRenderer` above it); fixed by restoring the original camera-renderer root.
+    Deleted all UGS assets; renamed icon PNGs, moved toolbar icons to `Icons/Main/`.
+  - Csproj icon rule: `None Remove` + `None Include="Resources\Graphics\Icons\**\*.png"` with
+    `Link="GumContent\Icons\%(RecursiveDir)…"` (`Update` would give `RecursiveDir` relative to
+    the project root, since the SDK's default `**/*` glob created those items).
+  - Removed `Stride.UI` PackageReference and empty asset folders; README notes, `GumIcons` doc,
+    `TODO.md` updated.
+  - Verified: clean full rebuild 0 errors, no CS/GUM warnings; no `Stride.UI.dll` in output;
+    `GumContent/Icons` has the 6 PNGs incl. `Main/`; 69/69 tests; screenshots: toolbar/transport
+    icons, LevelGen Start → log, LevelInfo card all render.

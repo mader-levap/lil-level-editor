@@ -209,6 +209,8 @@ Game*: !Stride.Rendering.Compositing.SceneCameraRenderer,Stride.Engine
         Children:
             117ce20527571b5cff6d3907a709840a*: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 9c2cdd6f-9354-4a85-867f-912c17f2f219
             b06675aa5891db9308937726ec084ec9*: !Stride.Rendering.Compositing.DebugRenderer,Stride.Rendering ref!! ef854efe-33da-4e65-a396-a483f96ebe56
+            01d338078e9b21121ead0868932613dd: ~(Deleted)
+            d39c5ddbf8b7d5ca02bafb6496b1cc3c: ~(Deleted)
     RenderMask: All
 SingleView: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 063f3808-5814-4fff-9b8a-87f61059d0ec
 Editor*: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 9c2cdd6f-9354-4a85-867f-912c17f2f219
