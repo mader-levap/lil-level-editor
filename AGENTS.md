@@ -136,6 +136,7 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 - Do not use `async void`.
 - Do not use `DateTime.Now`, machine-specific paths or environment-dependent behavior in editor logic.
 - Validate inputs; do not swallow exceptions; return empty collections rather than `null`.
+- Use `#region <very short description>` for longer code files where multiple logically distinct functionalities lives.
 
 ### Scripting conventions
 

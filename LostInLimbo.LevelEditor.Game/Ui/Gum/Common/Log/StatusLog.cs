@@ -1,35 +1,16 @@
 using System;
 using System.Collections.Generic;
-using LostInLimbo.LevelEditor.Ui.Gum.Common;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
-
-/// <summary>
-/// Severity of a status log entry; decides its color.
-/// </summary>
-public enum EnStatusSeverity
-{
-  /// <summary>Neutral information.</summary>
-  Info,
-  /// <summary>Successful outcome.</summary>
-  Success,
-  /// <summary>Something went partly wrong.</summary>
-  Warning,
-  /// <summary>Failure.</summary>
-  Error,
-}
-
-/// <summary>
-/// One line of the status log.
-/// </summary>
-/// <param name="Text">Line text.</param>
-/// <param name="Severity">Severity.</param>
-public sealed record StatusEntry(string Text, EnStatusSeverity Severity);
+namespace LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
 
 /// <summary>
 /// Bounded list of status entries: once <see cref="MaxEntries"/> is exceeded the oldest
 /// entries are dropped, so a long editor session cannot grow the log without limit.
 /// </summary>
+/// <remarks>
+/// Pure model (no Gum, Stride or LevelGen); any screen can own one and show it with
+/// <see cref="GumStatusLogView"/>. A log may outlive its views or be shown by several.
+/// </remarks>
 public sealed class StatusLog
 {
   /// <summary>Default maximum number of kept entries.</summary>
@@ -80,6 +61,13 @@ public sealed class StatusLog
     _entries.RemoveRange(0, excess);
     Trimmed?.Invoke(this, excess);
   }
+
+  /// <summary>
+  /// Adds an entry built from text and severity.
+  /// </summary>
+  /// <param name="text">Line text.</param>
+  /// <param name="severity">Severity.</param>
+  public void Add(string text, EnStatusSeverity severity = EnStatusSeverity.Info) => Add(new StatusEntry(text, severity));
 
   /// <summary>
   /// Removes all entries.

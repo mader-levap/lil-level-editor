@@ -29,6 +29,9 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 - **Phase 2 host:** `UiMain` builds the Gum UI lazily once `GumService.Default.IsInitialized`;
   services go into Gum panel constructors (no `UiRes`). Overlay switching becomes pure
   `OverlaySwitcher` over `IOverlayView` (UGS adapter bridges until overlays are ported).
+- **Reusable status log:** `Ui/Gum/Common/Log/` — pure `StatusLog` model (+ `StatusEntry`,
+  `EnStatusSeverity`) and `GumStatusLogView` (panel + ScrollViewer + optional Clear). Future
+  screens reuse these instead of building their own log.
 - **Startup splash disabled** in `LostInLimboEditor.PrepareContext` (`SceneSystem.SplashScreenUrl = null`): editor opens immediately, and the splash path loads the compositor asynchronously (Gum must register on the real compositor, not the SceneSystem placeholder).
 
 ## Findings (2026-11-10)
@@ -261,3 +264,14 @@ Prefer constructor injection over a new static locator.
     and changes; checkbox toggles; Clear empties log; many runs scroll to newest; typing in
     seed box does not move camera; closing overlay while typing → WASD works; right-drag over
     form/log/buttons does not rotate camera, over empty 3D it does.
+- **2026-11-11 (Phase 2, step 3b):** Status log extracted as reusable component (user request).
+  - Moved model to `Ui/Gum/Common/Log/` (namespace `...Ui.Gum.Common.Log`; `Log` rather than
+    `StatusLog` so the namespace doesn't share the class name): `StatusLog.cs`,
+    `StatusEntry.cs`, `EnStatusSeverity.cs`. Added `Add(text, severity = Info)` shortcut.
+  - New `GumStatusLogView` (IDisposable): builds translucent panel + ScrollViewer + optional
+    Clear; shows existing entries on build; follows Added/Trimmed/Cleared; deferred
+    scroll-to-end in `Update()`; `Dispose()` unsubscribes. Caller only positions/sizes `Root`.
+  - `GumLevelGenPanel`: log code replaced by the view (anchor bottom, 35% height).
+  - Tests split: `StatusLogTests` (model) + `LevelGenStatusMessagesTests`; 78/78.
+  - Verified: full rebuild 0 errors, no CS/GUM warnings; screenshot: Start ×2 → Clear →
+    Start leaves only the last run's two lines; look unchanged.

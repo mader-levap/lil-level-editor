@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
@@ -7,6 +6,7 @@ using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
+using LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
 using LostInLimbo.LevelEditor.Ui.Gum.Editor;
 using LostInLimbo.LevelGen.Data.Prop;
 using LostInLimbo.LevelGen.Data.Result;
@@ -21,7 +21,8 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
 /// <remarks>
 /// Button and form logic lives in pure helpers (<see cref="LevelGenUiState"/>,
 /// <see cref="LevelGenPropsBuilder"/>, <see cref="LevelGenStatusMessages"/>,
-/// <see cref="StatusLog"/>); this class only builds visuals and wires them to the service.
+/// <see cref="StatusLog"/>) and the reusable <see cref="GumStatusLogView"/>; this class only
+/// builds visuals and wires them to the service.
 /// </remarks>
 public sealed class GumLevelGenPanel : IOverlayView
 {
@@ -49,17 +50,11 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <summary>Height of the status log panel, in percent of the window height.</summary>
   private const float StatusHeightPercent = 35;
 
-  /// <summary>Width of the log's Clear button, in pixels.</summary>
-  private const float ClearButtonWidth = 70;
-
   /// <summary>Level generation service.</summary>
   private readonly ILevelGenService _levelGenService;
 
   /// <summary>Status log model.</summary>
   private readonly StatusLog _statusLog = new();
-
-  /// <summary>Labels shown in the log, oldest first (parallel to <see cref="StatusLog.Entries"/>).</summary>
-  private readonly List<Label> _logLabels = [];
 
   /// <summary>Overlay root (full window, no events of its own).</summary>
   private ContainerRuntime? _root;
@@ -88,17 +83,14 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <summary>Stop button.</summary>
   private Button? _btnStop;
 
-  /// <summary>Scrollable log view.</summary>
-  private ScrollViewer? _logView;
+  /// <summary>View of <see cref="_statusLog"/>; null until built.</summary>
+  private GumStatusLogView? _statusLogView;
 
   /// <summary>
   /// Is <see langword="true"/> while a request was accepted and its outcome is not reported yet;
   /// drives <see cref="Update"/> polling.
   /// </summary>
   private bool _awaitingResult;
-
-  /// <summary>Whether the log should scroll to the bottom on the next update (after layout).</summary>
-  private bool _scrollToEndPending;
 
   /// <summary>
   /// Creates the panel. Call <see cref="Build"/> to create its visuals.
@@ -135,10 +127,6 @@ public sealed class GumLevelGenPanel : IOverlayView
     root.AddChild(_propsPanel);
     root.AddChild(CreateStatusPanel());
 
-    _statusLog.Added += (_, entry) => AddLogLabel(entry);
-    _statusLog.Trimmed += (_, count) => RemoveOldestLogLabels(count);
-    _statusLog.Cleared += (_, _) => RemoveOldestLogLabels(_logLabels.Count);
-
     root.AddToRoot();
     _root = root;
 
@@ -163,11 +151,7 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// </summary>
   public void Update()
   {
-    if (_scrollToEndPending && _logView != null)
-    {
-      _logView.ScrollToBottom();
-      _scrollToEndPending = false;
-    }
+    _statusLogView?.Update();
 
     if (!_awaitingResult) return; // no request in flight
     GenerationStatus status = _levelGenService.Status();
@@ -300,65 +284,15 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <returns>Panel container.</returns>
   private ContainerRuntime CreateStatusPanel()
   {
-    ContainerRuntime panel = GumUiFactory.CreatePanel();
+    _statusLogView = new GumStatusLogView(_statusLog);
+    ContainerRuntime panel = _statusLogView.Build();
     panel.Anchor(Anchor.Bottom);
     panel.Y = -Margin;
     panel.Width = -2 * Margin;
     panel.WidthUnits = DimensionUnitType.RelativeToParent;
     panel.Height = StatusHeightPercent;
     panel.HeightUnits = DimensionUnitType.PercentageOfParent;
-
-    _logView = new ScrollViewer();
-    _logView.X = PanelPadding;
-    _logView.Y = PanelPadding;
-    _logView.Width = -(3 * PanelPadding + ClearButtonWidth);
-    _logView.WidthUnits = DimensionUnitType.RelativeToParent;
-    _logView.Height = -2 * PanelPadding;
-    _logView.HeightUnits = DimensionUnitType.RelativeToParent;
-    panel.AddChild(_logView.Visual);
-
-    var clearButton = new Button
-    {
-      Text = "Clear",
-      Width = ClearButtonWidth,
-    };
-    clearButton.Anchor(Anchor.TopRight);
-    clearButton.X = -PanelPadding;
-    clearButton.Y = PanelPadding;
-    clearButton.Click += (_, _) => _statusLog.Clear();
-    panel.AddChild(clearButton.Visual);
-
     return panel;
-  }
-
-  #endregion
-
-  #region Log view
-
-  /// <summary>
-  /// Shows a new log entry and scrolls to it.
-  /// </summary>
-  /// <param name="entry">New entry.</param>
-  private void AddLogLabel(StatusEntry entry)
-  {
-    if (_logView == null) return;
-    Label label = GumUiFactory.CreateLabel(entry.Text, StatusLog.ColorFor(entry.Severity));
-    _logView.AddChild(label);
-    _logLabels.Add(label);
-    _logView.ScrollToBottom();
-    _scrollToEndPending = true; // again after layout, once the new line has its height
-  }
-
-  /// <summary>
-  /// Removes the oldest shown log entries.
-  /// </summary>
-  /// <param name="count">Number of entries to remove.</param>
-  private void RemoveOldestLogLabels(int count)
-  {
-    if (_logView == null) return;
-    int toRemove = Math.Min(count, _logLabels.Count);
-    for (int i = 0; i < toRemove; i++) _logView.RemoveChild(_logLabels[i]);
-    _logLabels.RemoveRange(0, toRemove);
   }
 
   #endregion
