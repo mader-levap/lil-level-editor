@@ -255,28 +255,13 @@ public sealed class GumLevelGenPanel : IOverlayView
   }
 
   /// <summary>
-  /// Creates one form row: a fixed-width label followed by an input.
+  /// Creates one form row with this form's label column width.
   /// </summary>
   /// <param name="labelText">Label text.</param>
   /// <param name="input">Input control.</param>
   /// <returns>Horizontal stack panel.</returns>
-  private static StackPanel CreateFormRow(string labelText, FrameworkElement input)
-  {
-    var row = new StackPanel
-    {
-      Orientation = Orientation.Horizontal,
-    };
-
-    Label label = GumUiFactory.CreateLabel(labelText, UiRgba.White);
-    label.Width = LabelWidth;
-    label.WidthUnits = DimensionUnitType.Absolute;
-    label.Anchor(Anchor.CenterVertically);
-    row.AddChild(label);
-
-    input.Anchor(Anchor.CenterVertically);
-    row.AddChild(input);
-    return row;
-  }
+  private static StackPanel CreateFormRow(string labelText, FrameworkElement input) =>
+    GumUiFactory.CreateFormRow(labelText, input, LabelWidth);
 
   /// <summary>
   /// Creates the status log panel along the bottom of the window.

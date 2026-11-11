@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
@@ -28,6 +29,9 @@ public static class GumUiFactory
 
   /// <summary>Default horizontal margin between a panel edge and its text, in pixels.</summary>
   public const float TextMargin = 5;
+
+  /// <summary>Title font size relative to the default font size.</summary>
+  public const float TitleFontSizeFactor = 1.25f;
 
   /// <summary>Translucent black used behind panels.</summary>
   public static UiRgba PanelBackgroundColor { get; } = UiRgba.Black with { Alpha = PanelBackgroundAlpha };
@@ -148,6 +152,51 @@ public static class GumUiFactory
     };
     ApplyTextColor(label, color);
     return label;
+  }
+
+  /// <summary>
+  /// Creates a bold title label, larger than normal text and centered horizontally in its
+  /// parent (also inside a top-to-bottom stack).
+  /// </summary>
+  /// <param name="text">Title text.</param>
+  /// <returns>Label.</returns>
+  public static Label CreateTitleLabel(string text)
+  {
+    Label title = CreateLabel(text, UiRgba.White);
+    if (title.TextComponent is TextRuntime textRuntime)
+    {
+      textRuntime.IsBold = true;
+      textRuntime.FontSize = (int)MathF.Round(textRuntime.FontSize * TitleFontSizeFactor);
+    }
+
+    title.Anchor(Anchor.Top); // centers horizontally; the stack still controls the vertical position
+    return title;
+  }
+
+  /// <summary>
+  /// Creates one form row: a fixed-width white label followed by a control, both centered
+  /// vertically, so rows built with the same width line up as two columns.
+  /// </summary>
+  /// <param name="labelText">Label text.</param>
+  /// <param name="control">Control shown after the label (input, value label, ...).</param>
+  /// <param name="labelWidth">Width of the label column, in pixels.</param>
+  /// <returns>Horizontal stack panel.</returns>
+  public static StackPanel CreateFormRow(string labelText, FrameworkElement control, float labelWidth)
+  {
+    var row = new StackPanel
+    {
+      Orientation = Orientation.Horizontal,
+    };
+
+    Label label = CreateLabel(labelText, UiRgba.White);
+    label.Width = labelWidth;
+    label.WidthUnits = DimensionUnitType.Absolute;
+    label.Anchor(Anchor.CenterVertically);
+    row.AddChild(label);
+
+    control.Anchor(Anchor.CenterVertically);
+    row.AddChild(control);
+    return row;
   }
 
   /// <summary>

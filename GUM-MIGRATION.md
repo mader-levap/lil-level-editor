@@ -9,11 +9,11 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 |-------|-------|-------|
 | 0 — Spike (Gum beside UGS UI) | **Done** | Build + tests + visual check confirmed (render, click, resize, UGS intact) |
 | 1 — Input seams (focus/capture/camera) | **Done** | Capture OR (UGS+Gum), camera right-look gated on `VisualOver`; 28/28 tests |
-| 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | **In progress** | Steps 0–2 done + user-verified; step 3 (LevelGen) done, awaiting manual check |
+| 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | **In progress** | Steps 0–3c done + user-verified; step 4 (LevelInfo) done, awaiting manual check |
 | 3 — Switch to Gum-only | Not started | |
 | 4 — Remove UGS UI + assets | Not started | |
 
-**Current session:** Phase 2 step 3 (LevelGen overlay) done (see Session log). Next: user check, then step 4 (LevelInfo).
+**Current session:** Phase 2 step 4 (LevelInfo overlay) done (see Session log). Next: user check; then Phase 2 is complete.
 
 **Decisions (locked):**
 - Author UI **code-only** first (Gum tool / `.gumx` later, no rework).
@@ -32,6 +32,9 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 - **Reusable status log:** `Ui/Gum/Common/Log/` — pure `StatusLog` model (+ `StatusEntry`,
   `EnStatusSeverity`) and `GumStatusLogView` (panel + ScrollViewer + optional Clear). Future
   screens reuse these instead of building their own log.
+- **Focus indicator bars kept for now:** the orange 2px lines under focused controls are Gum's
+  V3 `FocusedIndicator` (keyboard/gamepad focus cue), not a bug. Remove them later in the Gum
+  tool (`.gumx`) theme, not with per-screen code (user decision, 2026-11-11).
 - **Startup splash disabled** in `LostInLimboEditor.PrepareContext` (`SceneSystem.SplashScreenUrl = null`): editor opens immediately, and the splash path loads the compositor asynchronously (Gum must register on the real compositor, not the SceneSystem placeholder).
 
 ## Findings (2026-11-10)
@@ -153,6 +156,7 @@ Prefer constructor injection over a new static locator.
 | Dual UI input/focus split | Phase 1 OR-predicate (`GumFocus.IsKeyboardCaptured`); drop UGS per panel fast |
 | `Cursor.WindowOver` obsolete | Use `VisualOver` (same member; no CS0618) |
 | `ColoredRectangleRuntime` obsolete (CS0618/GUM002) | Use `RectangleRuntime` + `IsFilled` + `FillRed/Green/Blue/Alpha` + `StrokeWidth = 0`; do **not** set `StrokeAlpha` (made the fill transparent) |
+| Orange focus bars look like glitches | Gum V3 `FocusedIndicator`; no global switch in 2026.11.2.1 (docs, reflection, GitHub checked). Fix in `.gumx` theme; fallback: per-root helper setting `FocusedIndicatorColor` transparent |
 | Forms button default height is RelativeToChildren | Icon buttons set `Width/HeightUnits = Absolute` (else `Height` becomes padding: 48 → 84 px) |
 | Texture loading differs from Stride | Small loader helper; reuse `Resources/` PNGs |
 
@@ -275,3 +279,30 @@ Prefer constructor injection over a new static locator.
   - Tests split: `StatusLogTests` (model) + `LevelGenStatusMessagesTests`; 78/78.
   - Verified: full rebuild 0 errors, no CS/GUM warnings; screenshot: Start ×2 → Clear →
     Start leaves only the last run's two lines; look unchanged.
+- **2026-11-11 (Phase 2, step 3c):** Orange lines investigation (user report).
+  - Lines under seed box, under ComboBox and under its open dropdown = Gum V3
+    `FocusedIndicator` bars (2px, shown on focus; default palette `Colors.Warning` #E8AB19 is the
+    likely color). Present on Button/ToggleButton/CheckBox/RadioButton/ComboBox/ListBox/
+    ListBoxItem/ScrollViewer/Slider/TextBoxBase visuals.
+  - No global off switch in Gum 2026.11.2.1: checked XML docs, reflection over all public types
+    of GumCommon/SkiaGum/StrideGum, Gum docs and GitHub (Menu bar was removed upstream by
+    editing the visual, PR #6708).
+  - **Decision:** keep the bars until the Gum tool theme; no code change.
+  - Also noted: newer Gum clears focus when a focused control is hidden (issue #6934); our
+    manual unfocus-on-hide stays correct either way.
+- **2026-11-11 (Phase 2, step 4):** LevelInfo overlay on Gum (UGS mockup replaced).
+  - New `Ui/Gum/Info/`: pure `LevelInfoSummary.Build(result, failureReason, LevelWorldFacts?)`
+    → `LevelInfoRow(Label, Value)` list (status, optional reason, then phase/graph nodes/
+    edges/map steps, or a "no level" explanation); `GumLevelInfoPanel` (centered translucent
+    card, rows rebuilt only when they change; refreshes on show and when `Status().Result`
+    changes while visible — `World()` deep-copies, so it is not read every frame).
+  - Form row helper moved to `GumUiFactory.CreateFormRow` (shared by LevelGen and LevelInfo).
+  - `UiMain` registers the Gum panel for `EnOverlay.LevelInfo`; `UiEditorBuilder` now builds an
+    empty UGS grid (removed in Phase 3); `UgsOverlayView` deleted (unused).
+    `UiLevelInfoBuilder` file stays until Phase 4.
+  - Tests: `LevelInfoSummaryTests`; 86/86.
+  - Verified: full rebuild 0 errors, no CS/GUM warnings; screenshots: info before generation
+    shows "Status: None / No level generated yet."; after Start shows Finished, Completed,
+    nodes/edges/steps.
+  - Follow-up (user request): card title centered, bold, 1.25× font size via new
+    `GumUiFactory.CreateTitleLabel` (reusable for future screen titles).

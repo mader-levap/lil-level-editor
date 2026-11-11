@@ -5,6 +5,7 @@ using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui.Editor;
 using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
 using LostInLimbo.LevelEditor.Ui.Gum.Editor;
+using LostInLimbo.LevelEditor.Ui.Gum.Info;
 using LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
 using Stride.Engine;
 using Stride.UI;
@@ -42,6 +43,9 @@ public class UiMain : SyncScript
   /// <summary>Gum level generation overlay; null until the Gum UI is built.</summary>
   private GumLevelGenPanel? _gumLevelGenPanel;
 
+  /// <summary>Gum level information overlay; null until the Gum UI is built.</summary>
+  private GumLevelInfoPanel? _gumLevelInfoPanel;
+
   public override void Start()
   {
     UiRes.InitResources(this);
@@ -56,6 +60,7 @@ public class UiMain : SyncScript
 
     _editorBuilder.Update();
     _gumLevelGenPanel?.Update();
+    _gumLevelInfoPanel?.Update();
 
     // Blur the focused text field when the user clicks anywhere outside of it.
     UiFocus.ReleaseTextInputFocusOnOutsidePress(Game.Services);
@@ -108,8 +113,10 @@ public class UiMain : SyncScript
     _gumLevelGenPanel = levelGenPanel;
     _overlaySwitcher.Register(EnOverlay.LevelGen, levelGenPanel);
 
-    // Overlays not ported yet stay UGS; the Gum toolbar drives them through adapters.
-    _overlaySwitcher.Register(EnOverlay.LevelInfo, new UgsOverlayView(_editorBuilder.LevelInfoPanel, Game.Services));
+    var levelInfoPanel = new GumLevelInfoPanel(levelGenService);
+    levelInfoPanel.Build();
+    _gumLevelInfoPanel = levelInfoPanel;
+    _overlaySwitcher.Register(EnOverlay.LevelInfo, levelInfoPanel);
 
     var toolbar = new GumEditorToolbar(_overlaySwitcher);
     toolbar.Build();

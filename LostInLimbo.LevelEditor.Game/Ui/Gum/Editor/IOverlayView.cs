@@ -1,8 +1,8 @@
 namespace LostInLimbo.LevelEditor.Ui.Gum.Editor;
 
 /// <summary>
-/// An overlay that <see cref="OverlaySwitcher"/> can show and hide. Implemented by Gum
-/// panels, and temporarily by <see cref="UgsOverlayView"/> for overlays not yet ported.
+/// An overlay that <see cref="OverlaySwitcher"/> can show and hide. Implemented by the Gum
+/// overlay panels.
 /// </summary>
 public interface IOverlayView
 {

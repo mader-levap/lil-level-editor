@@ -1,58 +1,31 @@
 using Stride.UI;
 using Stride.UI.Panels;
-using LostInLimbo.LevelEditor.Ui.Info;
 
 namespace LostInLimbo.LevelEditor.Ui.Editor;
 
 /// <summary>
-/// Builder for the remaining UGS editor overlays.
+/// Builder for the (now empty) UGS editor page.
 /// </summary>
 /// <remarks>
-/// Gum migration (Phase 2): the toolbar buttons and overlay switching moved to Gum
-/// (<c>GumEditorToolbar</c>, <c>OverlaySwitcher</c>) and the level generation overlay is
-/// <c>GumLevelGenPanel</c>. This builder only hosts the UGS overlay panels that are not ported
-/// yet; the Gum toolbar shows and hides them through <c>UgsOverlayView</c> adapters.
+/// Gum migration (Phase 2): the toolbar, overlay switching and both overlays moved to Gum
+/// (<c>GumEditorToolbar</c>, <c>OverlaySwitcher</c>, <c>GumLevelGenPanel</c>,
+/// <c>GumLevelInfoPanel</c>). This builder only keeps an empty UGS panel attached until
+/// Phase 3 removes the UGS page entirely.
 /// </remarks>
 public class UiEditorBuilder : UiBuilderBase
 {
-  /// <summary>Builder for level information overlay.</summary>
-  private readonly UiLevelInfoBuilder _levelInfoBuilder = new();
-
-  /// <summary>Main panel. Contains all overlays (by default hidden).</summary>
-  private Grid _mainPanel = default!;
-
-  /// <summary>Level information overlay (UGS). Valid after <see cref="Build"/>.</summary>
-  public Panel LevelInfoPanel { get; private set; } = default!;
-
-  /// <summary>Build main editor overlay.</summary>
+  /// <summary>Build main editor panel (empty).</summary>
   /// <returns>Panel.</returns>
   public override Panel Build()
   {
-    LevelInfoPanel = _levelInfoBuilder.Build();
-    _mainPanel = CreateMainPanel();
-    return _mainPanel;
-  }
-
-  public override void Update()
-  {
-    _levelInfoBuilder.Update();
-  }
-
-  /// <summary>
-  /// Create main panel.
-  /// </summary>
-  /// <returns>Main panel.</returns>
-  private Grid CreateMainPanel()
-  {
-    // Panels will fully overlap if put in same cell.
     return new Grid
     {
       HorizontalAlignment = HorizontalAlignment.Stretch,
       VerticalAlignment = VerticalAlignment.Stretch,
-      Children =
-      {
-        LevelInfoPanel
-      }
     };
+  }
+
+  public override void Update()
+  {
   }
 }
