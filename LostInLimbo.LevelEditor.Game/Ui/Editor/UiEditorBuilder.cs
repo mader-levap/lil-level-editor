@@ -1,6 +1,5 @@
 using Stride.UI;
 using Stride.UI.Panels;
-using LostInLimbo.LevelEditor.Ui.LevelGen;
 using LostInLimbo.LevelEditor.Ui.Info;
 
 namespace LostInLimbo.LevelEditor.Ui.Editor;
@@ -10,23 +9,17 @@ namespace LostInLimbo.LevelEditor.Ui.Editor;
 /// </summary>
 /// <remarks>
 /// Gum migration (Phase 2): the toolbar buttons and overlay switching moved to Gum
-/// (<c>GumEditorToolbar</c>, <c>OverlaySwitcher</c>). This builder only hosts the UGS overlay
-/// panels that are not ported yet; the Gum toolbar shows and hides them through
-/// <c>UgsOverlayView</c> adapters.
+/// (<c>GumEditorToolbar</c>, <c>OverlaySwitcher</c>) and the level generation overlay is
+/// <c>GumLevelGenPanel</c>. This builder only hosts the UGS overlay panels that are not ported
+/// yet; the Gum toolbar shows and hides them through <c>UgsOverlayView</c> adapters.
 /// </remarks>
 public class UiEditorBuilder : UiBuilderBase
 {
-  /// <summary>Builder for level generation overlay.</summary>
-  private readonly UiLevelGenBuilder _levelGenBuilder = new();
-
   /// <summary>Builder for level information overlay.</summary>
   private readonly UiLevelInfoBuilder _levelInfoBuilder = new();
 
   /// <summary>Main panel. Contains all overlays (by default hidden).</summary>
   private Grid _mainPanel = default!;
-
-  /// <summary>Level generation overlay (UGS). Valid after <see cref="Build"/>.</summary>
-  public Panel LevelGenPanel { get; private set; } = default!;
 
   /// <summary>Level information overlay (UGS). Valid after <see cref="Build"/>.</summary>
   public Panel LevelInfoPanel { get; private set; } = default!;
@@ -35,7 +28,6 @@ public class UiEditorBuilder : UiBuilderBase
   /// <returns>Panel.</returns>
   public override Panel Build()
   {
-    LevelGenPanel = _levelGenBuilder.Build();
     LevelInfoPanel = _levelInfoBuilder.Build();
     _mainPanel = CreateMainPanel();
     return _mainPanel;
@@ -43,7 +35,6 @@ public class UiEditorBuilder : UiBuilderBase
 
   public override void Update()
   {
-    _levelGenBuilder.Update();
     _levelInfoBuilder.Update();
   }
 
@@ -60,7 +51,7 @@ public class UiEditorBuilder : UiBuilderBase
       VerticalAlignment = VerticalAlignment.Stretch,
       Children =
       {
-        LevelGenPanel, LevelInfoPanel
+        LevelInfoPanel
       }
     };
   }

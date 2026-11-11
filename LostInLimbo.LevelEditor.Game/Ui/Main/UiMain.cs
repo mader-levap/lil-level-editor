@@ -1,9 +1,11 @@
 using System;
 using Gum;
+using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui.Editor;
 using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
 using LostInLimbo.LevelEditor.Ui.Gum.Editor;
+using LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
 using Stride.Engine;
 using Stride.UI;
 using Stride.UI.Panels;
@@ -37,6 +39,9 @@ public class UiMain : SyncScript
   /// <summary>Gum editor toolbar; null until the Gum UI is built.</summary>
   private GumEditorToolbar? _gumToolbar;
 
+  /// <summary>Gum level generation overlay; null until the Gum UI is built.</summary>
+  private GumLevelGenPanel? _gumLevelGenPanel;
+
   public override void Start()
   {
     UiRes.InitResources(this);
@@ -50,6 +55,7 @@ public class UiMain : SyncScript
     EnsureGumUiBuilt();
 
     _editorBuilder.Update();
+    _gumLevelGenPanel?.Update();
 
     // Blur the focused text field when the user clicks anywhere outside of it.
     UiFocus.ReleaseTextInputFocusOnOutsidePress(Game.Services);
@@ -90,13 +96,19 @@ public class UiMain : SyncScript
 
     ISystemInfoService systemInfo = Game.Services.GetService<ISystemInfoService>()
       ?? throw new InvalidOperationException("ISystemInfoService was not registered.");
+    ILevelGenService levelGenService = Game.Services.GetService<ILevelGenService>()
+      ?? throw new InvalidOperationException("ILevelGenService was not registered.");
 
     var appBar = new GumAppBar(systemInfo);
     appBar.Build();
     _gumAppBar = appBar;
 
+    var levelGenPanel = new GumLevelGenPanel(levelGenService);
+    levelGenPanel.Build();
+    _gumLevelGenPanel = levelGenPanel;
+    _overlaySwitcher.Register(EnOverlay.LevelGen, levelGenPanel);
+
     // Overlays not ported yet stay UGS; the Gum toolbar drives them through adapters.
-    _overlaySwitcher.Register(EnOverlay.LevelGen, new UgsOverlayView(_editorBuilder.LevelGenPanel, Game.Services));
     _overlaySwitcher.Register(EnOverlay.LevelInfo, new UgsOverlayView(_editorBuilder.LevelInfoPanel, Game.Services));
 
     var toolbar = new GumEditorToolbar(_overlaySwitcher);

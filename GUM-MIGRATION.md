@@ -9,11 +9,11 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 |-------|-------|-------|
 | 0 — Spike (Gum beside UGS UI) | **Done** | Build + tests + visual check confirmed (render, click, resize, UGS intact) |
 | 1 — Input seams (focus/capture/camera) | **Done** | Capture OR (UGS+Gum), camera right-look gated on `VisualOver`; 28/28 tests |
-| 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | **In progress** | Steps 0–1 done + user-verified; step 2 (toolbar) done, awaiting visual check |
+| 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | **In progress** | Steps 0–2 done + user-verified; step 3 (LevelGen) done, awaiting manual check |
 | 3 — Switch to Gum-only | Not started | |
 | 4 — Remove UGS UI + assets | Not started | |
 
-**Current session:** Phase 2 step 2 (toolbar) done (see Session log). Next: step 3 (LevelGen overlay).
+**Current session:** Phase 2 step 3 (LevelGen overlay) done (see Session log). Next: user check, then step 4 (LevelInfo).
 
 **Decisions (locked):**
 - Author UI **code-only** first (Gum tool / `.gumx` later, no rework).
@@ -124,6 +124,9 @@ Prefer constructor injection over a new static locator.
 2. Drop `Stride.UI`; clean `UIMain` entity in `MapScene`.
 3. Compositor: remove Group31/UiStage if unused (Game Studio preferred).
 4. Retire dead assets (`IconQuestion`, sheets/font if unreferenced).
+   **Ensure no icon duplication** in the shipped app: delete the `Icon*.sdtex` assets once
+   only Gum uses the icons (PNGs copied to `GumContent/Icons/` stay); revisit the csproj
+   `*.png` copy rule (e.g. drop unused `icon_question.png`). User request, 2026-11-11.
 5. Update `AGENTS.md` input conventions, README Group31 note, `TODO.md`.
 6. Full build + test + manual smoke (panels, generation, typing, camera, resize).
 
@@ -233,3 +236,28 @@ Prefer constructor injection over a new static locator.
   - Note: display runs at 150% and the editor is not DPI-aware; Gum's canvas is the physical
     1280×720 back buffer. Screenshot tooling must be DPI-aware or it crops the right side.
   - Verified: full rebuild 0 errors, no CS/GUM warnings; `dotnet test` 50/50.
+  - **User visual check passed** (toolbar + app bar after fixes).
+- **2026-11-11 (Phase 2, step 3):** LevelGen overlay on Gum.
+  - New pure logic (`Ui/Gum/LevelGen/`): `LevelGenUiState` (button matrix + `PropsVisible`;
+    form hidden while Running **and Paused**, since resume keeps the original config),
+    `DifficultyPresets` (Easy 0 / Medium 50 / Hard 100; default from `PropMain.Default`),
+    `LevelGenPropsBuilder` (blank seed → null; values copied as entered, no trimming),
+    `StatusLog` (cap 200, Added/Trimmed/Cleared events, severity colors),
+    `LevelGenStatusMessages` (texts moved from UGS; dropped the stray `)` after `steps=N`).
+  - New: `GumLevelGenPanel` (full-window root with `HasEvents = false`; transport column
+    top-right; props form next to toolbar: seed `TextBox`, difficulty `ComboBox`, many-themes
+    `CheckBox`; bottom log `ScrollViewer` (35% height) + Clear). On hide: seed box unfocused,
+    dropdown closed. Gum `TextBoxBase.LosesFocusWhenClickedOff` covers outside-click blur, so
+    `GumFocus.ReleaseTextInputFocus` from the plan was not needed.
+  - `UiEditorBuilder`: UGS LevelGen overlay no longer built (`UiLevelGenBuilder` file stays
+    until Phase 4). `UiMain` builds/registers/ticks the Gum panel.
+  - New tests: `LevelGenUiStateTests`, `LevelGenPropsTests`, `StatusLogTests` (77/77 total).
+  - Verified: full rebuild 0 errors, no CS/GUM warnings; screenshots (posted clicks): overlay
+    opens, Start → Finished (green), Step → Paused, form hidden while paused and back after
+    finish, Pause/Stop disabled when idle. Posted WM_CHAR did not reach Gum, so typing and
+    seed determinism are **not** verified by automation.
+  - Note: Gum `ScrollViewer` default visual has an opaque dark background (stock look).
+  - **Manual check for user:** same typed seed → same counts twice; difficulty dropdown opens
+    and changes; checkbox toggles; Clear empties log; many runs scroll to newest; typing in
+    seed box does not move camera; closing overlay while typing → WASD works; right-drag over
+    form/log/buttons does not rotate camera, over empty 3D it does.
