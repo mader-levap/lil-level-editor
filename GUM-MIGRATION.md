@@ -374,3 +374,6 @@ Prefer constructor injection over a new static locator.
     re-focuses the row after `SelectionChanged`); accepted by user.
   - Follow-up (user): accent changed from teal to green with a slight blue tint
     (Accent #3DB082, Primary #2B8A63).
+  - Follow-up (user: dropdown too tall): Gum's `ComboBoxVisual` hard-codes the dropdown at 128 px.
+    `CreateComboBox` now sizes the list on open to rows + chrome (measured: list height minus
+    `ClipContainer`), capped at 8 rows (pure `DropDownSizing.Compute`, tested); longer lists scroll.

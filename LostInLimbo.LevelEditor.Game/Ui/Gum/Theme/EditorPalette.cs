@@ -18,16 +18,13 @@ public sealed record EditorPalette
 
   /// <summary>Background of our panels (app bar, overlays, cards); slightly translucent over 3D.</summary>
   public required UiRgba PanelBackground { get; init; }
-
   /// <summary>Gum: secondary surfaces (for example scroll viewer and list backgrounds).</summary>
   public required UiRgba SurfaceVariant { get; init; }
-
   /// <summary>Gum: background of text boxes and combo boxes.</summary>
   public required UiRgba InputBackground { get; init; }
 
   /// <summary>Gum: base color of buttons and other interactive controls (disabled/checked looks derive from it).</summary>
   public required UiRgba Primary { get; init; }
-
   /// <summary>Gum: highlight color (selected list items, hover accents); the theme's single accent.</summary>
   public required UiRgba Accent { get; init; }
 
@@ -37,7 +34,6 @@ public sealed record EditorPalette
 
   /// <summary>Main text color.</summary>
   public required UiRgba TextPrimary { get; init; }
-
   /// <summary>Secondary text color (placeholders, hints).</summary>
   public required UiRgba TextMuted { get; init; }
 
@@ -46,20 +42,36 @@ public sealed record EditorPalette
 
   #endregion
 
-  #region Semantic colors
+  #region Other
 
-  /// <summary>Success color (Gum <c>Success</c>, success log lines, release builds).</summary>
+  /// <summary>Success color.</summary>
   public required UiRgba Success { get; init; }
-
-  /// <summary>Warning color for our own UI (warning log lines, development builds).</summary>
-  /// <remarks>Not Gum's <c>Colors.Warning</c>: Gum uses that slot for focus bars, which the theme hides.</remarks>
-  public required UiRgba Warning { get; init; }
-
-  /// <summary>Danger color (Gum <c>Danger</c>, error log lines, unknown builds).</summary>
+  /// <summary>Warning color.</summary>
   public required UiRgba Danger { get; init; }
 
+  #endregion
+
+  #region Semantic colors
+
+  /// <summary>Color for debug log lines.</summary>
+  public required UiRgba LogDebug { get; init; }
+  /// <summary>Color for info log lines.</summary>
+  public required UiRgba LogInfo { get; init; }
+  /// <summary>Color for success log lines.</summary>
+  public required UiRgba LogSuccess { get; init; }
+  /// <summary>Color for warning log lines.</summary>
+  public required UiRgba LogWarning { get; init; }
+  /// <summary>Color for error log lines.</summary>
+  public required UiRgba LogError { get; init; }
+
+  /// <summary>Highlight for development builds in the app bar.</summary>
+  public required UiRgba BuildDev { get; init; }
   /// <summary>Highlight for debug builds in the app bar.</summary>
-  public required UiRgba DebugBuild { get; init; }
+  public required UiRgba BuildDebug { get; init; }
+  /// <summary>Highlight for release builds in the app bar.</summary>
+  public required UiRgba BuildRelease { get; init; }
+  /// <summary>Highlight for unknown builds in the app bar.</summary>
+  public required UiRgba BuildUnknown { get; init; }
 
   #endregion
 
@@ -71,29 +83,44 @@ public sealed record EditorPalette
     PanelBackground = new UiRgba(0x1E, 0x1F, 0x22, 0xE0),
     SurfaceVariant = new UiRgba(0x2B, 0x2D, 0x31),
     InputBackground = new UiRgba(0x16, 0x17, 0x19),
+
     // Buttons use a darker shade of the accent: Gum derives disabled/checked looks from Primary,
     // and a neutral grey made enabled and disabled buttons indistinguishable.
     Primary = new UiRgba(0x2B, 0x8A, 0x63),
     Accent = new UiRgba(0x3D, 0xB0, 0x82),
+
     TextPrimary = new UiRgba(0xE6, 0xE6, 0xE6),
     TextMuted = new UiRgba(0x9A, 0xA0, 0xA6),
-    IconDefault = new UiRgba(0xE6, 0xE6, 0xE6),
+
+    IconDefault = new UiRgba(0xF8, 0xF8, 0xF8),
+
     Success = new UiRgba(0x6C, 0xC0, 0x70),
-    Warning = new UiRgba(0xE0, 0xA0, 0x40),
     Danger = new UiRgba(0xE5, 0x53, 0x4B),
-    DebugBuild = new UiRgba(0xE5, 0xD0, 0x4B),
+
+    LogDebug = new UiRgba(0x99, 0x99, 0x99),
+    LogInfo = new UiRgba(0xE6, 0xE6, 0xE6),
+    LogSuccess = new UiRgba(0x6C, 0xFF, 0x70),
+    LogWarning = new UiRgba(0xE0, 0xA0, 0x40),
+    LogError = new UiRgba(0xFF, 0x53, 0x4B),
+
+    BuildDev = new UiRgba(0xE0, 0xA0, 0x40),
+    BuildDebug = new UiRgba(0xF8, 0xF8, 0x4B),
+    BuildRelease = new UiRgba(0x6C, 0xF8, 0x70),
+    BuildUnknown = new UiRgba(0xF8, 0x53, 0x4B),
   };
 
   /// <summary>
   /// Gets the text color of a status log line.
   /// </summary>
   /// <param name="severity">Line severity.</param>
-  /// <returns>Text color; <see cref="TextPrimary"/> for informational and unknown values.</returns>
+  /// <returns>Text color; <see cref="TextPrimary"/> for unknown values.</returns>
   public UiRgba ForSeverity(EnStatusSeverity severity) => severity switch
   {
-    EnStatusSeverity.Success => Success,
-    EnStatusSeverity.Warning => Warning,
-    EnStatusSeverity.Error => Danger,
+    EnStatusSeverity.Debug => LogDebug,
+    EnStatusSeverity.Info => LogInfo,
+    EnStatusSeverity.Success => LogSuccess,
+    EnStatusSeverity.Warning => LogWarning,
+    EnStatusSeverity.Error => LogError,
     _ => TextPrimary,
   };
 
@@ -101,12 +128,12 @@ public sealed record EditorPalette
   /// Gets the label color of a build type in the app bar.
   /// </summary>
   /// <param name="buildType">Build type.</param>
-  /// <returns>Label color; <see cref="Danger"/> for unrecognized values.</returns>
+  /// <returns>Label color; <see cref="BuildUnknown"/> for unrecognized values.</returns>
   public UiRgba ForBuildType(EnBuildType buildType) => buildType switch
   {
-    EnBuildType.Development => Warning,
-    EnBuildType.Debug => DebugBuild,
-    EnBuildType.Release => Success,
-    _ => Danger,
+    EnBuildType.Development => BuildDev,
+    EnBuildType.Debug => BuildDebug,
+    EnBuildType.Release => BuildRelease,
+    _ => BuildUnknown,
   };
 }

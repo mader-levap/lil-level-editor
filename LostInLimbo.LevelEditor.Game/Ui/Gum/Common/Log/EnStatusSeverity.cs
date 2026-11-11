@@ -5,6 +5,8 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
 /// </summary>
 public enum EnStatusSeverity
 {
+  /// <summary>Debug information.</summary>
+  Debug,
   /// <summary>Neutral information.</summary>
   Info,
   /// <summary>Successful outcome.</summary>

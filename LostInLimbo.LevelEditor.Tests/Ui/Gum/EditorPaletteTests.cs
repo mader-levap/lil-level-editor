@@ -37,11 +37,12 @@ public sealed class EditorPaletteTests
     // Arrange: Default palette.
     EditorPalette palette = EditorPalette.Default;
 
-    // Act + Assert: Info is normal text, the rest use semantic colors.
-    Assert.Equal(palette.TextPrimary, palette.ForSeverity(EnStatusSeverity.Info));
-    Assert.Equal(palette.Success, palette.ForSeverity(EnStatusSeverity.Success));
-    Assert.Equal(palette.Warning, palette.ForSeverity(EnStatusSeverity.Warning));
-    Assert.Equal(palette.Danger, palette.ForSeverity(EnStatusSeverity.Error));
+    // Act + Assert: all severities use semantic colors.
+    Assert.Equal(palette.LogDebug, palette.ForSeverity(EnStatusSeverity.Debug));
+    Assert.Equal(palette.LogInfo, palette.ForSeverity(EnStatusSeverity.Info));
+    Assert.Equal(palette.LogSuccess, palette.ForSeverity(EnStatusSeverity.Success));
+    Assert.Equal(palette.LogWarning, palette.ForSeverity(EnStatusSeverity.Warning));
+    Assert.Equal(palette.LogError, palette.ForSeverity(EnStatusSeverity.Error));
   }
 
   /// <summary>
@@ -67,9 +68,9 @@ public sealed class EditorPaletteTests
     EditorPalette palette = EditorPalette.Default;
 
     // Act + Assert: Development = warning, Debug = debug highlight, Release = success.
-    Assert.Equal(palette.Warning, palette.ForBuildType(EnBuildType.Development));
-    Assert.Equal(palette.DebugBuild, palette.ForBuildType(EnBuildType.Debug));
-    Assert.Equal(palette.Success, palette.ForBuildType(EnBuildType.Release));
+    Assert.Equal(palette.BuildDev, palette.ForBuildType(EnBuildType.Development));
+    Assert.Equal(palette.BuildDebug, palette.ForBuildType(EnBuildType.Debug));
+    Assert.Equal(palette.BuildRelease, palette.ForBuildType(EnBuildType.Release));
   }
 
   /// <summary>
@@ -85,7 +86,7 @@ public sealed class EditorPaletteTests
     UiRgba color = EditorPalette.Default.ForBuildType(unknown);
 
     // Assert: Danger color.
-    Assert.Equal(EditorPalette.Default.Danger, color);
+    Assert.Equal(EditorPalette.Default.BuildUnknown, color);
   }
 
   /// <summary>

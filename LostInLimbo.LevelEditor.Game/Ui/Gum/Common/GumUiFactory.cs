@@ -162,6 +162,8 @@ public static class GumUiFactory
   /// Known limit: arrow keys in the open dropdown focus the newly selected row again (Gum does
   /// that after raising <c>SelectionChanged</c>, so it can't be undone from that event), and the
   /// selection is unmarked until the dropdown is reopened. Accepted (mouse-driven editor).
+  /// The dropdown is also resized on open to fit its items (Gum's default is a fixed 128 px),
+  /// up to <see cref="DropDownSizing.DefaultMaxVisibleRows"/> rows; longer lists scroll.
   /// </remarks>
   public static ComboBox CreateComboBox(float width)
   {
@@ -174,8 +176,8 @@ public static class GumUiFactory
   }
 
   /// <summary>
-  /// Removes keyboard focus from the rows of a just-opened combo box dropdown, so the selected
-  /// row shows Gum's Selected state (see <see cref="CreateComboBox"/>).
+  /// Adjusts a just-opened combo box dropdown: removes row keyboard focus, so the selected row
+  /// shows Gum's Selected state, and fits the list height to its items (see <see cref="CreateComboBox"/>).
   /// </summary>
   /// <param name="sender">Combo box that opened.</param>
   /// <param name="e">Event data.</param>
@@ -183,6 +185,25 @@ public static class GumUiFactory
   {
     if (sender is not ComboBox { ListBox: { } listBox }) return;
     listBox.DoListItemsHaveFocus = false;
+    FitDropDownHeight(listBox);
+  }
+
+  /// <summary>
+  /// Sets the dropdown list height to its rows' height plus the list's own chrome, capped at
+  /// <see cref="DropDownSizing.DefaultMaxVisibleRows"/> rows.
+  /// </summary>
+  /// <param name="listBox">Dropdown list box (visible, laid out).</param>
+  private static void FitDropDownHeight(ListBox listBox)
+  {
+    if (listBox.ListBoxItems.Count == 0) return; // nothing to measure; keep Gum's default
+
+    GraphicalUiElement list = listBox.Visual;
+    float chromeHeight = Math.Max(0, list.AbsoluteHeight - listBox.ClipContainer.AbsoluteHeight);
+    float contentHeight = listBox.InnerPanel.AbsoluteHeight;
+    float rowHeight = listBox.ListBoxItems[0].Visual.AbsoluteHeight;
+
+    list.HeightUnits = DimensionUnitType.Absolute;
+    list.Height = DropDownSizing.Compute(contentHeight, chromeHeight, rowHeight);
   }
 
   /// <summary>
