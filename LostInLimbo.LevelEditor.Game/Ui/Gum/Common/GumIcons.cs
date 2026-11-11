@@ -18,22 +18,22 @@ public static class GumIcons
   public static readonly string ContentFolder = Path.Combine("GumContent", "Icons");
 
   /// <summary>Gears icon (level generation overlay).</summary>
-  public const string Gears = "icon_gears.png";
+  public const string Gears = "Gears.png";
 
   /// <summary>Info icon (level information overlay).</summary>
   public const string Info = "Info.png";
 
   /// <summary>Start/resume generation icon.</summary>
-  public const string Start = "IconStart.png";
+  public const string Start = "Start.png";
 
   /// <summary>Single generation step icon.</summary>
-  public const string Step = "IconStep.png";
+  public const string Step = "Step.png";
 
   /// <summary>Pause generation icon.</summary>
-  public const string Pause = "IconPause.png";
+  public const string Pause = "Pause.png";
 
   /// <summary>Stop generation icon.</summary>
-  public const string Stop = "IconStop.png";
+  public const string Stop = "Stop.png";
 
   /// <summary>
   /// Resolves the absolute path of an icon file in the given base directory.

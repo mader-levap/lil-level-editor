@@ -1,7 +1,0 @@
-!Texture
-Id: 18c2b6ca-674f-42a0-adc1-6a524d64625e
-SerializedVersion: {Stride: 2.0.0.0}
-Tags: []
-Source: !file ../../../Resources/Graphics/Icons/icon_gears.png
-Type: !ColorTextureType
-    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

@@ -1,7 +1,0 @@
-!Texture
-Id: 5bac6527-cd6d-4a25-b095-72c1ce08148f
-SerializedVersion: {Stride: 2.0.0.0}
-Tags: []
-Source: !file ../../../Resources/Graphics/Icons/IconStart.png
-Type: !ColorTextureType
-    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
