@@ -93,7 +93,7 @@ public sealed class LostInLimboEditor : Game
   }
 
   /// <summary>
-  /// Initializes Gum once the SceneSystem holds a real compositor and builds the spike UI.
+  /// Initializes Gum once the SceneSystem holds a real compositor.
   /// </summary>
   /// <remarks>
   /// SceneSystem constructs an empty placeholder compositor (<c>Game</c> is null) and
@@ -109,7 +109,7 @@ public sealed class LostInLimboEditor : Game
 
     GumService.Default.Initialize(this);
     GumService.Default.UseKeyboardDefaults();
-    GumSpikeUi.Build();
+    // Gum UI itself is built by the UiMain script once Gum reports IsInitialized.
     _gumInitialized = true;
   }
 

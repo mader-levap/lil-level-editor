@@ -1,9 +1,11 @@
-using LostInLimbo.LevelEditor.Services.SystemInfo.Data;
+using System;
+using Gum;
+using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui.Editor;
-using Stride.Core.Mathematics;
+using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
+using LostInLimbo.LevelEditor.Ui.Gum.Editor;
 using Stride.Engine;
 using Stride.UI;
-using Stride.UI.Controls;
 using Stride.UI.Panels;
 
 namespace LostInLimbo.LevelEditor.Ui.Main;
@@ -11,6 +13,11 @@ namespace LostInLimbo.LevelEditor.Ui.Main;
 /// <summary>
 /// Script for main UI.
 /// </summary>
+/// <remarks>
+/// During the UGS → Gum migration (see <c>GUM-MIGRATION.md</c>) this script hosts both UI
+/// stacks: it owns the remaining UGS tree and builds the Gum UI lazily, as soon as Gum
+/// reports it is initialized. Gum panels receive their services through constructors.
+/// </remarks>
 public class UiMain : SyncScript
 {
   /// <summary>Builder for editor panel.</summary>
@@ -18,27 +25,30 @@ public class UiMain : SyncScript
   /// <summary>Underlying editor panel. Always present.</summary>
   private Panel _editorPanel = default!;
 
-  /// <summary>Author and name of app.</summary>
-  private TextBlock _appText = default!;
-  /// <summary>Version text.</summary>
-  private TextBlock _versionText = default!;
-  /// <summary>Build text.</summary>
-  private TextBlock _buildText = default!;
-  /// <summary>Stack panel for app bar.</summary>
-  private Grid _appBarPanel = default!;
-
   /// <summary>Main panel.</summary>
   private Grid _mainPanel = default!;
+
+  /// <summary>Gum app bar; null until the Gum UI is built.</summary>
+  private GumAppBar? _gumAppBar;
+
+  /// <summary>Keeps at most one overlay visible; driven by the Gum toolbar.</summary>
+  private readonly OverlaySwitcher _overlaySwitcher = new();
+
+  /// <summary>Gum editor toolbar; null until the Gum UI is built.</summary>
+  private GumEditorToolbar? _gumToolbar;
 
   public override void Start()
   {
     UiRes.InitResources(this);
     BuildComponents();
     AttachUi();
+    EnsureGumUiBuilt();
   }
 
   public override void Update()
   {
+    EnsureGumUiBuilt();
+
     _editorBuilder.Update();
 
     // Blur the focused text field when the user clicks anywhere outside of it.
@@ -50,7 +60,6 @@ public class UiMain : SyncScript
   /// </summary>
   private void BuildComponents()
   {
-    BuildAppBarPanel();
     _editorPanel = _editorBuilder.Build();
     _mainPanel = CreateMainPanel();
   }
@@ -68,6 +77,35 @@ public class UiMain : SyncScript
     };
   }
 
+  #region Gum
+
+  /// <summary>
+  /// Builds the Gum UI once, as soon as Gum is initialized (by <c>LostInLimboEditor</c>).
+  /// </summary>
+  /// <exception cref="InvalidOperationException">A required service is not registered.</exception>
+  private void EnsureGumUiBuilt()
+  {
+    if (_gumAppBar != null) return; // already built
+    if (!GumService.Default.IsInitialized) return; // Gum not ready yet; retry next frame
+
+    ISystemInfoService systemInfo = Game.Services.GetService<ISystemInfoService>()
+      ?? throw new InvalidOperationException("ISystemInfoService was not registered.");
+
+    var appBar = new GumAppBar(systemInfo);
+    appBar.Build();
+    _gumAppBar = appBar;
+
+    // Overlays not ported yet stay UGS; the Gum toolbar drives them through adapters.
+    _overlaySwitcher.Register(EnOverlay.LevelGen, new UgsOverlayView(_editorBuilder.LevelGenPanel, Game.Services));
+    _overlaySwitcher.Register(EnOverlay.LevelInfo, new UgsOverlayView(_editorBuilder.LevelInfoPanel, Game.Services));
+
+    var toolbar = new GumEditorToolbar(_overlaySwitcher);
+    toolbar.Build();
+    _gumToolbar = toolbar;
+  }
+
+  #endregion
+
   #region Main panel
 
   /// <summary>
@@ -82,138 +120,20 @@ public class UiMain : SyncScript
       VerticalAlignment = VerticalAlignment.Stretch,
       RowDefinitions =
       {
-        new StripDefinition(StripType.Auto), // app bar
+        // Spacer under the Gum app bar, so the remaining UGS panels keep their layout.
+        new StripDefinition(StripType.Fixed, GumAppBar.Height),
         new StripDefinition(StripType.Star), // rest
       },
       Children =
       {
-        _appBarPanel, _editorPanel
+        _editorPanel
       }
     };
 
-    _appBarPanel.SetGridRow(0);
     _editorPanel.SetGridRow(1);
 
     return panel;
   }
-
-  #endregion
-
-  #region App bar panel
-
-  /// <summary>
-  /// Build app bar panel.
-  /// </summary>
-  private void BuildAppBarPanel()
-  {
-    _appText = CreateAppText();
-    _versionText = CreateVersionText();
-    _buildText = CreateBuildText();
-    _appBarPanel = CreateAppBarPanel();
-  }
-
-  /// <summary>
-  /// Create app text.
-  /// </summary>
-  /// <returns>Text block.</returns>
-  private static TextBlock CreateAppText()
-  {
-    return new TextBlock
-    {
-      Text = $"{UiRes.SystemInfoService.GetName()} © by {UiRes.SystemInfoService.GetAuthor()}",
-      TextColor = Color.White,
-      OutlineThickness = 1,
-      Font = UiRes.Font,
-      Margin = new Thickness(5, 0, 5, 0),
-      HorizontalAlignment = HorizontalAlignment.Left,
-      VerticalAlignment = VerticalAlignment.Center,
-    };
-  }
-
-  /// <summary>
-  /// Create version text.
-  /// </summary>
-  /// <returns>Text block.</returns>
-  private static TextBlock CreateVersionText()
-  {
-    return new TextBlock
-    {
-      Text = $"v. {UiRes.SystemInfoService.GetVersion()}",
-      TextColor = Color.White,
-      OutlineThickness = 1,
-      Font = UiRes.Font,
-      Margin = new Thickness(5, 0, 5, 0),
-      HorizontalAlignment = HorizontalAlignment.Right,
-      VerticalAlignment = VerticalAlignment.Center,
-    };
-  }
-
-  /// <summary>
-  /// Create build text.
-  /// </summary>
-  /// <returns>Text block.</returns>
-  private static TextBlock CreateBuildText()
-  {
-    Color color = GetBuildColor(UiRes.SystemInfoService.GetBuild());
-    return new TextBlock
-    {
-      Text = $"{UiRes.SystemInfoService.GetBuild()}",
-      TextColor = color,
-      OutlineThickness = 1,
-      Font = UiRes.Font,
-      Margin = new Thickness(5, 0, 5, 0),
-      HorizontalAlignment = HorizontalAlignment.Right,
-      VerticalAlignment = VerticalAlignment.Center,
-    };
-  }
-
-  /// <summary>
-  /// Create app bar panel.
-  /// </summary>
-  /// <returns>App bar panel.</returns>
-  private Grid CreateAppBarPanel()
-  {
-    var panel = new Grid
-    {
-      BackgroundColor = new Color(0, 0, 0, 64), // somewhat translucent
-      HorizontalAlignment = HorizontalAlignment.Stretch,
-      VerticalAlignment = VerticalAlignment.Bottom,
-      ColumnDefinitions =
-      {
-        new StripDefinition(StripType.Auto), // app name
-        new StripDefinition(StripType.Star), // spacer
-        new StripDefinition(StripType.Auto), // version
-        new StripDefinition(StripType.Auto), // build
-      },
-      Children =
-      {
-        _appText, _versionText, _buildText
-      }
-    };
-
-    _appText.SetGridColumn(0);
-    _versionText.SetGridColumn(2);
-    _buildText.SetGridColumn(3);
-
-    return panel;
-  }
-
-  #endregion
-
-  #region Utils
-
-  /// <summary>
-  /// Get text color for given build type.
-  /// </summary>
-  /// <param name="enBuildType">Build type.</param>
-  /// <returns>Text color for given build type.</returns>
-  private static Color GetBuildColor(EnBuildType enBuildType) => enBuildType switch
-  {
-    EnBuildType.Development => Color.Orange,
-    EnBuildType.Debug => Color.Yellow,
-    EnBuildType.Release => Color.Green,
-    _ => Color.Red
-  };
 
   #endregion
 }

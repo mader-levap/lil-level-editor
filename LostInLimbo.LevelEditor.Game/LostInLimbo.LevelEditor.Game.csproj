@@ -26,4 +26,9 @@
     <PackageReference Include="Stride.UI" Version="4.4.1" />
     <PackageReference Include="Stride.AssetCompiler" Version="4.4.1" IncludeAssets="build;buildTransitive" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Gum loads images as plain files (not via Stride content); see Ui/Gum/Common/GumIcons.cs. -->
+    <None Update="Resources\Graphics\Icons\*.png" Link="GumContent\Icons\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -9,11 +9,11 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 |-------|-------|-------|
 | 0 — Spike (Gum beside UGS UI) | **Done** | Build + tests + visual check confirmed (render, click, resize, UGS intact) |
 | 1 — Input seams (focus/capture/camera) | **Done** | Capture OR (UGS+Gum), camera right-look gated on `VisualOver`; 28/28 tests |
-| 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | Not started | |
+| 2 — Port panels (app bar → toolbar → LevelGen → LevelInfo) | **In progress** | Steps 0–1 done + user-verified; step 2 (toolbar) done, awaiting visual check |
 | 3 — Switch to Gum-only | Not started | |
 | 4 — Remove UGS UI + assets | Not started | |
 
-**Current session:** Phase 1 complete (see Session log). Next: Phase 2.
+**Current session:** Phase 2 step 2 (toolbar) done (see Session log). Next: step 3 (LevelGen overlay).
 
 **Decisions (locked):**
 - Author UI **code-only** first (Gum tool / `.gumx` later, no rework).
@@ -22,6 +22,13 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 - **Strangler migration**: Gum alongside UGS UI, port panel-by-panel, delete last.
 - **Package version:** `Gum.Stride` **2026.11.2.1** (latest stable; not a preview).
 - **Renderer registration:** default `registerSceneRenderer: true` — no `.sdgfxcomp` hand-edit. Gum appends `GumSceneRenderer` at the end of the compositor's `Game` collection (after 3D pass and UGS Group31 stage).
+- **Phase 2 difficulty:** ComboBox with named presets mapped to `PropMain.Difficulty`
+  (placeholder table Easy 0 / Medium 50 / Hard 100, one constants table).
+- **Phase 2 visuals:** stock Gum Forms V3 look; PNG icons only on toolbar/transport buttons
+  (no nine-slice rebuild of `BtnSelected`/`BtnUnselected`).
+- **Phase 2 host:** `UiMain` builds the Gum UI lazily once `GumService.Default.IsInitialized`;
+  services go into Gum panel constructors (no `UiRes`). Overlay switching becomes pure
+  `OverlaySwitcher` over `IOverlayView` (UGS adapter bridges until overlays are ported).
 - **Startup splash disabled** in `LostInLimboEditor.PrepareContext` (`SceneSystem.SplashScreenUrl = null`): editor opens immediately, and the splash path loads the compositor asynchronously (Gum must register on the real compositor, not the SceneSystem placeholder).
 
 ## Findings (2026-11-10)
@@ -139,6 +146,8 @@ Prefer constructor injection over a new static locator.
 | `.sdgfxcomp` hand-edit | **Avoided** — runtime append via default `registerSceneRenderer` |
 | Dual UI input/focus split | Phase 1 OR-predicate (`GumFocus.IsKeyboardCaptured`); drop UGS per panel fast |
 | `Cursor.WindowOver` obsolete | Use `VisualOver` (same member; no CS0618) |
+| `ColoredRectangleRuntime` obsolete (CS0618/GUM002) | Use `RectangleRuntime` + `IsFilled` + `FillRed/Green/Blue/Alpha` + `StrokeWidth = 0`; do **not** set `StrokeAlpha` (made the fill transparent) |
+| Forms button default height is RelativeToChildren | Icon buttons set `Width/HeightUnits = Absolute` (else `Height` becomes padding: 48 → 84 px) |
 | Texture loading differs from Stride | Small loader helper; reuse `Resources/` PNGs |
 
 ## Session log
@@ -171,3 +180,56 @@ Prefer constructor injection over a new static locator.
     right-drag over Gum spike UI must not rotate camera; right-drag on 3D still looks;
     typing in UGS fields still captures. Non-interactive panels need `HasEvents = true`
     to block look (Phase 2).
+- **2026-11-11 (Phase 2, steps 0–1):** Shared helpers + app bar.
+  - Detailed plan: step 0 helpers, 1 app bar, 2 toolbar (`OverlaySwitcher`), 3 LevelGen
+    (pure `LevelGenButtonStates`, `DifficultyPresets`, `LevelGenPropsBuilder`, `StatusLog`,
+    `LevelGenStatusMessages`), 4 LevelInfo (real counts instead of mockup).
+  - Removed `GumSpikeUi` (and its call in `LostInLimboEditor`).
+  - New: `Ui/Gum/Common/UiRgba.cs` (engine-neutral color), `Ui/Gum/Common/GumUiFactory.cs`
+    (`CreatePanel` = `ContainerRuntime` + translucent rectangle, `HasEvents = true`;
+    `CreateLabel`, color helpers via TextRuntime/ColoredRectangleRuntime RGBA ints).
+  - New: `Ui/Gum/AppBar/GumAppBar.cs` (+ pure `BuildTypeColors`); built by `UiMain`.
+  - `UiMain`: UGS app bar removed; row 0 is now a fixed `GumAppBar.Height` spacer so the
+    UGS toolbar/overlays keep their position.
+  - Icon loading (`GumIcons`, csproj copy of PNGs) moved to step 2 (first visible use).
+  - Verified: `dotnet build` 0 errors (no CS warnings; only NU190x); `dotnet test` 32/32;
+    smoke launch alive 12s.
+  - **Manual check for user:** app bar shows name/author left, version + colored build right;
+    full width on resize; UGS bar gone; UGS buttons sit below the Gum bar; right-drag over
+    the bar does not rotate the camera.
+  - **User visual check passed:** app bar present, resizes, UGS bar gone, UGS buttons under
+    the Gum bar, right-drag over the bar does not rotate the camera.
+  - Correction: the step 1 "no CS warnings" note was wrong (an up-to-date incremental build hid
+    them). `ColoredRectangleRuntime` raised CS0618/GUM002; fixed in step 2. Check warnings
+    with `--no-incremental` from now on.
+- **2026-11-11 (Phase 2, step 2):** Editor toolbar.
+  - New: `Ui/Gum/Common/GumIcons.cs` (icon names + absolute path resolution); Game.csproj
+    copies `Resources/Graphics/Icons/*.png` to `GumContent/Icons/` (`None Update` + Link) —
+    flows to `Bin/Windows/<Config>/` and test output.
+  - `GumUiFactory`: `CreateIconButton` / `CreateIconToggleButton` (48×48, 36×36 `SpriteRuntime`
+    by absolute `SourceFileName`; missing file → logged + tooltip text); panel background now
+    `RectangleRuntime`.
+  - New: `Ui/Gum/Editor/IOverlayView`, pure `OverlaySwitcher`, temporary `UgsOverlayView`
+    (keeps UGS focus release on hide), `GumEditorToolbar` (gears/info `ToggleButton`s; checked
+    state re-synced after every click).
+  - `UiEditorBuilder` shrunk to hosting the two UGS overlay panels (buttons, `SwitchOverlay`,
+    `SelButton` removed); `UiMain` registers UGS adapters and builds the toolbar.
+  - New tests: `OverlaySwitcherTests` (9), `GumIconsTests` (9 incl. icons present in output).
+  - Verified: full rebuild 0 errors, no CS/GUM warnings (only NU190x + Stride shader X3557);
+    `dotnet test` 50/50; smoke launch alive 12s.
+  - **Manual check for user:** gears/info icons render on the toolbar; click opens the UGS
+    overlay and checks the button; clicking the other switches (one checked at a time); second
+    click closes; typing in a UGS field then closing the overlay → WASD moves the camera again;
+    right-drag over toolbar does not rotate the camera.
+  - **User visual check:** toolbar works (icons, switching, focus release, camera gate), but
+    the app bar background was missing. Cause: on Skia, `RectangleRuntime` without a stroke
+    renderable uses one shared color slot, so `StrokeAlpha = 0` after the fill made it
+    transparent. Fix: removed the stroke line, set `IsFilled = true`.
+  - Re-check: background back but with a 1px white outline (default stroke). Fix:
+    `StrokeWidth = 0`. Confirmed by screenshot (no outline).
+  - Found while checking: toolbar buttons were 48×84 (Forms visual height is RelativeToChildren,
+    so `Height = 48` acted as padding around the 36px icon). Fix: `GumUiFactory` forces
+    Absolute width/height units; layout dump confirmed 48×48.
+  - Note: display runs at 150% and the editor is not DPI-aware; Gum's canvas is the physical
+    1280×720 back buffer. Screenshot tooling must be DPI-aware or it crops the right side.
+  - Verified: full rebuild 0 errors, no CS/GUM warnings; `dotnet test` 50/50.
