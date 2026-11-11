@@ -29,7 +29,7 @@ public sealed record LevelGenUiState(bool Start, bool Step, bool Pause, bool Sto
     null => AllDisabled,
     EnGenResult.None => new(Start: true, Step: true, Pause: false, Stop: false, PropsVisible: true),
     EnGenResult.Running => new(Start: false, Step: false, Pause: true, Stop: true, PropsVisible: false),
-    EnGenResult.Paused => new(Start: true, Step: true, Pause: false, Stop: false, PropsVisible: false),
+    EnGenResult.Paused => new(Start: true, Step: true, Pause: false, Stop: true, PropsVisible: false),
     EnGenResult.Finished or EnGenResult.Cancelled or EnGenResult.Error or EnGenResult.ValidationError
       => new(Start: true, Step: true, Pause: false, Stop: false, PropsVisible: true),
     _ => AllDisabled,

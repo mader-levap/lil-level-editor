@@ -10,12 +10,13 @@ public sealed class LevelGenUiStateTests
 {
   /// <summary>
   /// Verifies the state for every generation result (matrix carried over from the UGS overlay,
-  /// plus form visibility: hidden while running or paused).
+  /// plus form visibility: hidden while running or paused). Stop is enabled while paused: it
+  /// clears the paused run.
   /// </summary>
   [Theory]
   [InlineData(EnGenResult.None, true, true, false, false, true)]
   [InlineData(EnGenResult.Running, false, false, true, true, false)]
-  [InlineData(EnGenResult.Paused, true, true, false, false, false)]
+  [InlineData(EnGenResult.Paused, true, true, false, true, false)]
   [InlineData(EnGenResult.Finished, true, true, false, false, true)]
   [InlineData(EnGenResult.Cancelled, true, true, false, false, true)]
   [InlineData(EnGenResult.Error, true, true, false, false, true)]

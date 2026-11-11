@@ -35,6 +35,9 @@ public static class LevelGenStatusMessages
   /// <summary>Message when Pause was refused.</summary>
   public static StatusEntry PauseFailed { get; } = new("Failed to pause generation.", EnStatusSeverity.Error);
 
+  /// <summary>Message after Stop discarded a paused run.</summary>
+  public static StatusEntry Cleared { get; } = new("Discarded paused generation.", EnStatusSeverity.Info);
+
   /// <summary>Message when Stop was refused.</summary>
   public static StatusEntry StopFailed { get; } = new("Failed to stop generation.", EnStatusSeverity.Error);
 
@@ -55,7 +58,7 @@ public static class LevelGenStatusMessages
       EnGenResult.Finished => new($"LevelGen: Finished. {counts}", EnStatusSeverity.Success),
       EnGenResult.ValidationError => new($"LevelGen: ValidationError. {counts}", EnStatusSeverity.Warning),
       EnGenResult.Error => new($"LevelGen: Error - {error}", EnStatusSeverity.Error),
-      _ => new($"LevelGen: {result}.", EnStatusSeverity.Info),
+      _ => new($"LevelGen: {result}.", EnStatusSeverity.Debug),
     };
   }
 }

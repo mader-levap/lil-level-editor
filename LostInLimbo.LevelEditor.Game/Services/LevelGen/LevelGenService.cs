@@ -39,6 +39,13 @@ public interface ILevelGenService
   bool Cancel();
 
   /// <summary>
+  /// Try to discard a non-running session (typically a paused one, which can't be cancelled),
+  /// returning to the never-ran state. Never blocks.
+  /// </summary>
+  /// <returns>True if the session was cleared, otherwise false (for example, while running).</returns>
+  bool Clear();
+
+  /// <summary>
   /// Get status of generation.
   /// </summary>
   /// <returns>Status of generation.</returns>
@@ -111,6 +118,20 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     if (status.Result != EnGenResult.Running) return false; // not running
 
     return _levelGenSession.Cancel();
+  }
+
+  /// <summary>
+  /// Try to discard a non-running session (typically a paused one, which can't be cancelled),
+  /// returning to the never-ran state. Never blocks.
+  /// </summary>
+  /// <returns>True if the session was cleared, otherwise false (for example, while running).</returns>
+  public bool Clear()
+  {
+    var status = _levelGenSession.Status();
+    if (status.Result == EnGenResult.Running) return false; // running runs are cancelled, not cleared
+
+    // Zero timeout: never wait. A non-running session has no run in flight, so it clears at once.
+    return _levelGenSession.Clear(TimeSpan.Zero);
   }
 
   #endregion

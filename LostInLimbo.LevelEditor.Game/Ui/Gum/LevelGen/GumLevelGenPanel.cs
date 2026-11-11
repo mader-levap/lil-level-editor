@@ -414,10 +414,17 @@ public sealed class GumLevelGenPanel : IOverlayView
   }
 
   /// <summary>
-  /// Stops (cancels) generation.
+  /// Stops generation: cancels a running run, or clears a paused one (paused runs can't be
+  /// cancelled).
   /// </summary>
   private void OnStopClicked()
   {
+    if (_levelGenService.Status().Result == EnGenResult.Paused)
+    {
+      ClearPausedRun();
+      return;
+    }
+
     if (!_levelGenService.Cancel())
     {
       _statusLog.Add(LevelGenStatusMessages.StopFailed);
@@ -428,6 +435,22 @@ public sealed class GumLevelGenPanel : IOverlayView
     // disabled until Update sees a non-running state and applies the real one.
     ApplyUiState(LevelGenUiState.AllDisabled);
     _awaitingResult = true;
+  }
+
+  /// <summary>
+  /// Discards a paused run. Clearing is synchronous, so the new state is applied right away
+  /// (no polling).
+  /// </summary>
+  private void ClearPausedRun()
+  {
+    if (!_levelGenService.Clear())
+    {
+      _statusLog.Add(LevelGenStatusMessages.StopFailed);
+      return;
+    }
+
+    _statusLog.Add(LevelGenStatusMessages.Cleared);
+    ApplyUiState(LevelGenUiState.For(_levelGenService.Status().Result));
   }
 
   /// <summary>
