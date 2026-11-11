@@ -61,22 +61,6 @@ public sealed class LevelGenPropsTests
   }
 
   /// <summary>
-  /// Verifies that a blank seed becomes null (library uses current time).
-  /// </summary>
-  [Theory]
-  [InlineData(null)]
-  [InlineData("")]
-  [InlineData("   ")]
-  public void Build_BlankSeed_ProducesNullSeed(string? seedText)
-  {
-    // Act: Build from a blank seed.
-    PropMain props = LevelGenPropsBuilder.Build(seedText, 0, false);
-
-    // Assert: Seed left to the library.
-    Assert.Null(props.TextSeed);
-  }
-
-  /// <summary>
   /// Verifies that form values are copied unchanged and the result is valid.
   /// </summary>
   [Fact]

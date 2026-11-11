@@ -88,7 +88,8 @@ public sealed class GumLevelGenPanel : IOverlayView
 
   /// <summary>
   /// Is <see langword="true"/> while a request was accepted and its outcome is not reported yet;
-  /// drives <see cref="Update"/> polling.
+  /// drives <see cref="Update"/> polling. After Step/Pause/Stop the buttons stay disabled until
+  /// polling sees a non-running state; then the actual state is applied.
   /// </summary>
   private bool _awaitingResult;
 
@@ -304,7 +305,8 @@ public sealed class GumLevelGenPanel : IOverlayView
     _statusLog.Add(LevelGenStatusMessages.ForStep(stepped));
     if (!stepped) return;
 
-    ApplyUiState(LevelGenUiState.For(EnGenResult.Paused));
+    // The step runs on the worker; keep everything disabled until Update sees it finish.
+    ApplyUiState(LevelGenUiState.AllDisabled);
     _awaitingResult = true;
   }
 
@@ -319,7 +321,9 @@ public sealed class GumLevelGenPanel : IOverlayView
       return;
     }
 
-    ApplyUiState(LevelGenUiState.For(EnGenResult.Paused));
+    // Pause is only requested; the worker finishes its current step first. Keep everything
+    // disabled until Update sees a non-running state and applies the real one.
+    ApplyUiState(LevelGenUiState.AllDisabled);
     _awaitingResult = true;
   }
 
@@ -334,7 +338,9 @@ public sealed class GumLevelGenPanel : IOverlayView
       return;
     }
 
-    ApplyUiState(LevelGenUiState.For(EnGenResult.Cancelled));
+    // Cancel is only requested; the worker finishes its current step first. Keep everything
+    // disabled until Update sees a non-running state and applies the real one.
+    ApplyUiState(LevelGenUiState.AllDisabled);
     _awaitingResult = true;
   }
 

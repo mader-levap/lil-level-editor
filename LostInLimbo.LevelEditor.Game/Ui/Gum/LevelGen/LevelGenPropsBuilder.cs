@@ -14,7 +14,7 @@ public static class LevelGenPropsBuilder
   /// <summary>
   /// Builds generation properties from form values.
   /// </summary>
-  /// <param name="seedText">Seed text box content; blank or whitespace becomes <see langword="null"/> (time seed).</param>
+  /// <param name="seedText">Seed text box content.</param>
   /// <param name="difficulty">Difficulty value of the selected preset.</param>
   /// <param name="manyThemes">Many-themes check box state.</param>
   /// <returns>Properties based on <see cref="PropMain.Default"/> with the form values applied.</returns>
@@ -22,7 +22,7 @@ public static class LevelGenPropsBuilder
   {
     return PropMain.Default with
     {
-      TextSeed = string.IsNullOrWhiteSpace(seedText) ? null : seedText,
+      TextSeed = seedText,
       Difficulty = difficulty,
       ManyThemes = manyThemes,
     };
