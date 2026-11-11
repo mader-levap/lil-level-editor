@@ -100,24 +100,6 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 - After changing the library, re-pack (and bump its version when appropriate) before building the editor; NuGet caches aggressively.
 - **Ask before** bumping the `LostInLimbo.LevelGen` version or changing how it is consumed.
 
-## Stride engine
-
-### General
-
-- A lot of work will have to be done by user by nature of 3D game application.
-- When you do not know what to do in Stride, browse official documentation and tutorials and search for similar problems on the Internet. Do deep dives in engine code only as a last resort, when everything else fails.
-  - Stride Community Toolkit: https://stride3d.github.io/stride-community-toolkit/index.html
-  - Gum UI: https://docs.flatredball.com/gum
-- Prefer writing a script and asking the user to hook it up in Game Studio.
-
-### Assets and Game Studio
-
-- `.sd*` files under `Assets/` are **YAML serialized by Stride** (`SerializedVersion`, `Id` GUIDs, `ref!!` references). Prefer editing them through `stride studio` (Game Studio) over hand-editing.
-- Never change an asset's `Id` GUID or a `SerializedVersion`. References between assets are GUID+name based; rewriting IDs silently breaks scenes and prefabs.
-- Hand-editing is acceptable for small, reviewable changes (names, positions, numbers) when Game Studio is impractical — preserve indentation and the exact serialization style, and re-open the asset in Game Studio afterwards to confirm it loads.
-- Asset renames/moves should be done in Game Studio so it rewrites references; if done by hand, search the whole `Assets/` tree for old GUIDs/names first.
-- New assets live in `Assets/`; raw source files (textures, models to import) in `Resources/`. Both folders are declared in the `.sdpkg` — do not change `AssetFolders`/`ResourceFolders` without reason.
-
 ## Code style
 
 ### General coding rules
@@ -148,6 +130,30 @@ Reference implementation: `LostInLimbo.LevelEditor.Game/BasicCameraController.cs
 - Use `Stride.Core.Mathematics` (`Vector3`, `Quaternion`, `Matrix`, `MathUtil`) — not `System.Numerics` — so values interoperate with transforms.
 - Use `Game.UpdateTime.Elapsed` for frame-rate-independent movement, as `BasicCameraController` does.
 - Runtime-generated content must be cleaned up when it is replaced or unloaded (no leaked entities/components when regenerating a chunk).
+
+## Stride engine
+
+### General
+
+- A lot of work will have to be done by user by nature of 3D game application.
+- When you do not know what to do in Stride, browse official documentation and tutorials and search for similar problems on the Internet. Do deep dives in engine code only as a last resort, when everything else fails.
+  - Stride Community Toolkit: https://stride3d.github.io/stride-community-toolkit/index.html
+  - Gum UI: https://docs.flatredball.com/gum
+- Prefer writing a script and asking the user to hook it up in Game Studio.
+
+### Assets and Game Studio
+
+- `.sd*` files under `Assets/` are **YAML serialized by Stride** (`SerializedVersion`, `Id` GUIDs, `ref!!` references). Prefer editing them through `stride studio` (Game Studio) over hand-editing.
+- Never change an asset's `Id` GUID or a `SerializedVersion`. References between assets are GUID+name based; rewriting IDs silently breaks scenes and prefabs.
+- Hand-editing is acceptable for small, reviewable changes (names, positions, numbers) when Game Studio is impractical — preserve indentation and the exact serialization style, and re-open the asset in Game Studio afterwards to confirm it loads.
+- Asset renames/moves should be done in Game Studio so it rewrites references; if done by hand, search the whole `Assets/` tree for old GUIDs/names first.
+- New assets live in `Assets/`; raw source files (textures, models to import) in `Resources/`. Both folders are declared in the `.sdpkg` — do not change `AssetFolders`/`ResourceFolders` without reason.
+
+## Gum
+
+### New components
+
+If our own custom components are needed, place them in `/Ui/Gum/Components/<name>`.
 
 ### Tests
 

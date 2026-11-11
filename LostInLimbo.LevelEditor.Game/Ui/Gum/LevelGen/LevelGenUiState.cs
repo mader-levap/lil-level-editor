@@ -11,7 +11,8 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
 /// <param name="Stop">Whether the Stop button is enabled.</param>
 /// <param name="PropsVisible">
 /// Whether the properties form is shown. It is hidden while a run is in progress (running or
-/// paused), because a resumed run keeps the configuration it was started with.
+/// paused), because a resumed run keeps the configuration it was started with. While hidden,
+/// the panel shows the generation progress bar in its place.
 /// </param>
 public sealed record LevelGenUiState(bool Start, bool Step, bool Pause, bool Stop, bool PropsVisible)
 {

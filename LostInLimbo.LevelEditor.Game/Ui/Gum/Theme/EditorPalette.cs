@@ -51,6 +51,17 @@ public sealed record EditorPalette
 
   #endregion
 
+  #region Progress
+
+  /// <summary>Unfilled part of progress bars.</summary>
+  public required UiRgba ProgressTrack { get; init; }
+  /// <summary>Filled part of progress bars.</summary>
+  public required UiRgba ProgressFill { get; init; }
+  /// <summary>Translucent moving bands over the filled part of progress bars.</summary>
+  public required UiRgba ProgressBand { get; init; }
+
+  #endregion
+
   #region Semantic colors
 
   /// <summary>Color for debug log lines.</summary>
@@ -96,6 +107,10 @@ public sealed record EditorPalette
 
     Success = new UiRgba(0x6C, 0xC0, 0x70),
     Danger = new UiRgba(0xE5, 0x53, 0x4B),
+
+    ProgressTrack = new UiRgba(0x16, 0x17, 0x19),
+    ProgressFill = new UiRgba(0x2B, 0x8A, 0x63),
+    ProgressBand = new UiRgba(0x3D, 0xB0, 0x82, 0x60),
 
     LogDebug = new UiRgba(0x99, 0x99, 0x99),
     LogInfo = new UiRgba(0xE6, 0xE6, 0xE6),

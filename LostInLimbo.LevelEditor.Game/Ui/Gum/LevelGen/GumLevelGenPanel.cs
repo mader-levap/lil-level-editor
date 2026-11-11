@@ -7,7 +7,9 @@ using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.ProgressBar;
 using LostInLimbo.LevelEditor.Ui.Gum.Editor;
+using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using LostInLimbo.LevelGen.Data.Prop;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
@@ -16,7 +18,8 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
 
 /// <summary>
 /// Gum level generation overlay: transport buttons (start/step/pause/stop) on the right, the
-/// generation properties form next to the toolbar, and a scrollable status log along the bottom.
+/// generation properties form next to the toolbar (replaced by a progress bar while a run is in
+/// progress), and a scrollable status log along the bottom.
 /// </summary>
 /// <remarks>
 /// Button and form logic lives in pure helpers (<see cref="LevelGenUiState"/>,
@@ -50,6 +53,18 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <summary>Height of the status log panel, in percent of the window height.</summary>
   private const float StatusHeightPercent = 35;
 
+  /// <summary>Height of the progress bar, in pixels.</summary>
+  private const float ProgressBarHeight = 22;
+
+  /// <summary>Spacing between the progress caption and the bar, in pixels.</summary>
+  private const float ProgressSpacing = 6;
+
+  /// <summary>Progress caption while generation runs.</summary>
+  private const string CaptionRunning = "Generating...";
+
+  /// <summary>Progress caption while generation is paused.</summary>
+  private const string CaptionPaused = "Paused";
+
   /// <summary>Level generation service.</summary>
   private readonly ILevelGenService _levelGenService;
 
@@ -59,8 +74,26 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <summary>Overlay root (full window, no events of its own).</summary>
   private ContainerRuntime? _root;
 
-  /// <summary>Properties form panel.</summary>
+  /// <summary>Properties panel: holds the form, or the progress view while a run is in progress.</summary>
   private ContainerRuntime? _propsPanel;
+
+  /// <summary>Form rows inside <see cref="_propsPanel"/>.</summary>
+  private StackPanel? _propsRows;
+
+  /// <summary>Progress view (caption + bar), centered in <see cref="_propsPanel"/>.</summary>
+  private StackPanel? _progressView;
+
+  /// <summary>Progress caption (running/paused).</summary>
+  private Label? _progressCaption;
+
+  /// <summary>Progress bar.</summary>
+  private readonly GumProgressBar _progressBar = new();
+
+  /// <summary>
+  /// Whether <see cref="_propsPanel"/> was switched to a fixed size (measured with the form
+  /// shown), so it keeps its size when the form is swapped for the progress view.
+  /// </summary>
+  private bool _propsPanelSizeFrozen;
 
   /// <summary>Seed input.</summary>
   private TextBox? _seedBox;
@@ -148,14 +181,17 @@ public sealed class GumLevelGenPanel : IOverlayView
   }
 
   /// <summary>
-  /// Polls generation status and reports outcomes. Call every frame; cheap when idle.
+  /// Polls generation status, animates progress and reports outcomes. Call every frame; cheap when idle.
   /// </summary>
-  public void Update()
+  /// <param name="deltaSeconds">Elapsed time since the last frame, in seconds.</param>
+  public void Update(float deltaSeconds)
   {
     _statusLogView?.Update();
+    if (_progressView?.IsVisible == true) _progressBar.Update(deltaSeconds);
 
     if (!_awaitingResult) return; // no request in flight
     GenerationStatus status = _levelGenService.Status();
+    _progressBar.SetTarget(status.Completion);
     if (status.Result == EnGenResult.Running) return; // still running
 
     // Run reached a non-running state: hand the buttons back and report the outcome.
@@ -207,7 +243,8 @@ public sealed class GumLevelGenPanel : IOverlayView
   }
 
   /// <summary>
-  /// Creates the properties form next to the editor toolbar.
+  /// Creates the properties panel next to the editor toolbar: the form and the (hidden)
+  /// progress view in the same panel.
   /// </summary>
   /// <returns>Panel container.</returns>
   private ContainerRuntime CreatePropsPanel()
@@ -249,7 +286,56 @@ public sealed class GumLevelGenPanel : IOverlayView
     rows.AddChild(CreateFormRow("Can have many themes:", _manyThemesBox));
 
     panel.AddChild(rows.Visual);
+    _propsRows = rows;
+
+    panel.AddChild(CreateProgressView().Visual);
     return panel;
+  }
+
+  /// <summary>
+  /// Creates the progress view (caption above the bar), centered in the properties panel and
+  /// hidden until a run is in progress.
+  /// </summary>
+  /// <returns>Stack panel.</returns>
+  private StackPanel CreateProgressView()
+  {
+    var view = new StackPanel
+    {
+      Spacing = ProgressSpacing,
+      IsVisible = false,
+    };
+    view.Anchor(Anchor.Center);
+    // Does not size the panel: the panel is sized by the form (see FreezePropsPanelSize).
+    view.Visual.IgnoredByParentSize = true;
+
+    _progressCaption = GumUiFactory.CreateLabel(CaptionRunning, EditorTheme.Palette.TextPrimary);
+    _progressCaption.Anchor(Anchor.Top); // centers horizontally inside the stack
+    view.AddChild(_progressCaption);
+
+    ContainerRuntime bar = _progressBar.Build(LabelWidth + InputWidth - 2 * PanelPadding, ProgressBarHeight);
+    view.AddChild(bar);
+
+    _progressView = view;
+    return view;
+  }
+
+  /// <summary>
+  /// Fixes the properties panel at its current size (measured while the form is shown), so it
+  /// does not shrink when the form is hidden. Does nothing until the panel has been laid out.
+  /// </summary>
+  private void FreezePropsPanelSize()
+  {
+    if (_propsPanelSizeFrozen || _propsPanel == null) return;
+
+    float width = _propsPanel.AbsoluteWidth;
+    float height = _propsPanel.AbsoluteHeight;
+    if (width <= 2 * PanelPadding || height <= 2 * PanelPadding) return; // not laid out yet
+
+    _propsPanel.WidthUnits = DimensionUnitType.Absolute;
+    _propsPanel.Width = width;
+    _propsPanel.HeightUnits = DimensionUnitType.Absolute;
+    _propsPanel.Height = height;
+    _propsPanelSizeFrozen = true;
   }
 
   /// <summary>
@@ -370,15 +456,36 @@ public sealed class GumLevelGenPanel : IOverlayView
     if (_btnPause != null) _btnPause.IsEnabled = state.Pause;
     if (_btnStop != null) _btnStop.IsEnabled = state.Stop;
 
-    if (_propsPanel != null)
+    if (!state.PropsVisible)
     {
-      if (!state.PropsVisible)
-      {
-        if (_seedBox != null) _seedBox.IsFocused = false;
-        if (_difficultyBox != null) _difficultyBox.IsDropDownOpen = false;
-      }
-      _propsPanel.Visible = state.PropsVisible;
+      if (_seedBox != null) _seedBox.IsFocused = false;
+      if (_difficultyBox != null) _difficultyBox.IsDropDownOpen = false;
+      FreezePropsPanelSize(); // form is still shown, so this measures the form's size
     }
+    if (_propsRows != null) _propsRows.IsVisible = state.PropsVisible;
+    ApplyProgressState(state);
+  }
+
+  /// <summary>
+  /// Shows the progress view while a run is in progress (form hidden) and sets its caption,
+  /// value and animation from the current status.
+  /// </summary>
+  /// <param name="state">UI state.</param>
+  private void ApplyProgressState(LevelGenUiState state)
+  {
+    if (_progressView == null) return;
+
+    bool show = !state.PropsVisible;
+    bool wasShown = _progressView.IsVisible;
+    _progressView.IsVisible = show;
+    if (!show) return;
+
+    GenerationStatus status = _levelGenService.Status();
+    bool paused = status.Result == EnGenResult.Paused;
+    if (_progressCaption != null) _progressCaption.Text = paused ? CaptionPaused : CaptionRunning;
+    _progressBar.SetAnimating(!paused);
+    if (wasShown) _progressBar.SetTarget(status.Completion);
+    else _progressBar.Reset(status.Completion); // fresh view: no easing from a stale value
   }
 
   #endregion

@@ -3,7 +3,9 @@
 ## Current
 
 - UI:
-  - After stop/pause UI assumes level gen is immediately stopped/paused. We need to disable all buttons, poll status and only when it changes from Running then it sets to actual intended status.
+  - For level generation form (`GumLevelGenPanel`) add progress bar (you can read progress from `GenerationStatus.Completion`). For now it will jump to 100% instantly, thats fine. Progress bar should be in place of props form, in same panel, in center of it. Show both percentage and bar itself. If Gum offers fancier progress bar with animation, bands etc, use it.
+
+  - Adjust props form.
   - Make better difficulty preset.
   - Persist last props setup across app restarts.
     - How to save to disk? Does Stride have any support?
