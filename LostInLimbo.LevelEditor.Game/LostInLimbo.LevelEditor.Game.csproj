@@ -28,7 +28,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Gum loads images as plain files (not via Stride content); see Ui/Gum/Common/GumIcons.cs. -->
-    <None Update="Resources\Graphics\Icons\*.png" Link="GumContent\Icons\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Gum loads images as plain files (not via Stride content); see Ui/Gum/Common/GumIcons.cs.
+         Copies all icons, including subfolders, to GumContent/Icons/ keeping the folder structure.
+         Remove + Include (not Update): %(RecursiveDir) is only relative to Icons/ for items created
+         by this glob; the SDK's default None items would give the full path from the project root. -->
+    <None Remove="Resources\Graphics\Icons\**" />
+    <None Include="Resources\Graphics\Icons\**\*.png" Link="GumContent\Icons\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -18,10 +18,10 @@ public static class GumIcons
   public static readonly string ContentFolder = Path.Combine("GumContent", "Icons");
 
   /// <summary>Gears icon (level generation overlay).</summary>
-  public const string Gears = "Gears.png";
+  public const string Gears = "Main/Gears.png";
 
   /// <summary>Info icon (level information overlay).</summary>
-  public const string Info = "Info.png";
+  public const string Info = "Main/Info.png";
 
   /// <summary>Start/resume generation icon.</summary>
   public const string Start = "Start.png";
