@@ -3,7 +3,7 @@
 ## Current
 
 - UI:
-  - ~~Migrate current UI to Gum.~~ Done (all phases, see `GUM-MIGRATION.md`). Follow-up: Gum tool (`.gumx`) theme, e.g. to drop the orange focus bars.
+  - ~~Migrate current UI to Gum.~~ Done (all phases, see `GUM-MIGRATION.md`). Custom code-only theme done (dark palette, Inter, no focus bars).
   - ~~Add panel where we can set props. Default values are from `PropMain.Default`. That panel will vanish during generation and will be back once it finishes.~~ Done (Gum LevelGen overlay).
     - ~~Difficulty level... we need combobox.~~ Done (Easy/Medium/Hard presets).
   - Persist last props setup across app restarts (separate task after Gum Phase 4). How to save to disk? Does Stride have any support? I guess in worst case we can just save/load json file with props from directory where game is running.

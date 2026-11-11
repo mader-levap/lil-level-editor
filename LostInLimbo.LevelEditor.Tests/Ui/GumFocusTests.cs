@@ -9,6 +9,25 @@ namespace LostInLimbo.LevelEditor.Tests.Ui;
 public sealed class GumFocusTests
 {
   /// <summary>
+  /// Verifies which kinds of Gum keyboard receivers take the keyboard away from gameplay.
+  /// Regression: an open ComboBox dropdown (its ListBox is the receiver) used arrow keys
+  /// while the camera also moved.
+  /// </summary>
+  [Theory]
+  [InlineData(EnKeyboardReceiverKind.None, false)]
+  [InlineData(EnKeyboardReceiverKind.Other, false)]
+  [InlineData(EnKeyboardReceiverKind.TextInput, true)]
+  [InlineData(EnKeyboardReceiverKind.ListNavigation, true)]
+  public void CapturesKeyboard_ReturnsExpected(EnKeyboardReceiverKind kind, bool expected)
+  {
+    // Act: Decide capture for the receiver kind.
+    bool captured = GumFocus.CapturesKeyboard(kind);
+
+    // Assert: Text input and list navigation capture; nothing else does.
+    Assert.Equal(expected, captured);
+  }
+
+  /// <summary>
   /// Verifies that camera right-look runs when the pointer is not over Gum UI.
   /// </summary>
   [Fact]

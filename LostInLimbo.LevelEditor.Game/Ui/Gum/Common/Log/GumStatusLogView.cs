@@ -4,6 +4,7 @@ using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
 using Gum.Wireframe;
+using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
 
@@ -157,7 +158,7 @@ public sealed class GumStatusLogView : IDisposable
   private void AddLabel(StatusEntry entry)
   {
     if (_scrollViewer == null) return;
-    Label label = GumUiFactory.CreateLabel(entry.Text, StatusLog.ColorFor(entry.Severity));
+    Label label = GumUiFactory.CreateLabel(entry.Text, EditorTheme.Palette.ForSeverity(entry.Severity));
     _scrollViewer.AddChild(label);
     _labels.Add(label);
     _scrollViewer.ScrollToBottom();

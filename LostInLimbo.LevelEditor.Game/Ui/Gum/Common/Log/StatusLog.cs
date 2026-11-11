@@ -77,17 +77,4 @@ public sealed class StatusLog
     _entries.Clear();
     Cleared?.Invoke(this, EventArgs.Empty);
   }
-
-  /// <summary>
-  /// Gets the text color for a severity.
-  /// </summary>
-  /// <param name="severity">Severity.</param>
-  /// <returns>Color (white, light green, orange or red, as in the former UGS log).</returns>
-  public static UiRgba ColorFor(EnStatusSeverity severity) => severity switch
-  {
-    EnStatusSeverity.Success => new UiRgba(144, 238, 144), // Stride Color.LightGreen
-    EnStatusSeverity.Warning => new UiRgba(255, 165, 0), // Stride Color.Orange
-    EnStatusSeverity.Error => new UiRgba(255, 0, 0), // Stride Color.Red
-    _ => UiRgba.White,
-  };
 }

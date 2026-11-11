@@ -1,4 +1,3 @@
-using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
 
 namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
@@ -96,18 +95,5 @@ public sealed class StatusLogTests
   {
     // Act + Assert: Zero capacity is invalid.
     Assert.Throws<ArgumentOutOfRangeException>(() => new StatusLog(0));
-  }
-
-  /// <summary>
-  /// Verifies severity colors (same as the former UGS log).
-  /// </summary>
-  [Fact]
-  public void ColorFor_EachSeverity_ReturnsExpectedColor()
-  {
-    // Act + Assert: White, light green, orange, red.
-    Assert.Equal(UiRgba.White, StatusLog.ColorFor(EnStatusSeverity.Info));
-    Assert.Equal(new UiRgba(144, 238, 144), StatusLog.ColorFor(EnStatusSeverity.Success));
-    Assert.Equal(new UiRgba(255, 165, 0), StatusLog.ColorFor(EnStatusSeverity.Warning));
-    Assert.Equal(new UiRgba(255, 0, 0), StatusLog.ColorFor(EnStatusSeverity.Error));
   }
 }

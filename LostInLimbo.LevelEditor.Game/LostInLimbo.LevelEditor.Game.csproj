@@ -33,5 +33,9 @@
          by this glob; the SDK's default None items would give the full path from the project root. -->
     <None Remove="Resources\Graphics\Icons\**" />
     <None Include="Resources\Graphics\Icons\**\*.png" Link="GumContent\Icons\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <!-- Theme fonts (Inter + its OFL license), loaded by Ui/Gum/Theme/EditorTheme.cs. Same pattern as icons. -->
+    <None Remove="Resources\Fonts\**" />
+    <None Include="Resources\Fonts\**\*.*" Link="GumContent\Fonts\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

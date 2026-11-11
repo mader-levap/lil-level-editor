@@ -6,6 +6,7 @@ using Gum.Managers;
 using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
+using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.AppBar;
 
@@ -53,7 +54,7 @@ public sealed class GumAppBar
     bar.WidthUnits = DimensionUnitType.RelativeToParent; // full window width
     bar.Height = Height;
 
-    Label appLabel = GumUiFactory.CreateLabel($"{_systemInfo.GetName()} © by {_systemInfo.GetAuthor()}", UiRgba.White);
+    Label appLabel = GumUiFactory.CreateLabel($"{_systemInfo.GetName()} © by {_systemInfo.GetAuthor()}", EditorTheme.Palette.TextPrimary);
     appLabel.Anchor(Anchor.Left);
     appLabel.X = GumUiFactory.TextMargin;
 
@@ -81,12 +82,12 @@ public sealed class GumAppBar
     group.Height = 0;
     group.HeightUnits = DimensionUnitType.RelativeToParent;
 
-    Label versionLabel = GumUiFactory.CreateLabel($"v. {_systemInfo.GetVersion()}", UiRgba.White);
+    Label versionLabel = GumUiFactory.CreateLabel($"v. {_systemInfo.GetVersion()}", EditorTheme.Palette.TextPrimary);
     versionLabel.Anchor(Anchor.CenterVertically);
     group.AddChild(versionLabel);
 
     var buildType = _systemInfo.GetBuild();
-    Label buildLabel = GumUiFactory.CreateLabel(buildType.ToString(), BuildTypeColors.For(buildType));
+    Label buildLabel = GumUiFactory.CreateLabel(buildType.ToString(), EditorTheme.Palette.ForBuildType(buildType));
     buildLabel.Anchor(Anchor.CenterVertically);
     group.AddChild(buildLabel);
 

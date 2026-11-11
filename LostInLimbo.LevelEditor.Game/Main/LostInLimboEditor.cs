@@ -5,6 +5,7 @@ using LostInLimbo.LevelEditor.Input;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui.Gum;
+using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Input;
@@ -56,11 +57,11 @@ public sealed class LostInLimboEditor : Game
 
     // Gameplay keyboard input. InputManager does not exist yet during PrepareContext
     // (Game.Initialize creates it later), so it is resolved lazily on every query.
-    // The keyboard is captured while a Gum text box has focus (null-safe before Gum init).
+    // The keyboard is captured while a Gum text box or an open dropdown list has it (null-safe before Gum init).
     Services.AddService(new GameInput(
       hasKeyboard: () => Services.GetService<InputManager>()?.HasKeyboard ?? false,
       isKeyDown: key => Services.GetService<InputManager>()?.IsKeyDown(key) ?? false,
-      isKeyboardCaptured: GumFocus.IsTextInputFocused));
+      isKeyboardCaptured: GumFocus.IsKeyboardCaptured));
   }
 
   /// <summary>
@@ -105,6 +106,8 @@ public sealed class LostInLimboEditor : Game
 
     GumService.Default.Initialize(this);
     GumService.Default.UseKeyboardDefaults();
+    // Theme must be applied before any Forms control is created (UiMain builds the UI later).
+    EditorTheme.Apply(EditorPalette.Default);
     // Gum UI itself is built by the UiMain script once Gum reports IsInitialized.
     _gumInitialized = true;
   }

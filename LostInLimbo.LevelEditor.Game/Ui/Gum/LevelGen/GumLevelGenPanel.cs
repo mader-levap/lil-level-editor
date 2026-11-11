@@ -233,10 +233,7 @@ public sealed class GumLevelGenPanel : IOverlayView
     };
     rows.AddChild(CreateFormRow("Seed:", _seedBox));
 
-    _difficultyBox = new ComboBox
-    {
-      Width = InputWidth,
-    };
+    _difficultyBox = GumUiFactory.CreateComboBox(InputWidth);
     var difficultyItems = _difficultyBox.Items
       ?? throw new InvalidOperationException("Gum ComboBox has no item list.");
     foreach (DifficultyPreset preset in DifficultyPresets.All) difficultyItems.Add(preset.Name);

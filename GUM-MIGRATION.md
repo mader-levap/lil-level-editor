@@ -13,7 +13,7 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 | 3 — Switch to Gum-only | **Done** | UGS runtime path and C# code removed; keyboard capture Gum-only; 69/69 tests |
 | 4 — Remove UGS UI + assets | **Done** (awaiting manual check) | `Stride.UI` dropped, compositor UI pipeline and UGS assets removed, icons de-duplicated; 69/69 tests |
 
-**Current session:** Migration complete (Phase 4 done, see Session log). Remaining follow-up: Gum tool (`.gumx`) theme (focus bars), props JSON persistence (separate task).
+**Current session:** Migration complete; custom code-only theme done (see Session log). Remaining follow-up: props JSON persistence (separate task).
 
 **Decisions (locked):**
 - Author UI **code-only** first (Gum tool / `.gumx` later, no rework).
@@ -32,9 +32,11 @@ Permanent log of the migration from Stride UGS UI to Gum. Update the
 - **Reusable status log:** `Ui/Gum/Common/Log/` — pure `StatusLog` model (+ `StatusEntry`,
   `EnStatusSeverity`) and `GumStatusLogView` (panel + ScrollViewer + optional Clear). Future
   screens reuse these instead of building their own log.
-- **Focus indicator bars kept for now:** the orange 2px lines under focused controls are Gum's
-  V3 `FocusedIndicator` (keyboard/gamepad focus cue), not a bug. Remove them later in the Gum
-  tool (`.gumx`) theme, not with per-screen code (user decision, 2026-11-11).
+- **Custom theme is code-only** (`Ui/Gum/Theme/`, user decision 2026-11-11, replaces the earlier
+  "fix in a `.gumx` theme" plan): `EditorTheme.Apply` changes Gum's V3 `Styling.ActiveStyle`
+  (palette from `EditorPalette`, Inter font) right after `GumService.Default.Initialize`, before any
+  control exists. Focus bars hidden by `Colors.Warning = Transparent` (Gum's focus-bar color).
+  Dark neutral palette, single muted cyan accent; Inter (OFL) bundled in `Resources/Fonts/Inter/`.
 - **Phase 4 `.sd*` work in Game Studio** (compositor, asset deletion) done by the user;
   code/package/docs by Claude (user decision, 2026-11-11).
 - **Phase 3 scope:** dead UGS C# code deleted in Phase 3 (not Phase 4); props JSON
@@ -160,13 +162,14 @@ Prefer constructor injection over a new static locator.
 
 | Risk | Mitigation |
 |------|------------|
+| Theme only affects controls created after `Apply` | `EditorTheme.Apply` runs inside `EnsureGumInitialized`, before `UiMain` builds the UI |
 | Gum.Stride package churn | Pinned `2026.11.2.1` (stable); read migration notes on upgrade |
 | GPU Skia path new (Oct 2026) | Phase 0 smoke launch OK; D3D11 adapter present in output |
 | `.sdgfxcomp` hand-edit | **Avoided** — runtime append via default `registerSceneRenderer` |
 | Dual UI input/focus split | Phase 1 OR-predicate (`GumFocus.IsKeyboardCaptured`); drop UGS per panel fast |
 | `Cursor.WindowOver` obsolete | Use `VisualOver` (same member; no CS0618) |
 | `ColoredRectangleRuntime` obsolete (CS0618/GUM002) | Use `RectangleRuntime` + `IsFilled` + `FillRed/Green/Blue/Alpha` + `StrokeWidth = 0`; do **not** set `StrokeAlpha` (made the fill transparent) |
-| Orange focus bars look like glitches | Gum V3 `FocusedIndicator`; no global switch in 2026.11.2.1 (docs, reflection, GitHub checked). Fix in `.gumx` theme; fallback: per-root helper setting `FocusedIndicatorColor` transparent |
+| Orange focus bars look like glitches | **Resolved:** V3 `FocusedIndicator` color comes from `Styling.ActiveStyle.Colors.Warning`; theme sets it transparent |
 | Forms button default height is RelativeToChildren | Icon buttons set `Width/HeightUnits = Absolute` (else `Height` becomes padding: 48 → 84 px) |
 | Texture loading differs from Stride | Small loader helper; reuse `Resources/` PNGs |
 
@@ -340,3 +343,34 @@ Prefer constructor injection over a new static locator.
   - Verified: clean full rebuild 0 errors, no CS/GUM warnings; no `Stride.UI.dll` in output;
     `GumContent/Icons` has the 6 PNGs incl. `Main/`; 69/69 tests; screenshots: toolbar/transport
     icons, LevelGen Start → log, LevelInfo card all render.
+- **2026-11-11 (Theme):** Custom code-only Gum theme (user: code-only, dark neutral + one accent, Inter).
+  - Research: no `Gum.Themes.*` packages for Stride (only MonoGame/KNI/Raylib/Silk.NET);
+    V3 `Styling.ActiveStyle` (Colors with `SKColor` slots, Text Normal/Strong/Emphasis states,
+    NineSlice/Icons/SpriteSheet) exists in our Gum; `Colors.Warning` = focus-bar color.
+  - New `Ui/Gum/Theme/`: `EditorPalette` (single color source incl. log severities and build
+    types; replaces `BuildTypeColors` and `StatusLog.ColorFor`), `EditorFonts`, `EditorTheme.Apply`
+    (registers Inter Regular/Bold via `GumFontMapper.RegisterFont`, maps palette, Warning →
+    transparent, fonts on all text states). Called from `LostInLimboEditor.EnsureGumInitialized`.
+  - Inter 4.1 static TTFs (Regular, Bold) + `OFL.txt` from the official rsms/inter release in
+    `Resources/Fonts/Inter/`; csproj copies `Resources/Fonts/**` to `GumContent/Fonts/`.
+  - First palette used a neutral grey `Primary` → enabled/disabled buttons and checked toggles
+    were indistinguishable; `Primary` is now a darker shade of the accent.
+  - Tests: `EditorPaletteTests`, `EditorFontsTests` (replace `BuildTypeColorsTests` and the
+    StatusLog color test); 76/76. Screenshots: Inter + bold title, no focus bars on focused
+    TextBox/open ComboBox, enabled vs disabled transport buttons distinct.
+  - Follow-up (user: pressed state too subtle): Gum derives hover/pressed (and checked) from
+    `Colors.PercentLighten`/`PercentDarken` (defaults +15/-15). Theme sets
+    `PressedDarkenPercent = -40` (`EditorTheme`); pressed and checked toggles now clearly darker.
+  - Follow-up (user: selected ComboBox item invisible when open): on open Gum focuses the
+    selected row (`ListBox.DoListItemsHaveFocus = true`); a row's Focused state beats Selected and
+    shows only the focus bar (the orange line seen earlier, now transparent). New
+    `GumUiFactory.CreateComboBox` clears `DoListItemsHaveFocus` on `DropDownOpened`, so the row shows
+    Gum's Selected state (Primary fill). Use it for every ComboBox.
+  - Follow-up (user: camera moves while arrowing through an open ComboBox): while a dropdown is
+    open Gum's `CurrentInputReceiver` is its `ListBox` (null again after closing; verified with a
+    temporary log). `GumFocus.IsTextInputFocused` → `IsKeyboardCaptured`, capturing for text boxes
+    **and** visible `ListBox` receivers (pure rule `CapturesKeyboard(EnKeyboardReceiverKind)`,
+    test written first). Arrow keys inside the dropdown still hide the selection fill (Gum
+    re-focuses the row after `SelectionChanged`); accepted by user.
+  - Follow-up (user): accent changed from teal to green with a slight blue tint
+    (Accent #3DB082, Primary #2B8A63).

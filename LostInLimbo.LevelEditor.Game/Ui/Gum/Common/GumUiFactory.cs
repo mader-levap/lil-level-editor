@@ -6,6 +6,7 @@ using Gum.Forms.Controls.Primitives;
 using Gum.GueDeriving;
 using Gum.Wireframe;
 using Stride.Core.Diagnostics;
+using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Common;
 
@@ -24,17 +25,11 @@ public static class GumUiFactory
   /// <summary>Width and height of the icon drawn inside an icon button, in pixels.</summary>
   public const float IconSize = 36;
 
-  /// <summary>Alpha of translucent panel backgrounds (matches the former UGS panels).</summary>
-  public const byte PanelBackgroundAlpha = 64;
-
   /// <summary>Default horizontal margin between a panel edge and its text, in pixels.</summary>
   public const float TextMargin = 5;
 
   /// <summary>Title font size relative to the default font size.</summary>
   public const float TitleFontSizeFactor = 1.25f;
-
-  /// <summary>Translucent black used behind panels.</summary>
-  public static UiRgba PanelBackgroundColor { get; } = UiRgba.Black with { Alpha = PanelBackgroundAlpha };
 
   /// <summary>
   /// Creates a container with a translucent background that fills it.
@@ -54,7 +49,7 @@ public static class GumUiFactory
 
     var background = new RectangleRuntime();
     background.Dock(Dock.Fill);
-    ApplyColor(background, PanelBackgroundColor);
+    ApplyColor(background, EditorTheme.Palette.PanelBackground);
     panel.AddChild(background);
 
     return panel;
@@ -155,6 +150,42 @@ public static class GumUiFactory
   }
 
   /// <summary>
+  /// Creates a combo box whose open dropdown shows the current selection as a filled row.
+  /// </summary>
+  /// <param name="width">Width in pixels.</param>
+  /// <returns>Combo box; add items and set the selection as usual.</returns>
+  /// <remarks>
+  /// On open, Gum gives the selected row keyboard focus, and a list row's Focused state wins
+  /// over Selected: it has no fill, only the focus bar, which <c>EditorTheme</c> hides. So the
+  /// selection was invisible. Clearing the rows' focus right after opening lets Gum show its
+  /// Selected state (filled with <c>Primary</c>) instead.
+  /// Known limit: arrow keys in the open dropdown focus the newly selected row again (Gum does
+  /// that after raising <c>SelectionChanged</c>, so it can't be undone from that event), and the
+  /// selection is unmarked until the dropdown is reopened. Accepted (mouse-driven editor).
+  /// </remarks>
+  public static ComboBox CreateComboBox(float width)
+  {
+    var comboBox = new ComboBox
+    {
+      Width = width,
+    };
+    comboBox.DropDownOpened += OnComboBoxDropDownOpened;
+    return comboBox;
+  }
+
+  /// <summary>
+  /// Removes keyboard focus from the rows of a just-opened combo box dropdown, so the selected
+  /// row shows Gum's Selected state (see <see cref="CreateComboBox"/>).
+  /// </summary>
+  /// <param name="sender">Combo box that opened.</param>
+  /// <param name="e">Event data.</param>
+  private static void OnComboBoxDropDownOpened(object? sender, EventArgs e)
+  {
+    if (sender is not ComboBox { ListBox: { } listBox }) return;
+    listBox.DoListItemsHaveFocus = false;
+  }
+
+  /// <summary>
   /// Creates a bold title label, larger than normal text and centered horizontally in its
   /// parent (also inside a top-to-bottom stack).
   /// </summary>
@@ -162,7 +193,7 @@ public static class GumUiFactory
   /// <returns>Label.</returns>
   public static Label CreateTitleLabel(string text)
   {
-    Label title = CreateLabel(text, UiRgba.White);
+    Label title = CreateLabel(text, EditorTheme.Palette.TextPrimary);
     if (title.TextComponent is TextRuntime textRuntime)
     {
       textRuntime.IsBold = true;
@@ -174,7 +205,7 @@ public static class GumUiFactory
   }
 
   /// <summary>
-  /// Creates one form row: a fixed-width white label followed by a control, both centered
+  /// Creates one form row: a fixed-width label followed by a control, both centered
   /// vertically, so rows built with the same width line up as two columns.
   /// </summary>
   /// <param name="labelText">Label text.</param>
@@ -188,7 +219,7 @@ public static class GumUiFactory
       Orientation = Orientation.Horizontal,
     };
 
-    Label label = CreateLabel(labelText, UiRgba.White);
+    Label label = CreateLabel(labelText, EditorTheme.Palette.TextPrimary);
     label.Width = labelWidth;
     label.WidthUnits = DimensionUnitType.Absolute;
     label.Anchor(Anchor.CenterVertically);

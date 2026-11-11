@@ -10,30 +10,51 @@ namespace LostInLimbo.LevelEditor.Ui.Gum;
 /// </summary>
 /// <remarks>
 /// Runtime queries are null-safe before <c>GumService.Default.Initialize</c>. Unit tests
-/// never initialize Gum; only the pure <see cref="ShouldProcessCameraRightLook"/> is
-/// exercised headlessly.
+/// never initialize Gum; only the pure <see cref="CapturesKeyboard"/> and
+/// <see cref="ShouldProcessCameraRightLook"/> are exercised headlessly.
 /// </remarks>
 public static class GumFocus
 {
   /// <summary>
-  /// Determines whether a Gum text-input control currently holds keyboard focus.
+  /// Determines whether a Gum control currently needs the keyboard, so gameplay (camera)
+  /// must ignore it. Used as the <c>GameInput</c> capture predicate.
   /// </summary>
   /// <returns>
-  /// <see langword="true"/> when Gum is initialized and its current input receiver is a
-  /// <see cref="TextBoxBase"/> (focused TextBox/PasswordBox take keyboard input);
-  /// otherwise <see langword="false"/> (Gum not ready, or focus is not text input).
+  /// <see langword="true"/> when Gum is initialized and a text box or an open list (for
+  /// example a ComboBox dropdown) receives keyboard input; otherwise <see langword="false"/>.
   /// </returns>
   /// <remarks>
-  /// Uses <see cref="InteractiveGue.CurrentInputReceiver"/>, which Gum sets while a text
-  /// control is focused — the same signal the TextBox docs recommend checking before
-  /// handling Escape/Enter in game code. Non-text focus (e.g. a Button) leaves the
-  /// receiver null so gameplay keys (WASD) keep working.
+  /// Uses <see cref="InteractiveGue.CurrentInputReceiver"/>. Gum sets it to the focused text
+  /// box, and to the dropdown's <see cref="ListBox"/> while a ComboBox is open (arrow keys
+  /// move the selection); it returns to null when the dropdown closes. Non-text focus (e.g. a
+  /// Button) leaves it null, so gameplay keys (WASD, arrows) keep working.
   /// </remarks>
-  public static bool IsTextInputFocused()
+  public static bool IsKeyboardCaptured()
   {
     if (!GumService.Default.IsInitialized) return false;
-    return InteractiveGue.CurrentInputReceiver is TextBoxBase;
+    return CapturesKeyboard(Classify(InteractiveGue.CurrentInputReceiver));
   }
+
+  /// <summary>
+  /// Classifies a Gum keyboard receiver.
+  /// </summary>
+  /// <param name="receiver">Current input receiver, or null.</param>
+  /// <returns>Receiver kind.</returns>
+  private static EnKeyboardReceiverKind Classify(object? receiver) => receiver switch
+  {
+    null => EnKeyboardReceiverKind.None,
+    TextBoxBase => EnKeyboardReceiverKind.TextInput,
+    ListBox { IsVisible: true } => EnKeyboardReceiverKind.ListNavigation,
+    _ => EnKeyboardReceiverKind.Other,
+  };
+
+  /// <summary>
+  /// Decides whether a receiver kind takes the keyboard away from gameplay.
+  /// </summary>
+  /// <param name="kind">Receiver kind.</param>
+  /// <returns><see langword="true"/> for text input and list navigation; otherwise <see langword="false"/>.</returns>
+  public static bool CapturesKeyboard(EnKeyboardReceiverKind kind) =>
+    kind is EnKeyboardReceiverKind.TextInput or EnKeyboardReceiverKind.ListNavigation;
 
   /// <summary>
   /// Determines whether the Gum cursor currently reports an interactive element under it.

@@ -63,4 +63,5 @@ For user interface we use **Gum**. It is open-source (MIT) game UI: WYSIWYG tool
 ## Notes
 
 - UI is code-only Gum (`LostInLimbo.LevelEditor.Game/Ui/Gum/`); Stride's built-in UI is not used. Gum draws after the 3D pass, so post-processing does not affect it.
+- UI theme is code-only: `Ui/Gum/Theme/` (`EditorPalette` holds all colors; `EditorTheme.Apply` runs right after Gum init). UI font is **Inter** (SIL Open Font License, `Resources/Fonts/Inter/OFL.txt`).
 - UI icons are plain PNGs in `Resources/Graphics/Icons/` (subfolders allowed), copied to `GumContent/Icons/` on build. Do not create Stride texture assets for them.

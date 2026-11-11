@@ -11,6 +11,7 @@ using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Editor;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
+using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
 
@@ -176,7 +177,7 @@ public sealed class GumLevelInfoPanel : IOverlayView
 
     foreach (LevelInfoRow row in rows)
     {
-      Label value = GumUiFactory.CreateLabel(row.Value, UiRgba.White);
+      Label value = GumUiFactory.CreateLabel(row.Value, EditorTheme.Palette.TextPrimary);
       StackPanel rowPanel = GumUiFactory.CreateFormRow(row.Label, value, LabelWidth);
       _rowsContainer.AddChild(rowPanel);
       _rowPanels.Add(rowPanel);
