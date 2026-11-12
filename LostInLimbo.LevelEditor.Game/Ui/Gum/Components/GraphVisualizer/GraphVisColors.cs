@@ -29,6 +29,18 @@ public static class GraphVisColors
   /// <summary>Saturation and lightness (0..1) of each palette tier; never gray, never too dark for black text.</summary>
   private static readonly (float Saturation, float Lightness)[] Tiers = [(0.70f, 0.68f), (0.75f, 0.50f)];
 
+  /// <summary>Weight of red in perceived brightness.</summary>
+  private const float RedWeight = 0.299f;
+
+  /// <summary>Weight of green in perceived brightness.</summary>
+  private const float GreenWeight = 0.587f;
+
+  /// <summary>Weight of blue in perceived brightness.</summary>
+  private const float BlueWeight = 0.114f;
+
+  /// <summary>Perceived brightness (0..255) from which dark text reads better than light text.</summary>
+  private const float DarkTextBrightnessThreshold = 140f;
+
   /// <summary>FNV-1a 32-bit offset basis.</summary>
   private const uint FnvOffsetBasis = 2166136261;
 
@@ -55,6 +67,21 @@ public static class GraphVisColors
       throw new ArgumentOutOfRangeException(nameof(brightness), brightness, "Brightness must be between 0 and 1.");
 
     return new UiRgba(Scale(color.Red, brightness), Scale(color.Green, brightness), Scale(color.Blue, brightness), color.Alpha);
+  }
+
+  /// <summary>
+  /// Picks the text color that reads better on a background: the dark one on bright
+  /// backgrounds, the light one on dark backgrounds.
+  /// </summary>
+  /// <param name="background">Background color.</param>
+  /// <param name="dark">Text color for bright backgrounds.</param>
+  /// <param name="light">Text color for dark backgrounds.</param>
+  /// <returns><paramref name="dark"/> or <paramref name="light"/>.</returns>
+  public static UiRgba ReadableOn(UiRgba background, UiRgba dark, UiRgba light)
+  {
+    // Perceived brightness (ITU-R BT.601 weights): green counts most, blue least.
+    float brightness = RedWeight * background.Red + GreenWeight * background.Green + BlueWeight * background.Blue;
+    return brightness >= DarkTextBrightnessThreshold ? dark : light;
   }
 
   /// <summary>

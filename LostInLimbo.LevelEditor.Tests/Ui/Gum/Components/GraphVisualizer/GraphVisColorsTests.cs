@@ -66,6 +66,30 @@ public sealed class GraphVisColorsTests
   }
 
   /// <summary>
+  /// Verifies text is dark on bright backgrounds and light on dark ones; saturated blue counts
+  /// as dark and saturated yellow as bright, although both have a channel at full value.
+  /// </summary>
+  /// <param name="red">Background red.</param>
+  /// <param name="green">Background green.</param>
+  /// <param name="blue">Background blue.</param>
+  /// <param name="expectDark">Whether dark text is expected.</param>
+  [Theory]
+  [InlineData(255, 255, 255, true)]
+  [InlineData(211, 211, 211, true)]
+  [InlineData(255, 255, 0, true)]
+  [InlineData(0, 0, 0, false)]
+  [InlineData(32, 96, 223, false)]
+  [InlineData(0, 0, 255, false)]
+  public void ReadableOn_PicksDarkOrLightByBackgroundBrightness(byte red, byte green, byte blue, bool expectDark)
+  {
+    // Act: Pick a text color for the background.
+    UiRgba picked = GraphVisColors.ReadableOn(new UiRgba(red, green, blue), UiRgba.Black, UiRgba.White);
+
+    // Assert: Dark text on bright backgrounds, light text on dark ones.
+    Assert.Equal(expectDark ? UiRgba.Black : UiRgba.White, picked);
+  }
+
+  /// <summary>
   /// Verifies the hash is a fixed function of the text (known FNV-1a values), so colors survive
   /// restarts; <c>string.GetHashCode</c> would differ per process.
   /// </summary>

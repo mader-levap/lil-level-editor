@@ -8,16 +8,16 @@ section, the phase checklists and the logs at the end of every session so work c
 
 | Item | Value |
 |---|---|
-| Active phase | Phase 1 (awaiting verification) |
-| Last finished phase | Phase 0 |
+| Active phase | Phase 2 (awaiting verification) |
+| Last finished phase | Phase 1 |
 | Blockers | none |
-| Next action | User reviews the model (`GraphVisData.cs`) and helpers; then start Phase 2 |
+| Next action | User checks the demo graph and the empty state in the info overlay; then start Phase 3 |
 
 | Phase | Title | Status |
 |---|---|---|
 | 0 | Research spikes | done |
-| 1 | Data model and pure helpers | awaiting verification |
-| 2 | Component shell and static rendering | not started |
+| 1 | Data model and pure helpers | done |
+| 2 | Component shell and static rendering | awaiting verification |
 | 3 | LevelGen adapter and overlay integration | not started |
 | 4 | Layout simulation | not started |
 | 5 | Navigation | not started |
@@ -234,11 +234,11 @@ No visuals. Test-first where practical.
 
 ### Phase 2 – Component shell and static rendering
 
-- [ ] `GraphVisRenderer.cs` drawing nodes, edges, arrows, dashes, labels and markers.
-- [ ] `GumGraphViewport.cs` (canvas, clipping, empty-state label) and `GumGraphVisualizer.cs`
+- [x] `GraphVisRenderer.cs` drawing nodes, edges, arrows, dashes, labels and markers.
+- [x] `GumGraphViewport.cs` (canvas, clipping, empty-state label) and `GumGraphVisualizer.cs`
       with `SetGraph`; data panel is an empty placeholder column for now.
-- [ ] Simple deterministic placement (circle) and automatic fit-to-view so anything is visible.
-- [ ] Put the component into `GumLevelInfoPanel`: graph panel bottom centre, info card above it;
+- [x] Simple deterministic placement (circle) and automatic fit-to-view so anything is visible.
+- [x] Put the component into `GumLevelInfoPanel`: graph panel bottom centre, info card above it;
       fed with a hard-coded demo graph that exercises every visual feature, plus the empty state.
 
 **Verify:** user opens the overlay and checks the look of every visual rule against the demo graph
@@ -249,7 +249,7 @@ and the "No graph data available" state.
 - [ ] `LevelGraphVisAdapter.cs` with tests (mapping table above, including POI name fallback and
       conditions pointing at markers).
 - [ ] `GumLevelInfoPanel` converts the world graph on result change only and calls `SetGraph`;
-      demo graph removed.
+      demo graph removed (`GraphVisDemoData.cs` and the `TEMPORARY` line in `GumLevelInfoPanel.Refresh`).
 - [ ] Group colours wired through the adapter.
 
 **Verify:** user generates several levels and sees real graphs (still with the simple placement).
@@ -324,6 +324,11 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | Palette: 24 colours (12 hues × 2 lightness tiers), neighbouring slots 150° of hue apart. |
 | 2026-11-12 | Camera is an immutable struct (`screen = world × zoom + translation`). Clamp rule: a graph smaller than the viewport stays inside it, a larger one always covers it. Scroll bar range math moved to Phase 5. |
 | 2026-11-12 | Marker dots sit in one horizontal row, spaced by measured label widths (renderer measures, `GraphVisGeometry.MarkerOffsets` places). |
+| 2026-11-12 | Drawing area has its own mid-gray background (`GraphVisStyle.BackgroundColor`): black edges would vanish on the dark panel. |
+| 2026-11-12 | Marker dots and labels switch to white on dark node colours (`GraphVisColors.ReadableOn`). |
+| 2026-11-12 | Zoom scales everything, text and line widths included (the canvas is scaled, not the coordinates). |
+| 2026-11-12 | Until Phase 5 the view re-fits whenever the graph or the viewport size changes (also covers window resize). |
+| 2026-11-12 | Overlay layout: upper 45 % of the window holds the info card (centred), lower 55 % the graph panel at 80 % width. |
 
 ## Findings log
 
@@ -350,6 +355,7 @@ Filled during Phase 0 and later.
 | 2026-11-12 | – | Research of Gum drawing options; this plan written. | Start Phase 0. |
 | 2026-11-12 | 0 | Spike panel built (`Spike/GraphVisSpike.cs`), run and measured; findings and decisions recorded. Build and 146 tests green. | User verification; remove spike; Phase 1. |
 | 2026-11-12 | 1 | Spike removed. Model, style, colours, camera and geometry written with tests. Build green, 224 tests pass. | User review; Phase 2. |
+| 2026-11-12 | 2 | Renderer, viewport, visualizer shell, ring placement, demo graph and overlay integration. Checked on screen (empty state and demo graph). Build green, 239 tests pass. | User check; Phase 3. |
 
 ## Further research needed
 

@@ -8,6 +8,7 @@ using Gum.Managers;
 using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 using LostInLimbo.LevelEditor.Ui.Gum.Editor;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
@@ -16,8 +17,9 @@ using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
 
 /// <summary>
-/// Gum level information overlay: a centered translucent card with the generation status and,
-/// when a world is available, its phase, seeds, graph size and map steps.
+/// Gum level information overlay: a translucent card with the generation status and, when a
+/// world is available, its phase, seeds, graph size and map steps; below it, a large panel
+/// visualizing the level graph.
 /// </summary>
 /// <remarks>
 /// Refreshes when shown, and while visible when the generation result changes. It does not
@@ -36,11 +38,26 @@ public sealed class GumLevelInfoPanel : IOverlayView
   /// <summary>Width of the label column, in pixels.</summary>
   private const float LabelWidth = 130;
 
+  /// <summary>Height of the lower area holding the graph panel, in percent of the window.</summary>
+  private const float GraphAreaHeightPercent = 55f;
+
+  /// <summary>Width of the graph panel, in percent of the window.</summary>
+  private const float GraphAreaWidthPercent = 80f;
+
+  /// <summary>Whole window, in percent.</summary>
+  private const float FullPercent = 100f;
+
+  /// <summary>Free space below the graph panel, in pixels.</summary>
+  private const float GraphBottomMargin = 12f;
+
   /// <summary>Card title.</summary>
   private const string Title = "Level information";
 
   /// <summary>Level generation service.</summary>
   private readonly ILevelGenService _levelGenService;
+
+  /// <summary>Graph visualization panel.</summary>
+  private readonly GumGraphVisualizer _graphVisualizer = new();
 
   /// <summary>Overlay root (full window, no events of its own).</summary>
   private ContainerRuntime? _root;
@@ -90,6 +107,16 @@ public sealed class GumLevelInfoPanel : IOverlayView
       HeightUnits = DimensionUnitType.RelativeToParent,
     };
 
+    // Upper area: the rest of the window above the graph panel; the card is centered in it.
+    var upperArea = new ContainerRuntime
+    {
+      HasEvents = false,
+      Width = 0,
+      WidthUnits = DimensionUnitType.RelativeToParent,
+      Height = FullPercent - GraphAreaHeightPercent,
+      HeightUnits = DimensionUnitType.PercentageOfParent,
+    };
+
     ContainerRuntime card = GumUiFactory.CreatePanel();
     card.Anchor(Anchor.Center);
     card.Width = PanelPadding; // right padding added to the children's extent
@@ -123,7 +150,27 @@ public sealed class GumLevelInfoPanel : IOverlayView
     content.AddChild(_rowsContainer);
 
     card.AddChild(content);
-    root.AddChild(card);
+    upperArea.AddChild(card);
+    root.AddChild(upperArea);
+
+    // Lower area: the graph panel, bottom center.
+    var lowerArea = new ContainerRuntime
+    {
+      HasEvents = false,
+      Width = GraphAreaWidthPercent,
+      WidthUnits = DimensionUnitType.PercentageOfParent,
+      Height = GraphAreaHeightPercent,
+      HeightUnits = DimensionUnitType.PercentageOfParent,
+    };
+    lowerArea.Anchor(Anchor.Bottom);
+    ContainerRuntime graphPanel = _graphVisualizer.Build();
+    graphPanel.Width = 0;
+    graphPanel.WidthUnits = DimensionUnitType.RelativeToParent;
+    graphPanel.Height = -GraphBottomMargin;
+    graphPanel.HeightUnits = DimensionUnitType.RelativeToParent;
+    lowerArea.AddChild(graphPanel);
+    root.AddChild(lowerArea);
+
     root.AddToRoot();
     _root = root;
   }
@@ -165,6 +212,10 @@ public sealed class GumLevelInfoPanel : IOverlayView
           world.Stats.Steps);
 
     _shownResult = status.Result;
+
+    // TEMPORARY (Phase 2 of GRAPH_VISUALIZATION.md): a demo graph stands in for the level graph.
+    _graphVisualizer.SetGraph(world == null ? null : GraphVisDemoData.Create());
+
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(status.Result, status.FailureReason, facts);
     if (rows.SequenceEqual(_shownRows)) return; // nothing to redraw
     ShowRows(rows);

@@ -50,6 +50,15 @@ public sealed record GraphVisStyle
   /// <summary>Font size of the text over an edge.</summary>
   public float EdgeLabelFontSize { get; init; } = 13f;
 
+  /// <summary>Free space between an edge's text and the rim of the plate drawn behind it.</summary>
+  public float EdgeLabelPlatePadding { get; init; } = 3f;
+
+  /// <summary>Color of the plate drawn behind an edge's text, so it stays readable over the line.</summary>
+  public UiRgba EdgeLabelPlateColor { get; init; } = UiRgba.White;
+
+  /// <summary>Color of the text over an edge.</summary>
+  public UiRgba EdgeLabelTextColor { get; init; } = UiRgba.Black;
+
   #endregion
 
   #region Dashes
@@ -82,8 +91,14 @@ public sealed record GraphVisStyle
   /// <summary>Distance from a marker dot's center up to the baseline of its label.</summary>
   public float MarkerLabelRise { get; init; } = 7f;
 
-  /// <summary>Color of marker dots and their labels.</summary>
+  /// <summary>How far below the node center the row of marker dots sits, so dots and labels together look centered.</summary>
+  public float MarkerDotDrop { get; init; } = 5f;
+
+  /// <summary>Color of marker dots and their labels on bright nodes.</summary>
   public UiRgba MarkerColor { get; init; } = UiRgba.Black;
+
+  /// <summary>Color of marker dots and their labels on dark nodes.</summary>
+  public UiRgba MarkerColorOnDark { get; init; } = UiRgba.White;
 
   #endregion
 
@@ -95,6 +110,15 @@ public sealed record GraphVisStyle
   #endregion
 
   #region View
+
+  /// <summary>
+  /// Background of the drawing area. A mid gray, so black and dark gray edges as well as light
+  /// gray nodes all stand out against it.
+  /// </summary>
+  public UiRgba BackgroundColor { get; init; } = new(176, 178, 184);
+
+  /// <summary>Free space kept between two neighbouring nodes by the layout.</summary>
+  public float NodeGap { get; init; } = 30f;
 
   /// <summary>Smallest zoom factor.</summary>
   public float MinZoom { get; init; } = 0.2f;
