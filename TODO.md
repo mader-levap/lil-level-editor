@@ -2,13 +2,12 @@
 
 ## Current
 
-- Add panel with graph visualization.
-  - Where it should go?
-  - Research how to make canvas that I can draw on freely that can update every tick.
-
 ## Later
 
-- Adjust props form.
+- Add config form where selected config params are manually set and override whatever was generated from props form.
+  - Active: if false, this form is not active and won't modify config generated from props form.
+  - Builder: combobox, pick one builder. Create list from enum, so any addition in LevelGen library will be automatically shown here.
+
 - Make better difficulty preset.
 - Persist last props setup across app restarts.
   - How to save to disk? Does Stride have any support?

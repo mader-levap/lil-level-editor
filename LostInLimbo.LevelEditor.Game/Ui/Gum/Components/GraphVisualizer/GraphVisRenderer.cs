@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using SkiaGum.Renderables;
 using SkiaSharp;
@@ -66,7 +67,10 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="IsDashed">Whether the outline is dashed.</param>
   /// <param name="MarkerColor">Color of marker dots and labels, readable on <paramref name="Fill"/>.</param>
   /// <param name="Dots">Marker dots.</param>
-  private readonly record struct PreparedNode(float Radius, SKColor Fill, SKColor Outline, bool IsDashed, SKColor MarkerColor, PreparedDot[] Dots);
+  /// <param name="BaseFill">Fill color before brightening (source of <paramref name="Fill"/>).</param>
+  /// <param name="BaseOutline">Outline color before brightening (source of <paramref name="Outline"/>).</param>
+  private readonly record struct PreparedNode(
+    float Radius, SKColor Fill, SKColor Outline, bool IsDashed, SKColor MarkerColor, PreparedDot[] Dots, UiRgba BaseFill, UiRgba BaseOutline);
 
   /// <summary>
   /// One edge, ready to draw.
@@ -81,9 +85,10 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="LabelWidth">Measured width of <paramref name="Label"/>.</param>
   /// <param name="Bend">How far the edge bulges from the straight line (0: straight); see <see cref="GraphVisGeometry.ParallelEdgeBends"/>.</param>
   /// <param name="HighlightMarkerIds">Markers highlighted while the edge is selected.</param>
+  /// <param name="BaseColor">Line color before brightening (source of <paramref name="Color"/>).</param>
   private readonly record struct PreparedEdge(
     int FromIndex, int ToIndex, SKColor Color, bool ArrowAtFrom, bool ArrowAtTo, bool IsDashed, string? Label, float LabelWidth,
-    float Bend, IReadOnlySet<string> HighlightMarkerIds);
+    float Bend, IReadOnlySet<string> HighlightMarkerIds, UiRgba BaseColor);
 
   #endregion
 
@@ -161,15 +166,18 @@ internal sealed class GraphVisRenderer : IDisposable
       GraphVisNode node = data.Nodes[i];
       indexById[node.Id] = i;
 
-      var fill = node.Color ?? _style.DefaultNodeColor;
+      UiRgba fill = node.Color ?? _style.DefaultNodeColor;
+      UiRgba outline = GraphVisColors.Darken(fill, _style.NodeOutlineBrightness);
       float radius = GraphVisGeometry.NodeRadius(node.RelativeSize, _style);
       _nodes[i] = new PreparedNode(
         radius,
         EditorTheme.ToSkColor(fill),
-        EditorTheme.ToSkColor(GraphVisColors.Darken(fill, _style.NodeOutlineBrightness)),
+        EditorTheme.ToSkColor(outline),
         node.IsDashed,
         EditorTheme.ToSkColor(GraphVisColors.ReadableOn(fill, _style.MarkerColor, _style.MarkerColorOnDark)),
-        PrepareDots(node, radius));
+        PrepareDots(node, radius),
+        fill,
+        outline);
     }
 
     // Several edges between the same two nodes are drawn as arcs side by side.
@@ -181,17 +189,19 @@ internal sealed class GraphVisRenderer : IDisposable
     {
       GraphVisEdge edge = data.Edges[i];
       string? label = string.IsNullOrEmpty(edge.Label) ? null : edge.Label;
+      UiRgba color = edge.Color ?? _style.DefaultEdgeColor;
       _edges[i] = new PreparedEdge(
         indexPairs[i].From,
         indexPairs[i].To,
-        EditorTheme.ToSkColor(edge.Color ?? _style.DefaultEdgeColor),
+        EditorTheme.ToSkColor(color),
         edge.ArrowAtFrom,
         edge.ArrowAtTo,
         edge.IsDashed,
         label,
         label == null ? 0 : _edgeLabelFont.MeasureText(label),
         bends[i],
-        new HashSet<string>(edge.HighlightMarkerIds));
+        new HashSet<string>(edge.HighlightMarkerIds),
+        color);
     }
 
     Radii = _nodes.Select(node => node.Radius).ToArray();
@@ -235,7 +245,9 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="camera">View of the graph inside the drawing area.</param>
   /// <param name="positions">Node centers in world units, in node order.</param>
   /// <param name="selection">Selected node or edge, drawn highlighted.</param>
-  public void Draw(SKCanvas canvas, SKRect rect, GraphVisCamera camera, IReadOnlyList<Vector2> positions, GraphVisHit selection)
+  /// <param name="fade">Hover/selection brightening level of each node and edge.</param>
+  public void Draw(
+    SKCanvas canvas, SKRect rect, GraphVisCamera camera, IReadOnlyList<Vector2> positions, GraphVisHit selection, GraphVisHighlightFade fade)
   {
     canvas.Save();
     canvas.ClipRect(rect);
@@ -255,14 +267,45 @@ internal sealed class GraphVisRenderer : IDisposable
       IReadOnlySet<string>? highlightedMarkers = selectedEdge >= 0 ? _edges[selectedEdge].HighlightMarkerIds : null;
 
       if (selectedEdge >= 0) DrawEdgeGlow(canvas, _edges[selectedEdge], positions);
-      foreach (PreparedEdge edge in _edges) DrawEdge(canvas, edge, positions);
-      for (int i = 0; i < _nodes.Length; i++) DrawNode(canvas, _nodes[i], positions[i]);
+      for (int i = 0; i < _edges.Length; i++) DrawEdge(canvas, Brightened(_edges[i], fade.EdgeLevel(i)), positions);
+      for (int i = 0; i < _nodes.Length; i++) DrawNode(canvas, Brightened(_nodes[i], fade.NodeLevel(i)), positions[i]);
       if (selectedNode >= 0) DrawSelectionRing(canvas, _nodes[selectedNode], positions[selectedNode]);
       for (int i = 0; i < _nodes.Length; i++) DrawMarkers(canvas, _nodes[i], positions[i], highlightedMarkers);
       for (int i = 0; i < _edges.Length; i++) DrawEdgeLabel(canvas, _edges[i], positions, i == selectedEdge);
     }
 
     canvas.Restore();
+  }
+
+  /// <summary>
+  /// Gives a node brighter fill and outline colors for its hover/selection level. Marker colors
+  /// stay, so markers and texts are unaffected.
+  /// </summary>
+  /// <param name="node">Node.</param>
+  /// <param name="level">Highlight level (0..1).</param>
+  /// <returns>Node to draw.</returns>
+  private PreparedNode Brightened(PreparedNode node, float level)
+  {
+    if (level <= 0) return node;
+    float amount = _style.HoverBrightening * level;
+    return node with
+    {
+      Fill = EditorTheme.ToSkColor(GraphVisColors.Brighten(node.BaseFill, amount)),
+      Outline = EditorTheme.ToSkColor(GraphVisColors.Brighten(node.BaseOutline, amount)),
+    };
+  }
+
+  /// <summary>
+  /// Gives an edge a brighter line and arrowhead color for its hover/selection level. Use the
+  /// result for the line only; the label keeps the original colors.
+  /// </summary>
+  /// <param name="edge">Edge.</param>
+  /// <param name="level">Highlight level (0..1).</param>
+  /// <returns>Edge to draw.</returns>
+  private PreparedEdge Brightened(PreparedEdge edge, float level)
+  {
+    if (level <= 0) return edge;
+    return edge with { Color = EditorTheme.ToSkColor(GraphVisColors.Brighten(edge.BaseColor, _style.HoverBrightening * level)) };
   }
 
   /// <summary>

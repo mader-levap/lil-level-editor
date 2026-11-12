@@ -50,6 +50,9 @@ public sealed class GumGraphViewport
   /// <summary>Navigation state and camera.</summary>
   private readonly GraphVisInteraction _interaction;
 
+  /// <summary>Eased brightening of hovered and selected elements.</summary>
+  private readonly GraphVisHighlightFade _highlightFade;
+
   /// <summary>Renderer; null until built.</summary>
   private GraphVisRenderer? _renderer;
 
@@ -94,6 +97,7 @@ public sealed class GumGraphViewport
     _style = style ?? throw new ArgumentNullException(nameof(style));
     _isKeyDown = isKeyDown ?? throw new ArgumentNullException(nameof(isKeyDown));
     _interaction = new GraphVisInteraction(style);
+    _highlightFade = new GraphVisHighlightFade(style.HoverFadeSeconds);
   }
 
   /// <summary>Root container; null until <see cref="Build"/> is called.</summary>
@@ -234,6 +238,7 @@ public sealed class GumGraphViewport
     _simulation = new GraphVisSimulation(positions, _renderer.Radii, edges, _style);
     _simulation.Settle(_style.SimulationSettleSteps);
     _interaction.SetGraph(_simulation, _renderer.Radii, _renderer.EdgeShapes);
+    _highlightFade.Reset(_renderer.Radii.Count, _renderer.EdgeShapes.Count);
     _fittedSize = null; // new graph: fit it on the next update
   }
 
@@ -267,6 +272,7 @@ public sealed class GumGraphViewport
     }
 
     _interaction.Update(ReadInput(_canvasElement, deltaSeconds), bounds, viewportSize);
+    _highlightFade.Step(deltaSeconds, _interaction.Hover, _interaction.Selection);
     SyncScrollBars(bounds, viewportSize);
   }
 
@@ -403,7 +409,7 @@ public sealed class GumGraphViewport
   private void Render(SKRect rect, SKCanvas canvas)
   {
     if (_renderer == null || _simulation == null || _fittedSize == null) return; // nothing fitted to draw yet
-    _renderer.Draw(canvas, rect, _interaction.Camera, _simulation.Positions, _interaction.Selection);
+    _renderer.Draw(canvas, rect, _interaction.Camera, _simulation.Positions, _interaction.Selection, _highlightFade);
   }
 }
 

@@ -158,6 +158,11 @@ How level data maps onto it (done by the adapter, Phase 3):
   its label plate. With an edge selected, its `HighlightMarkerIds` dots sit on a highlight plate
   covering dot and label (drawn in the bright-node marker colour); a collapsed dot standing for any
   such marker is highlighted the same way.
+- Hover: the node or edge under the pointer (the dragged node while dragging, nothing while
+  panning) is drawn brighter: fill, outline, line and arrowheads mixed with `HoverBrightening`
+  (20 %) white; texts, markers and label plates keep their colours. The selected element stays
+  brighter too, in addition to its ring or glow. The brightening eases in and out over
+  `HoverFadeSeconds` (0.15 s, smoothstep; `GraphVisHighlightFade`).
 - Draw order: edge glow, edges, nodes, node ring, markers (plates first), edge labels.
 
 ### Group colours
@@ -395,6 +400,8 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | **Data panel rows** (user). Pairs whose key and value fit side by side share one row, in two aligned columns; the rest show the value below the key, wrapped. `GraphVisDataRows.Arrange` (tested) tries each key width as the key column width and keeps the one giving the most single-row pairs (narrower on ties), so one long key cannot push all values off their rows. Text is measured as Gum lays it out (label `AbsoluteWidth` at natural width). The row width always leaves room for the vertical scroll bar, so rows do not change when the bar appears. |
 | 2026-11-12 | Data panel keys and values use the normal font size minus 1 (user); the title keeps its size. |
 | 2026-11-12 | **Indented properties** (user). The model gained `IndentedPropertyKeys` on `GraphVisNode` and `GraphVisEdge` (additive, default empty; keys without a property are ignored), so the component stays generic. The adapter lists the `POI x` and `Condition x` keys there. The data panel indents those rows by 12 px; for the one-row decision the indent counts as part of the key's width, so the value column stays aligned. |
+| 2026-11-12 | **Hover highlight** (user). `GraphVisInteraction.Hover` is computed after each update; `GraphVisHighlightFade` keeps a level per node and edge that moves linearly towards 1 (hovered or selected) or 0 over `HoverFadeSeconds` and is read through smoothstep. The renderer draws lit elements from a copy with colours brightened by `GraphVisColors.Brighten` (mix with white), so black edges turn dark gray (RGB 50 at full level, checked by pixel sampling). |
+| 2026-11-12 | Default edge colour is dark gray (RGB 70, the same as secret edges) instead of black (user), so the hover brightening shows: a hovered edge goes to RGB 106 (checked by pixel sampling). Secret edges remain distinguishable by their dashes. |
 
 ## Findings log
 

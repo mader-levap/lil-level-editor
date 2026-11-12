@@ -66,6 +66,22 @@ public sealed class GraphVisColorsTests
   }
 
   /// <summary>
+  /// Verifies brightening mixes the color with white, keeps alpha, and covers the range ends.
+  /// </summary>
+  [Fact]
+  public void Brighten_MixesWithWhiteAndKeepsAlpha()
+  {
+    // Arrange: A translucent color.
+    var color = new UiRgba(0, 100, 255, 128);
+
+    // Act + Assert: Half way to white; 0 keeps the color, 1 gives white with the same alpha.
+    Assert.Equal(new UiRgba(128, 178, 255, 128), GraphVisColors.Brighten(color, 0.5f));
+    Assert.Equal(color, GraphVisColors.Brighten(color, 0f));
+    Assert.Equal(new UiRgba(255, 255, 255, 128), GraphVisColors.Brighten(color, 1f));
+    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisColors.Brighten(color, 1.1f));
+  }
+
+  /// <summary>
   /// Verifies text is dark on bright backgrounds and light on dark ones; saturated blue counts
   /// as dark and saturated yellow as bright, although both have a channel at full value.
   /// </summary>

@@ -70,6 +70,22 @@ public static class GraphVisColors
   }
 
   /// <summary>
+  /// Brightens (or keeps) a color by mixing it with white, so black becomes gray and colors
+  /// become paler but keep their hue.
+  /// </summary>
+  /// <param name="color">Color to brighten.</param>
+  /// <param name="amount">Share of white: 0 gives the same color, 1 white.</param>
+  /// <returns>Brightened color with the original alpha.</returns>
+  /// <exception cref="ArgumentOutOfRangeException"><paramref name="amount"/> is outside 0..1.</exception>
+  public static UiRgba Brighten(UiRgba color, float amount)
+  {
+    if (!(amount >= 0 && amount <= 1))
+      throw new ArgumentOutOfRangeException(nameof(amount), amount, "Amount must be between 0 and 1.");
+
+    return new UiRgba(TowardsWhite(color.Red, amount), TowardsWhite(color.Green, amount), TowardsWhite(color.Blue, amount), color.Alpha);
+  }
+
+  /// <summary>
   /// Picks the text color that reads better on a background: the dark one on bright
   /// backgrounds, the light one on dark backgrounds.
   /// </summary>
@@ -195,6 +211,14 @@ public static class GraphVisColors
   /// <param name="factor">Factor (0..1).</param>
   /// <returns>Scaled channel.</returns>
   private static byte Scale(byte channel, float factor) => (byte)MathF.Round(channel * factor);
+
+  /// <summary>
+  /// Moves one color channel towards full brightness.
+  /// </summary>
+  /// <param name="channel">Channel value.</param>
+  /// <param name="amount">Share of the way to 255 (0..1).</param>
+  /// <returns>Brightened channel.</returns>
+  private static byte TowardsWhite(byte channel, float amount) => (byte)MathF.Round(channel + (byte.MaxValue - channel) * amount);
 
   /// <summary>
   /// Converts a 0..1 channel to a byte.

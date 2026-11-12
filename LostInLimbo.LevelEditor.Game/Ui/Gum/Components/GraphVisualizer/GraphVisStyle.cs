@@ -38,8 +38,11 @@ public sealed record GraphVisStyle
   /// <summary>Edge line width.</summary>
   public float EdgeWidth { get; init; } = 3f;
 
-  /// <summary>Line color of edges without a color of their own.</summary>
-  public UiRgba DefaultEdgeColor { get; init; } = UiRgba.Black;
+  /// <summary>
+  /// Line color of edges without a color of their own. Dark gray rather than black, so the
+  /// brightening of a hovered or selected edge stays visible.
+  /// </summary>
+  public UiRgba DefaultEdgeColor { get; init; } = new(70, 70, 70);
 
   /// <summary>Arrowhead length, from tip to base.</summary>
   public float ArrowLength { get; init; } = 12f;
@@ -124,6 +127,15 @@ public sealed record GraphVisStyle
 
   /// <summary>Free space between a highlighted marker's dot or label and the plate drawn behind it.</summary>
   public float MarkerHighlightPadding { get; init; } = 2f;
+
+  /// <summary>
+  /// How much brighter a hovered or selected node or edge is drawn (fill, outline, line and
+  /// arrowheads; not texts or markers), as the share of white mixed in (0..1).
+  /// </summary>
+  public float HoverBrightening { get; init; } = 0.2f;
+
+  /// <summary>Time the hover/selection brightening takes to fade in or out, in seconds.</summary>
+  public float HoverFadeSeconds { get; init; } = 0.15f;
 
   #endregion
 

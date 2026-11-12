@@ -114,6 +114,12 @@ public sealed class GraphVisInteraction
   public GraphVisHit Selection { get; private set; } = GraphVisHit.None;
 
   /// <summary>
+  /// Node or edge under the pointer after the last <see cref="Update"/> (the dragged node while
+  /// dragging; nothing while panning), or <see cref="GraphVisHit.None"/>.
+  /// </summary>
+  public GraphVisHit Hover { get; private set; } = GraphVisHit.None;
+
+  /// <summary>
   /// Sets the graph that clicks and drags act on. Clears the selection and ends a gesture in progress.
   /// </summary>
   /// <param name="simulation">Node physics (gives positions; dragged nodes are moved through it); null for no graph.</param>
@@ -133,6 +139,7 @@ public sealed class GraphVisInteraction
     _radii = simulation == null ? [] : radii;
     _edges = simulation == null ? [] : edges;
     Selection = GraphVisHit.None;
+    Hover = GraphVisHit.None;
   }
 
   /// <summary>
@@ -175,9 +182,26 @@ public sealed class GraphVisInteraction
       }
     }
 
-    if (camera == Camera) return false;
-    Camera = camera.ClampTo(bounds, viewportSize, _style.ViewPadding);
-    return true;
+    bool viewChanged = camera != Camera;
+    if (viewChanged) Camera = camera.ClampTo(bounds, viewportSize, _style.ViewPadding);
+    Hover = HoverFor(input);
+    return viewChanged;
+  }
+
+  /// <summary>
+  /// Decides what counts as hovered after this frame's input: the dragged node while dragging,
+  /// nothing while panning or with the pointer elsewhere, otherwise the element under the pointer.
+  /// </summary>
+  /// <param name="input">Input of this frame.</param>
+  /// <returns>Hovered element.</returns>
+  private GraphVisHit HoverFor(GraphVisInputFrame input)
+  {
+    return _gesture switch
+    {
+      EnGesture.DraggingNode => _pressHit,
+      EnGesture.Panning => GraphVisHit.None,
+      _ => input.IsPointerOver ? HitAt(input.Pointer) : GraphVisHit.None,
+    };
   }
 
   /// <summary>

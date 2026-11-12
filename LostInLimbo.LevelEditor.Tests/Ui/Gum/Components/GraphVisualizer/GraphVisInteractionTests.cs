@@ -407,6 +407,48 @@ public sealed class GraphVisInteractionTests
   }
 
   /// <summary>
+  /// Verifies hover follows the pointer over nodes and edges, and is empty with the pointer outside.
+  /// </summary>
+  [Fact]
+  public void Update_PointerMoves_HoverFollows()
+  {
+    // Arrange: Two nodes and an edge.
+    GraphVisInteraction interaction = CreateWithGraph(out _);
+
+    // Act + Assert: Over node 0, over the edge, over empty space, outside the viewport.
+    interaction.Update(Idle(new Vector2(100, 100)), LargeGraph, Viewport);
+    Assert.Equal(GraphVisHit.ForNode(0), interaction.Hover);
+    interaction.Update(Idle(new Vector2(300, 101)), LargeGraph, Viewport);
+    Assert.Equal(GraphVisHit.ForEdge(0), interaction.Hover);
+    interaction.Update(Idle(new Vector2(300, 300)), LargeGraph, Viewport);
+    Assert.Equal(GraphVisHit.None, interaction.Hover);
+    interaction.Update(Idle(new Vector2(100, 100)) with { IsPointerOver = false }, LargeGraph, Viewport);
+    Assert.Equal(GraphVisHit.None, interaction.Hover);
+  }
+
+  /// <summary>
+  /// Verifies the dragged node stays hovered during a drag, and nothing is hovered while panning.
+  /// </summary>
+  [Fact]
+  public void Update_DragAndPan_HoverIsDraggedNodeOrNothing()
+  {
+    // Arrange: Two nodes.
+    GraphVisInteraction interaction = CreateWithGraph(out _);
+
+    // Act + Assert: Drag node 1 far away (the pointer ends over empty space): still hovered.
+    interaction.Update(Idle(new Vector2(500, 100)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    interaction.Update(Idle(new Vector2(500, 300)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    Assert.Equal(GraphVisHit.ForNode(1), interaction.Hover);
+    interaction.Update(Idle(new Vector2(500, 300)), LargeGraph, Viewport);
+
+    // Act + Assert: Pan from empty space across node 0: nothing hovered during the pan.
+    interaction.Update(Idle(new Vector2(100, 300)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    interaction.Update(Idle(new Vector2(100, 310)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    Assert.True(interaction.IsPanning);
+    Assert.Equal(GraphVisHit.None, interaction.Hover);
+  }
+
+  /// <summary>
   /// Verifies a new graph clears the selection, while a view reset (resize) keeps it.
   /// </summary>
   [Fact]
