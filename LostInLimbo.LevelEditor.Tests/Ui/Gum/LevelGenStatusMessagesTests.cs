@@ -42,6 +42,6 @@ public sealed class LevelGenStatusMessagesTests
     Assert.Equal(new StatusEntry("LevelGen: Finished. Graph: nodes=5, edges=4. Map: steps=12.", EnStatusSeverity.Success), finished);
     Assert.Equal(new StatusEntry("LevelGen: ValidationError. Graph: nodes=1, edges=0. Map: steps=3.", EnStatusSeverity.Warning), invalid);
     Assert.Equal(new StatusEntry("LevelGen: Error - boom", EnStatusSeverity.Error), error);
-    Assert.Equal(new StatusEntry("LevelGen: Cancelled.", EnStatusSeverity.Info), cancelled);
+    Assert.Equal(new StatusEntry("LevelGen: Cancelled.", EnStatusSeverity.Debug), cancelled);
   }
 }

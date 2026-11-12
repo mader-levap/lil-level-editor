@@ -106,15 +106,14 @@ public sealed class GumLevelGenPanel : IOverlayView
 
   /// <summary>Start/resume button.</summary>
   private Button? _btnStart;
-
   /// <summary>Single step button.</summary>
   private Button? _btnStep;
-
   /// <summary>Pause button.</summary>
   private Button? _btnPause;
-
   /// <summary>Stop button.</summary>
   private Button? _btnStop;
+  /// <summary>Loop button. Starts or stops loop.</summary>
+  private Button? _btnLoop;
 
   /// <summary>View of <see cref="_statusLog"/>; null until built.</summary>
   private GumStatusLogView? _statusLogView;
@@ -238,6 +237,10 @@ public sealed class GumLevelGenPanel : IOverlayView
     _btnStop = GumUiFactory.CreateIconButton(GumIcons.Stop, "Stop generation");
     _btnStop.Click += (_, _) => OnStopClicked();
     stack.AddChild(_btnStop);
+
+    _btnLoop = GumUiFactory.CreateIconButton(GumIcons.Loop, "Start loop");
+    _btnLoop.Click += (_, _) => OnLoopClicked();
+    stack.AddChild(_btnLoop);
 
     return stack;
   }
@@ -438,6 +441,14 @@ public sealed class GumLevelGenPanel : IOverlayView
   }
 
   /// <summary>
+  /// Starts or stops generation in loop.
+  /// </summary>
+  private void OnLoopClicked()
+  {
+    // TODO
+  }
+
+  /// <summary>
   /// Discards a paused run. Clearing is synchronous, so the new state is applied right away
   /// (no polling).
   /// </summary>
@@ -478,6 +489,7 @@ public sealed class GumLevelGenPanel : IOverlayView
     if (_btnStep != null) _btnStep.IsEnabled = state.Step;
     if (_btnPause != null) _btnPause.IsEnabled = state.Pause;
     if (_btnStop != null) _btnStop.IsEnabled = state.Stop;
+    if (_btnLoop != null) _btnLoop.IsEnabled = state.Loop;
 
     if (!state.PropsVisible)
     {
@@ -506,7 +518,7 @@ public sealed class GumLevelGenPanel : IOverlayView
     GenerationStatus status = _levelGenService.Status();
     bool paused = status.Result == EnGenResult.Paused;
     if (_progressCaption != null) _progressCaption.Text = paused ? CaptionPaused : CaptionRunning;
-    _progressBar.SetAnimating(!paused);
+    _progressBar.SetAnimating(!paused); // animate only if not paused
     if (wasShown) _progressBar.SetTarget(status.Completion);
     else _progressBar.Reset(status.Completion); // fresh view: no easing from a stale value
   }

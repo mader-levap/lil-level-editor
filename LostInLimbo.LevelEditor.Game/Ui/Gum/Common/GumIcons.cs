@@ -21,21 +21,21 @@ public static class GumIcons
 
   /// <summary>Gears icon (level generation overlay).</summary>
   public const string Gears = "Main/Gears.png";
-
   /// <summary>Info icon (level information overlay).</summary>
   public const string Info = "Main/Info.png";
 
   /// <summary>Start/resume generation icon.</summary>
-  public const string Start = "Start.png";
-
+  public const string Start = "Gen/Start.png";
   /// <summary>Single generation step icon.</summary>
-  public const string Step = "Step.png";
-
+  public const string Step = "Gen/Step.png";
   /// <summary>Pause generation icon.</summary>
-  public const string Pause = "Pause.png";
-
+  public const string Pause = "Gen/Pause.png";
   /// <summary>Stop generation icon.</summary>
-  public const string Stop = "Stop.png";
+  public const string Stop = "Gen/Stop.png";
+  /// <summary>Start generation loop icon.</summary>
+  public const string Loop = "Gen/Loop.png";
+  /// <summary>Stop generation loop icon.</summary>
+  public const string LoopStop = "Gen/LoopStop.png";
 
   /// <summary>
   /// Resolves the absolute path of an icon file in the given base directory.

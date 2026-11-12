@@ -47,6 +47,8 @@ public sealed class GumIconsTests
   [InlineData(GumIcons.Step)]
   [InlineData(GumIcons.Pause)]
   [InlineData(GumIcons.Stop)]
+  [InlineData(GumIcons.Loop)]
+  [InlineData(GumIcons.LoopStop)]
   public void ResolvePath_KnownIcon_FileExistsInOutput(string iconFile)
   {
     // Act: Resolve against the test output folder.

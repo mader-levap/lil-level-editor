@@ -14,20 +14,20 @@ public sealed class LevelGenUiStateTests
   /// clears the paused run.
   /// </summary>
   [Theory]
-  [InlineData(EnGenResult.None, true, true, false, false, true)]
-  [InlineData(EnGenResult.Running, false, false, true, true, false)]
-  [InlineData(EnGenResult.Paused, true, true, false, true, false)]
-  [InlineData(EnGenResult.Finished, true, true, false, false, true)]
-  [InlineData(EnGenResult.Cancelled, true, true, false, false, true)]
-  [InlineData(EnGenResult.Error, true, true, false, false, true)]
-  [InlineData(EnGenResult.ValidationError, true, true, false, false, true)]
-  public void For_Result_ReturnsExpectedState(EnGenResult result, bool start, bool step, bool pause, bool stop, bool propsVisible)
+  [InlineData(EnGenResult.None, true, true, false, false, false, true)]
+  [InlineData(EnGenResult.Running, false, false, true, true, false, false)]
+  [InlineData(EnGenResult.Paused, true, true, false, true, false, false)]
+  [InlineData(EnGenResult.Finished, true, true, false, false, false, true)]
+  [InlineData(EnGenResult.Cancelled, true, true, false, false, false, true)]
+  [InlineData(EnGenResult.Error, true, true, false, false, false, true)]
+  [InlineData(EnGenResult.ValidationError, true, true, false, false, false, true)]
+  public void For_Result_ReturnsExpectedState(EnGenResult result, bool start, bool step, bool pause, bool stop, bool loop, bool propsVisible)
   {
     // Act: Resolve the UI state.
     LevelGenUiState state = LevelGenUiState.For(result);
 
     // Assert: Buttons and form visibility match.
-    Assert.Equal(new LevelGenUiState(start, step, pause, stop, propsVisible), state);
+    Assert.Equal(new LevelGenUiState(start, step, pause, stop, loop, propsVisible), state);
   }
 
   /// <summary>
