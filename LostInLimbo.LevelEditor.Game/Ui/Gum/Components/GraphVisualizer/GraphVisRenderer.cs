@@ -53,7 +53,9 @@ internal sealed class GraphVisRenderer : IDisposable
   /// </summary>
   /// <param name="Label">Text above the dot.</param>
   /// <param name="Offset">Position of the dot's center relative to the node center.</param>
-  private readonly record struct PreparedDot(string Label, Vector2 Offset);
+  /// <param name="LabelWidth">Measured width of <paramref name="Label"/>.</param>
+  /// <param name="MarkerIds">Identifiers of the markers the dot stands for (several when collapsed).</param>
+  private readonly record struct PreparedDot(string Label, Vector2 Offset, float LabelWidth, IReadOnlyList<string> MarkerIds);
 
   /// <summary>
   /// One node, ready to draw.
@@ -78,9 +80,10 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="Label">Text over the line, or null.</param>
   /// <param name="LabelWidth">Measured width of <paramref name="Label"/>.</param>
   /// <param name="Bend">How far the edge bulges from the straight line (0: straight); see <see cref="GraphVisGeometry.ParallelEdgeBends"/>.</param>
+  /// <param name="HighlightMarkerIds">Markers highlighted while the edge is selected.</param>
   private readonly record struct PreparedEdge(
     int FromIndex, int ToIndex, SKColor Color, bool ArrowAtFrom, bool ArrowAtTo, bool IsDashed, string? Label, float LabelWidth,
-    float Bend);
+    float Bend, IReadOnlySet<string> HighlightMarkerIds);
 
   #endregion
 
@@ -139,6 +142,9 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <summary>Radius of each node of the current graph, in node order.</summary>
   public IReadOnlyList<float> Radii { get; private set; } = [];
 
+  /// <summary>Shape of each edge of the current graph as drawn (nodes and bend), in edge order; used for hit testing.</summary>
+  public IReadOnlyList<GraphVisEdgeShape> EdgeShapes { get; private set; } = [];
+
   /// <summary>
   /// Prepares a graph for drawing: resolves colors and radii and measures labels once.
   /// </summary>
@@ -184,10 +190,12 @@ internal sealed class GraphVisRenderer : IDisposable
         edge.IsDashed,
         label,
         label == null ? 0 : _edgeLabelFont.MeasureText(label),
-        bends[i]);
+        bends[i],
+        new HashSet<string>(edge.HighlightMarkerIds));
     }
 
     Radii = _nodes.Select(node => node.Radius).ToArray();
+    EdgeShapes = _edges.Select(edge => new GraphVisEdgeShape(edge.FromIndex, edge.ToIndex, edge.Bend)).ToArray();
   }
 
   /// <summary>
@@ -215,7 +223,7 @@ internal sealed class GraphVisRenderer : IDisposable
     IReadOnlyList<Vector2> offsets = GraphVisGeometry.MarkerPositions(widths, availableRadius, metrics);
 
     var prepared = new PreparedDot[dots.Count];
-    for (int i = 0; i < prepared.Length; i++) prepared[i] = new PreparedDot(dots[i].Label, offsets[i]);
+    for (int i = 0; i < prepared.Length; i++) prepared[i] = new PreparedDot(dots[i].Label, offsets[i], widths[i], dots[i].MarkerIds);
     return prepared;
   }
 
@@ -226,7 +234,8 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="rect">Drawing area, in window pixels.</param>
   /// <param name="camera">View of the graph inside the drawing area.</param>
   /// <param name="positions">Node centers in world units, in node order.</param>
-  public void Draw(SKCanvas canvas, SKRect rect, GraphVisCamera camera, IReadOnlyList<Vector2> positions)
+  /// <param name="selection">Selected node or edge, drawn highlighted.</param>
+  public void Draw(SKCanvas canvas, SKRect rect, GraphVisCamera camera, IReadOnlyList<Vector2> positions, GraphVisHit selection)
   {
     canvas.Save();
     canvas.ClipRect(rect);
@@ -241,13 +250,93 @@ internal sealed class GraphVisRenderer : IDisposable
       canvas.Translate(rect.Left + camera.Translation.X, rect.Top + camera.Translation.Y);
       canvas.Scale(camera.Zoom);
 
+      int selectedNode = selection.Kind == EnGraphVisHitKind.Node && selection.Index < _nodes.Length ? selection.Index : -1;
+      int selectedEdge = selection.Kind == EnGraphVisHitKind.Edge && selection.Index < _edges.Length ? selection.Index : -1;
+      IReadOnlySet<string>? highlightedMarkers = selectedEdge >= 0 ? _edges[selectedEdge].HighlightMarkerIds : null;
+
+      if (selectedEdge >= 0) DrawEdgeGlow(canvas, _edges[selectedEdge], positions);
       foreach (PreparedEdge edge in _edges) DrawEdge(canvas, edge, positions);
       for (int i = 0; i < _nodes.Length; i++) DrawNode(canvas, _nodes[i], positions[i]);
-      for (int i = 0; i < _nodes.Length; i++) DrawMarkers(canvas, _nodes[i], positions[i]);
-      foreach (PreparedEdge edge in _edges) DrawEdgeLabel(canvas, edge, positions);
+      if (selectedNode >= 0) DrawSelectionRing(canvas, _nodes[selectedNode], positions[selectedNode]);
+      for (int i = 0; i < _nodes.Length; i++) DrawMarkers(canvas, _nodes[i], positions[i], highlightedMarkers);
+      for (int i = 0; i < _edges.Length; i++) DrawEdgeLabel(canvas, _edges[i], positions, i == selectedEdge);
     }
 
     canvas.Restore();
+  }
+
+  /// <summary>
+  /// Draws the highlight glow behind a selected edge: a wider line in the highlight color along
+  /// the whole edge, arrowheads included.
+  /// </summary>
+  /// <param name="canvas">Canvas, in world units.</param>
+  /// <param name="edge">Selected edge.</param>
+  /// <param name="positions">Node centers.</param>
+  private void DrawEdgeGlow(SKCanvas canvas, PreparedEdge edge, IReadOnlyList<Vector2> positions)
+  {
+    if (CurveOf(edge, positions) is not { } curve) return; // a straight edge is a curve with bend 0
+
+    using var builder = new SKPathBuilder();
+    builder.MoveTo(curve.Start.X, curve.Start.Y);
+    builder.QuadTo(curve.Control.X, curve.Control.Y, curve.End.X, curve.End.Y);
+    using SKPath path = builder.Detach();
+
+    _stroke.Color = EditorTheme.ToSkColor(_style.HighlightColor);
+    _stroke.StrokeWidth = _style.EdgeWidth + 2f * _style.EdgeHighlightSpread;
+    _stroke.StrokeCap = SKStrokeCap.Round;
+    _stroke.StrokeJoin = SKStrokeJoin.Round;
+    canvas.DrawPath(path, _stroke);
+
+    // Arrowheads get the same rim: outlined with twice the spread, the fill drawn later covers the inner half.
+    _stroke.StrokeWidth = 2f * _style.EdgeHighlightSpread;
+    if (edge.ArrowAtFrom) StrokeArrowHead(canvas, curve.Start, curve.Start + curve.StartTangent);
+    if (edge.ArrowAtTo) StrokeArrowHead(canvas, curve.End, curve.End - curve.EndTangent);
+
+    _stroke.StrokeCap = SKStrokeCap.Butt;
+    _stroke.StrokeJoin = SKStrokeJoin.Miter;
+  }
+
+  /// <summary>
+  /// Outlines an arrowhead with the current stroke paint.
+  /// </summary>
+  /// <param name="canvas">Canvas, in world units.</param>
+  /// <param name="tip">Arrow tip.</param>
+  /// <param name="from">Point the arrow comes from.</param>
+  private void StrokeArrowHead(SKCanvas canvas, Vector2 tip, Vector2 from)
+  {
+    if (ArrowHeadPath(tip, from) is not { } path) return;
+    using (path) canvas.DrawPath(path, _stroke);
+  }
+
+  /// <summary>
+  /// Builds the triangle of an arrowhead.
+  /// </summary>
+  /// <param name="tip">Arrow tip.</param>
+  /// <param name="from">Point the arrow comes from.</param>
+  /// <returns>Closed path (dispose it), or null when the direction is undefined.</returns>
+  private SKPath? ArrowHeadPath(Vector2 tip, Vector2 from)
+  {
+    if (GraphVisGeometry.ArrowHead(tip, from, _style.ArrowLength, _style.ArrowHalfWidth) is not { } arrow) return null;
+
+    using var builder = new SKPathBuilder();
+    builder.MoveTo(arrow.Tip.X, arrow.Tip.Y);
+    builder.LineTo(arrow.BaseLeft.X, arrow.BaseLeft.Y);
+    builder.LineTo(arrow.BaseRight.X, arrow.BaseRight.Y);
+    builder.Close();
+    return builder.Detach();
+  }
+
+  /// <summary>
+  /// Draws the highlight ring around a selected node.
+  /// </summary>
+  /// <param name="canvas">Canvas, in world units.</param>
+  /// <param name="node">Selected node.</param>
+  /// <param name="center">Node center.</param>
+  private void DrawSelectionRing(SKCanvas canvas, PreparedNode node, Vector2 center)
+  {
+    _stroke.Color = EditorTheme.ToSkColor(_style.HighlightColor);
+    _stroke.StrokeWidth = _style.SelectionRingWidth;
+    canvas.DrawCircle(center.X, center.Y, node.Radius + _style.SelectionRingGap + _style.SelectionRingWidth / 2f, _stroke);
   }
 
   /// <summary>
@@ -351,15 +440,8 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="from">Point the arrow comes from.</param>
   private void DrawArrowHead(SKCanvas canvas, Vector2 tip, Vector2 from)
   {
-    if (GraphVisGeometry.ArrowHead(tip, from, _style.ArrowLength, _style.ArrowHalfWidth) is not { } arrow) return;
-
-    using var builder = new SKPathBuilder();
-    builder.MoveTo(arrow.Tip.X, arrow.Tip.Y);
-    builder.LineTo(arrow.BaseLeft.X, arrow.BaseLeft.Y);
-    builder.LineTo(arrow.BaseRight.X, arrow.BaseRight.Y);
-    builder.Close();
-    using SKPath path = builder.Detach();
-    canvas.DrawPath(path, _fill);
+    if (ArrowHeadPath(tip, from) is not { } path) return;
+    using (path) canvas.DrawPath(path, _fill);
   }
 
   /// <summary>
@@ -368,7 +450,8 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="canvas">Canvas, in world units.</param>
   /// <param name="edge">Edge.</param>
   /// <param name="positions">Node centers.</param>
-  private void DrawEdgeLabel(SKCanvas canvas, PreparedEdge edge, IReadOnlyList<Vector2> positions)
+  /// <param name="isSelected">Whether the edge is selected (the plate gets a highlighted rim).</param>
+  private void DrawEdgeLabel(SKCanvas canvas, PreparedEdge edge, IReadOnlyList<Vector2> positions, bool isSelected)
   {
     if (edge.Label == null) return;
 
@@ -380,8 +463,8 @@ internal sealed class GraphVisRenderer : IDisposable
 
     _fill.Color = EditorTheme.ToSkColor(_style.EdgeLabelPlateColor);
     canvas.DrawCircle(middle.X, middle.Y, plateRadius, _fill);
-    _stroke.Color = edge.Color;
-    _stroke.StrokeWidth = 1f;
+    _stroke.Color = isSelected ? EditorTheme.ToSkColor(_style.HighlightColor) : edge.Color;
+    _stroke.StrokeWidth = isSelected ? _style.SelectionRingWidth : 1f;
     canvas.DrawCircle(middle.X, middle.Y, plateRadius, _stroke);
 
     _fill.Color = EditorTheme.ToSkColor(_style.EdgeLabelTextColor);
@@ -414,17 +497,48 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="canvas">Canvas, in world units.</param>
   /// <param name="node">Node.</param>
   /// <param name="center">Node center.</param>
-  private void DrawMarkers(SKCanvas canvas, PreparedNode node, Vector2 center)
+  /// <param name="highlightedMarkers">Identifiers of highlighted markers (of the selected edge), or null.</param>
+  /// <remarks>
+  /// A highlighted dot (also a collapsed dot standing for any highlighted marker) sits on a plate
+  /// in the highlight color covering the dot and its label, drawn in the bright-node marker color.
+  /// </remarks>
+  private void DrawMarkers(SKCanvas canvas, PreparedNode node, Vector2 center, IReadOnlySet<string>? highlightedMarkers)
   {
-    if (node.Dots.Length == 0) return;
+    // Plates first, so a plate never covers a neighbouring marker.
+    float padding = _style.MarkerHighlightPadding;
+    _fill.Color = EditorTheme.ToSkColor(_style.HighlightColor);
+    foreach (PreparedDot dot in node.Dots)
+    {
+      if (!IsHighlighted(dot, highlightedMarkers)) continue;
 
-    _fill.Color = node.MarkerColor;
+      Vector2 position = center + dot.Offset;
+      float halfWidth = Math.Max(dot.LabelWidth / 2f, _style.MarkerRadius) + padding;
+      var plate = new SKRect(
+        position.X - halfWidth,
+        position.Y - _style.MarkerLabelRise - _markerFont.Metrics.CapHeight - padding,
+        position.X + halfWidth,
+        position.Y + _style.MarkerRadius + padding);
+      canvas.DrawRoundRect(plate, padding * 2f, padding * 2f, _fill);
+    }
+
     foreach (PreparedDot dot in node.Dots)
     {
       Vector2 position = center + dot.Offset;
+      _fill.Color = IsHighlighted(dot, highlightedMarkers) ? EditorTheme.ToSkColor(_style.MarkerColor) : node.MarkerColor;
       canvas.DrawCircle(position.X, position.Y, _style.MarkerRadius, _fill);
       canvas.DrawText(dot.Label, position.X, position.Y - _style.MarkerLabelRise, SKTextAlign.Center, _markerFont, _fill);
     }
+  }
+
+  /// <summary>
+  /// Tells whether a marker dot stands for any highlighted marker.
+  /// </summary>
+  /// <param name="dot">Marker dot.</param>
+  /// <param name="highlightedMarkers">Identifiers of highlighted markers, or null.</param>
+  /// <returns>True if the dot is highlighted.</returns>
+  private static bool IsHighlighted(PreparedDot dot, IReadOnlySet<string>? highlightedMarkers)
+  {
+    return highlightedMarkers is { Count: > 0 } && dot.MarkerIds.Any(highlightedMarkers.Contains);
   }
 
   /// <summary>

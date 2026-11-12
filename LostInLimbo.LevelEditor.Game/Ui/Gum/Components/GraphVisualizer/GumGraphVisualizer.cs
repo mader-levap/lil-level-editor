@@ -25,11 +25,23 @@ public sealed class GumGraphVisualizer
   /// <summary>Width of the data panel, in pixels.</summary>
   private const float DataPanelWidth = 260f;
 
-  /// <summary>Text shown in the data panel while nothing is selected.</summary>
-  private const string NothingSelectedText = "Nothing selected";
+  /// <summary>Data panel title while a node is selected.</summary>
+  private const string NodeTitle = "Node";
+
+  /// <summary>Data panel title while an edge is selected.</summary>
+  private const string EdgeTitle = "Edge";
 
   /// <summary>Drawing area.</summary>
   private readonly GumGraphViewport _viewport;
+
+  /// <summary>Data column showing the selection's properties.</summary>
+  private readonly GumGraphDataPanel _dataPanel = new();
+
+  /// <summary>Graph shown; null when there is none.</summary>
+  private GraphVisData? _data;
+
+  /// <summary>Selection the data panel currently shows.</summary>
+  private GraphVisHit _shownSelection = GraphVisHit.None;
 
   /// <summary>
   /// Creates the visualizer. Call <see cref="Build"/> to create its visuals.
@@ -67,8 +79,8 @@ public sealed class GumGraphVisualizer
     viewport.HeightUnits = DimensionUnitType.RelativeToParent;
     root.AddChild(viewport);
 
-    // Data panel: fixed-width column on the right. Placeholder until selection exists.
-    var dataPanel = new ContainerRuntime();
+    // Data panel: fixed-width column on the right.
+    ContainerRuntime dataPanel = _dataPanel.Build();
     dataPanel.Anchor(Anchor.TopRight);
     dataPanel.X = -Padding;
     dataPanel.Y = Padding;
@@ -76,9 +88,6 @@ public sealed class GumGraphVisualizer
     dataPanel.WidthUnits = DimensionUnitType.Absolute;
     dataPanel.Height = -2 * Padding;
     dataPanel.HeightUnits = DimensionUnitType.RelativeToParent;
-    Label nothingSelected = GumUiFactory.CreateLabel(NothingSelectedText, EditorTheme.Palette.TextMuted);
-    nothingSelected.Anchor(Anchor.Top);
-    dataPanel.AddChild(nothingSelected);
     root.AddChild(dataPanel);
 
     Root = root;
@@ -86,20 +95,53 @@ public sealed class GumGraphVisualizer
   }
 
   /// <summary>
-  /// Shows a graph.
+  /// Shows a graph. Clears the selection.
   /// </summary>
   /// <param name="data">Graph to show; null or an empty graph shows "No graph data available".</param>
   public void SetGraph(GraphVisData? data)
   {
+    _data = data is { IsEmpty: false } ? data : null;
     _viewport.SetGraph(data);
+    _shownSelection = GraphVisHit.None;
+    _dataPanel.Clear();
   }
 
   /// <summary>
-  /// Advances the node physics and applies navigation input. Call every frame while the visualizer is visible.
+  /// Advances the node physics, applies navigation and selection input and keeps the data panel
+  /// in step with the selection. Call every frame while the visualizer is visible.
   /// </summary>
   /// <param name="deltaSeconds">Elapsed time since the last frame, in seconds.</param>
   public void Update(float deltaSeconds)
   {
     _viewport.Update(deltaSeconds);
+
+    GraphVisHit selection = _viewport.Selection;
+    if (selection == _shownSelection) return;
+    _shownSelection = selection;
+    ShowSelection(selection);
+  }
+
+  /// <summary>
+  /// Fills the data panel with the properties of the selected node or edge.
+  /// </summary>
+  /// <param name="selection">Selection.</param>
+  private void ShowSelection(GraphVisHit selection)
+  {
+    switch (selection.Kind)
+    {
+      case EnGraphVisHitKind.Node when _data != null && selection.Index < _data.Nodes.Count:
+        GraphVisNode node = _data.Nodes[selection.Index];
+        _dataPanel.Show(NodeTitle, node.Properties, node.IndentedPropertyKeys);
+        break;
+
+      case EnGraphVisHitKind.Edge when _data != null && selection.Index < _data.Edges.Count:
+        GraphVisEdge edge = _data.Edges[selection.Index];
+        _dataPanel.Show(EdgeTitle, edge.Properties, edge.IndentedPropertyKeys);
+        break;
+
+      default:
+        _dataPanel.Clear();
+        break;
+    }
   }
 }

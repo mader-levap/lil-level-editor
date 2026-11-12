@@ -94,10 +94,14 @@ public static class LevelGraphVisAdapter
       ["POIs"] = node.Pois.Count.ToString(CultureInfo.InvariantCulture),
     };
 
+    // The single POIs are shown indented under their count.
+    var indentedKeys = new HashSet<string>();
     for (int i = 0; i < node.Pois.Count; i++)
     {
       LilPoi poi = node.Pois[i];
-      properties[$"POI {i + 1}"] = string.IsNullOrWhiteSpace(poi.Name) ? poi.Type.ToString() : $"{poi.Name} ({poi.Type})";
+      string key = $"POI {i + 1}";
+      properties[key] = string.IsNullOrWhiteSpace(poi.Name) ? poi.Type.ToString() : $"{poi.Name} ({poi.Type})";
+      indentedKeys.Add(key);
     }
 
     properties["Open reach from"] = Join(node.OpenReach.Select(start => PoiText(start, poiTexts)));
@@ -114,6 +118,7 @@ public static class LevelGraphVisAdapter
       IsDashed = node.Secret,
       Markers = node.Pois.Select(poi => new GraphVisMarker(Id(poi.Id), PoiLabel(poi))).ToArray(),
       Properties = properties,
+      IndentedPropertyKeys = indentedKeys,
     };
   }
 
@@ -159,10 +164,14 @@ public static class LevelGraphVisAdapter
       ["Conditions"] = edge.Conditions.Count.ToString(CultureInfo.InvariantCulture),
     };
 
+    // The single conditions are shown indented under their count.
+    var indentedKeys = new HashSet<string>();
     for (int i = 0; i < edge.Conditions.Count; i++)
     {
       LilCondition condition = edge.Conditions[i];
-      properties[$"Condition {i + 1}"] = $"{condition.Type}: {PoiText(condition.RequiresPoi, poiTexts)}";
+      string key = $"Condition {i + 1}";
+      properties[key] = $"{condition.Type}: {PoiText(condition.RequiresPoi, poiTexts)}";
+      indentedKeys.Add(key);
     }
 
     return new GraphVisEdge
@@ -178,6 +187,7 @@ public static class LevelGraphVisAdapter
       Label = edge.Conditions.Count == 0 ? null : edge.Conditions.Count.ToString(CultureInfo.InvariantCulture),
       HighlightMarkerIds = edge.Conditions.Select(condition => Id(condition.RequiresPoi)).Distinct().ToArray(),
       Properties = properties,
+      IndentedPropertyKeys = indentedKeys,
     };
   }
 

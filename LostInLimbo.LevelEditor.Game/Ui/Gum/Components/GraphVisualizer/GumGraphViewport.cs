@@ -23,7 +23,9 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 /// <para>Part of <see cref="GumGraphVisualizer"/>. The graph is redrawn every frame by Gum through
 /// the canvas element; this class keeps what to draw (graph, node positions) and feeds input to
 /// <see cref="GraphVisInteraction"/>, which owns the camera.</para>
-/// <para>Navigation: left-drag pans, the wheel zooms about the pointer, WASD pans while the
+/// <para>Selection: a click selects a node or edge (empty space clears it); dragging a node moves
+/// it while its neighbours make room.</para>
+/// <para>Navigation: left-drag on empty space or an edge pans, the wheel zooms about the pointer, WASD pans while the
 /// pointer is over the canvas (the canvas claims the keyboard meanwhile, so the 3D camera stays
 /// still; see <see cref="IClaimsKeyboardWhileHovered"/>). Scroll bars lie over the canvas edges
 /// and appear only on axes where the graph is larger than the viewport.</para>
@@ -34,10 +36,7 @@ public sealed class GumGraphViewport
   public const string NoGraphText = "No graph data available";
 
   /// <summary>Scroll bar thickness, in pixels.</summary>
-  private const float ScrollBarThickness = 15f;
-
-  /// <summary>Name of the element holding track and thumb in Gum's default scroll bar visual.</summary>
-  private const string ScrollBarTrackContainerName = "ThumbContainer";
+  private const float ScrollBarThickness = GumScrollBarSizing.DefaultThickness;
 
   /// <summary>Smallest scroll bar change that is written back to a bar, in pixels (avoids needless Gum layout passes).</summary>
   private const float ScrollBarEpsilon = 0.01f;
@@ -163,42 +162,12 @@ public sealed class GumGraphViewport
     scrollBar.Height = horizontal ? ScrollBarThickness : -ScrollBarThickness;
     scrollBar.HeightUnits = horizontal ? DimensionUnitType.Absolute : DimensionUnitType.RelativeToParent;
 
-    MakeArrowButtonsSquare(scrollBar, horizontal);
+    GumScrollBarSizing.ApplyThickness(scrollBar, ScrollBarThickness);
 
     // ValueChanged, not ValueChangedByUi: the latter is raised for thumb drags only, while arrow
     // and track clicks raise just ValueChanged. Values written by SyncScrollBars are ignored there.
     scrollBar.ValueChanged += (_, _) => OnScrollBarMoved(axis, scrollBar);
     return scrollBar;
-  }
-
-  /// <summary>
-  /// Sizes the arrow buttons as squares with the bar's thickness as their side, and the track
-  /// between them to fill the rest.
-  /// </summary>
-  /// <param name="scrollBar">Scroll bar (orientation already set).</param>
-  /// <param name="horizontal">Whether the bar is horizontal.</param>
-  /// <remarks>
-  /// Gum's default scroll bar visual makes each button a fixed 24 px long along the bar and the
-  /// track container (<c>ThumbContainer</c>) 48 px shorter than the bar. Across the bar, its
-  /// horizontal layout also keeps the buttons 24 px tall, so they stuck out of a thinner bar.
-  /// </remarks>
-  private static void MakeArrowButtonsSquare(ScrollBar scrollBar, bool horizontal)
-  {
-    foreach (Button? button in new[] { scrollBar.UpButton, scrollBar.DownButton })
-    {
-      if (button == null) continue;
-      GraphicalUiElement visual = button.Visual;
-      visual.Width = horizontal ? ScrollBarThickness : 0;
-      visual.WidthUnits = horizontal ? DimensionUnitType.Absolute : DimensionUnitType.RelativeToParent;
-      visual.Height = horizontal ? 0 : ScrollBarThickness;
-      visual.HeightUnits = horizontal ? DimensionUnitType.RelativeToParent : DimensionUnitType.Absolute;
-    }
-
-    if (scrollBar.Visual.GetGraphicalUiElementByName(ScrollBarTrackContainerName) is { } trackContainer)
-    {
-      if (horizontal) trackContainer.Width = -2 * ScrollBarThickness;
-      else trackContainer.Height = -2 * ScrollBarThickness;
-    }
   }
 
   /// <summary>
@@ -250,23 +219,26 @@ public sealed class GumGraphViewport
     if (data == null || !hasGraph)
     {
       _simulation = null;
+      _interaction.SetGraph(null, [], []);
       return;
     }
 
     _renderer.SetGraph(data);
 
     // Edges as node index pairs, which is what layout and physics work with.
-    var indexById = new Dictionary<string, int>(data.Nodes.Count);
-    for (int i = 0; i < data.Nodes.Count; i++) indexById[data.Nodes[i].Id] = i;
-    (int From, int To)[] edges = data.Edges.Select(edge => (indexById[edge.FromId], indexById[edge.ToId])).ToArray();
+    (int From, int To)[] edges = _renderer.EdgeShapes.Select(shape => (shape.From, shape.To)).ToArray();
 
     // Starting layout, then let the physics settle before the graph is first shown, so the
     // view is fitted to the final arrangement and nothing jumps on screen.
     Vector2[] positions = GraphVisLayout.Place(_renderer.Radii, edges, _style.NodeGap * _style.LinkIdealGapFactor);
     _simulation = new GraphVisSimulation(positions, _renderer.Radii, edges, _style);
     _simulation.Settle(_style.SimulationSettleSteps);
+    _interaction.SetGraph(_simulation, _renderer.Radii, _renderer.EdgeShapes);
     _fittedSize = null; // new graph: fit it on the next update
   }
+
+  /// <summary>Selected node or edge (indices into the graph last passed to <see cref="SetGraph"/>), or <see cref="GraphVisHit.None"/>.</summary>
+  public GraphVisHit Selection => _interaction.Selection;
 
   /// <summary>
   /// Advances the physics and applies navigation input. Call every frame while the visualizer is
@@ -431,7 +403,7 @@ public sealed class GumGraphViewport
   private void Render(SKRect rect, SKCanvas canvas)
   {
     if (_renderer == null || _simulation == null || _fittedSize == null) return; // nothing fitted to draw yet
-    _renderer.Draw(canvas, rect, _interaction.Camera, _simulation.Positions);
+    _renderer.Draw(canvas, rect, _interaction.Camera, _simulation.Positions, _interaction.Selection);
   }
 }
 

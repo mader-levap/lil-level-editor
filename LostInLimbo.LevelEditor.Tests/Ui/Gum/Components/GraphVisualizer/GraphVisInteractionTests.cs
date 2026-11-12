@@ -258,4 +258,172 @@ public sealed class GraphVisInteractionTests
     interaction.Update(Idle(new Vector2(300, 100)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
     Assert.Equal(camera, interaction.Camera);
   }
+
+  #region Selection and dragging
+
+  /// <summary>Node radius of <see cref="CreateWithGraph"/>.</summary>
+  private const float NodeRadius = 20f;
+
+  /// <summary>
+  /// Creates an interaction over two radius-20 nodes at world (0,0) and (400,0) joined by a
+  /// straight edge, with the camera at zoom 1 and world origin at viewport (100,100). So node 0 is
+  /// at screen (100,100), node 1 at (500,100) and the edge's middle at (300,100).
+  /// </summary>
+  /// <param name="simulation">The simulation holding the node positions.</param>
+  /// <returns>Interaction.</returns>
+  private static GraphVisInteraction CreateWithGraph(out GraphVisSimulation simulation)
+  {
+    float[] radii = [NodeRadius, NodeRadius];
+    simulation = new GraphVisSimulation([new Vector2(0, 0), new Vector2(400, 0)], radii, [(0, 1)], Style);
+    var interaction = new GraphVisInteraction(Style);
+    interaction.SetGraph(simulation, radii, [new GraphVisEdgeShape(0, 1, 0f)]);
+    interaction.Reset(new GraphVisCamera(1f, new Vector2(100, 100)));
+    return interaction;
+  }
+
+  /// <summary>
+  /// Clicks (press and release without moving) at a point.
+  /// </summary>
+  /// <param name="interaction">Interaction.</param>
+  /// <param name="pointer">Click position.</param>
+  private static void Click(GraphVisInteraction interaction, Vector2 pointer)
+  {
+    interaction.Update(Idle(pointer) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    interaction.Update(Idle(pointer), LargeGraph, Viewport);
+  }
+
+  /// <summary>
+  /// Verifies a click selects a node or an edge, and a click on empty space clears the selection.
+  /// </summary>
+  [Fact]
+  public void Update_Click_SelectsNodeEdgeOrNothing()
+  {
+    // Arrange: Two nodes and an edge.
+    GraphVisInteraction interaction = CreateWithGraph(out _);
+
+    // Act + Assert: Node 1, then the edge, then empty space.
+    Click(interaction, new Vector2(505, 95));
+    Assert.Equal(GraphVisHit.ForNode(1), interaction.Selection);
+    Click(interaction, new Vector2(300, 103));
+    Assert.Equal(GraphVisHit.ForEdge(0), interaction.Selection);
+    Click(interaction, new Vector2(300, 300));
+    Assert.Equal(GraphVisHit.None, interaction.Selection);
+  }
+
+  /// <summary>
+  /// Verifies the edge tolerance is in screen pixels: a point a few pixels beside the line hits
+  /// at zoom 1 and also when zoomed out, though that is far more world units away.
+  /// </summary>
+  [Fact]
+  public void HitAt_EdgeTolerance_ScalesWithZoom()
+  {
+    // Arrange: Zoom 1; the screen point a pixel less than the tolerance below the edge's middle.
+    GraphVisInteraction interaction = CreateWithGraph(out _);
+    float offset = Style.EdgeHitTolerance - 1f;
+    GraphVisHit atZoomOne = interaction.HitAt(new Vector2(300, 100 + offset));
+
+    // Act: Zoom out to 0.25 and look the same few pixels below the edge's (moved) middle.
+    interaction.Reset(new GraphVisCamera(0.25f, new Vector2(100, 100)));
+    GraphVisHit zoomedOut = interaction.HitAt(new Vector2(150, 100 + offset));
+
+    // Assert: Both hit the edge, and something twice as far away does not.
+    Assert.Equal(GraphVisHit.ForEdge(0), atZoomOne);
+    Assert.Equal(GraphVisHit.ForEdge(0), zoomedOut);
+    Assert.Equal(GraphVisHit.None, interaction.HitAt(new Vector2(150, 100 + 2 * offset)));
+  }
+
+  /// <summary>
+  /// Verifies a press that moves less than the drag threshold is still a click: no pan, selection made.
+  /// </summary>
+  [Fact]
+  public void Update_SmallMoveBelowThreshold_IsClick()
+  {
+    // Arrange: Two nodes.
+    GraphVisInteraction interaction = CreateWithGraph(out _);
+    GraphVisCamera before = interaction.Camera;
+    var press = new Vector2(500, 100);
+
+    // Act: Press on node 1, wiggle by less than the threshold, release.
+    interaction.Update(Idle(press) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    interaction.Update(Idle(press + new Vector2(Style.DragThreshold / 2f, 0)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    interaction.Update(Idle(press), LargeGraph, Viewport);
+
+    // Assert: Node selected, view unchanged.
+    Assert.Equal(GraphVisHit.ForNode(1), interaction.Selection);
+    Assert.Equal(before, interaction.Camera);
+  }
+
+  /// <summary>
+  /// Verifies dragging a node selects and pins it, moves it with the pointer (keeping the grab
+  /// point), leaves the view alone, and releases the pin on release.
+  /// </summary>
+  [Fact]
+  public void Update_DragNode_MovesPinnedNodeWithPointer()
+  {
+    // Arrange: Two nodes; grab node 1 off-center.
+    GraphVisInteraction interaction = CreateWithGraph(out GraphVisSimulation simulation);
+    GraphVisCamera before = interaction.Camera;
+    var press = new Vector2(505, 100);
+
+    // Act: Press on node 1 and move 50 down.
+    interaction.Update(Idle(press) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    interaction.Update(Idle(press + new Vector2(0, 50)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    int? dragged = interaction.DraggedNode;
+    int? pinned = simulation.PinnedNode;
+    Vector2 moved = simulation.Positions[1];
+    interaction.Update(Idle(press + new Vector2(0, 50)), LargeGraph, Viewport);
+
+    // Assert: Node 1 dragged, pinned and selected; it moved by the pointer movement; view still.
+    Assert.Equal(1, dragged);
+    Assert.Equal(1, pinned);
+    AssertClose(new Vector2(400, 50), moved);
+    Assert.Equal(GraphVisHit.ForNode(1), interaction.Selection);
+    Assert.Equal(before, interaction.Camera);
+
+    // Assert: Release ends the drag and frees the node.
+    Assert.Null(interaction.DraggedNode);
+    Assert.Null(simulation.PinnedNode);
+  }
+
+  /// <summary>
+  /// Verifies dragging from an edge pans the view and keeps the selection.
+  /// </summary>
+  [Fact]
+  public void Update_DragFromEdge_PansAndKeepsSelection()
+  {
+    // Arrange: Node 0 selected.
+    GraphVisInteraction interaction = CreateWithGraph(out _);
+    Click(interaction, new Vector2(100, 100));
+    Vector2 start = interaction.Camera.Translation;
+
+    // Act: Drag from the edge's middle by (40, 0), release.
+    interaction.Update(Idle(new Vector2(300, 100)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    interaction.Update(Idle(new Vector2(340, 100)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    interaction.Update(Idle(new Vector2(340, 100)), LargeGraph, Viewport);
+
+    // Assert: Panned by the drag; node 0 still selected.
+    AssertClose(start + new Vector2(40, 0), interaction.Camera.Translation);
+    Assert.Equal(GraphVisHit.ForNode(0), interaction.Selection);
+  }
+
+  /// <summary>
+  /// Verifies a new graph clears the selection, while a view reset (resize) keeps it.
+  /// </summary>
+  [Fact]
+  public void SetGraph_ClearsSelection_ResetKeepsIt()
+  {
+    // Arrange: Node 0 selected.
+    GraphVisInteraction interaction = CreateWithGraph(out GraphVisSimulation simulation);
+    Click(interaction, new Vector2(100, 100));
+
+    // Act + Assert: Reset keeps it.
+    interaction.Reset(new GraphVisCamera(0.5f, Vector2.Zero));
+    Assert.Equal(GraphVisHit.ForNode(0), interaction.Selection);
+
+    // Act + Assert: A new graph clears it.
+    interaction.SetGraph(simulation, [NodeRadius, NodeRadius], []);
+    Assert.Equal(GraphVisHit.None, interaction.Selection);
+  }
+
+  #endregion
 }

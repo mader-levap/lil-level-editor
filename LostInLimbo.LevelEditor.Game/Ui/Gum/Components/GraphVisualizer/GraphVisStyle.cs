@@ -113,6 +113,28 @@ public sealed record GraphVisStyle
   /// <summary>Color of the selection highlight and of highlighted markers.</summary>
   public UiRgba HighlightColor { get; init; } = new(255, 200, 0);
 
+  /// <summary>Width of the ring drawn around a selected node.</summary>
+  public float SelectionRingWidth { get; init; } = 3f;
+
+  /// <summary>Free space between a selected node's circle and its selection ring.</summary>
+  public float SelectionRingGap { get; init; } = 2f;
+
+  /// <summary>How much wider than the edge line the glow behind a selected edge is, on each side.</summary>
+  public float EdgeHighlightSpread { get; init; } = 3f;
+
+  /// <summary>Free space between a highlighted marker's dot or label and the plate drawn behind it.</summary>
+  public float MarkerHighlightPadding { get; init; } = 2f;
+
+  #endregion
+
+  #region Selection and dragging
+
+  /// <summary>How far beside an edge's line a click still selects it, in screen pixels.</summary>
+  public float EdgeHitTolerance { get; init; } = 5f;
+
+  /// <summary>How far the pointer must move with the button held before a press becomes a drag, in screen pixels.</summary>
+  public float DragThreshold { get; init; } = 4f;
+
   #endregion
 
   #region View

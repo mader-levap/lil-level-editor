@@ -29,7 +29,18 @@ public readonly record struct GraphVisSegment(Vector2 Start, Vector2 End)
 public readonly record struct GraphVisCurve(Vector2 Start, Vector2 Control, Vector2 End)
 {
   /// <summary>Point halfway along the curve (parameter 0.5).</summary>
-  public Vector2 Middle => Start * 0.25f + Control * 0.5f + End * 0.25f;
+  public Vector2 Middle => PointAt(0.5f);
+
+  /// <summary>
+  /// Computes a point on the curve.
+  /// </summary>
+  /// <param name="t">Curve parameter: 0 at the start, 1 at the end.</param>
+  /// <returns>Point on the curve.</returns>
+  public Vector2 PointAt(float t)
+  {
+    float rest = 1f - t;
+    return Start * (rest * rest) + Control * (2f * rest * t) + End * (t * t);
+  }
 
   /// <summary>Unit direction in which the curve leaves the start.</summary>
   public Vector2 StartTangent => Direction(Control - Start);

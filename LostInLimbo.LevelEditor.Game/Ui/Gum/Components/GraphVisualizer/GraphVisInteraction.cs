@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Stride.Core.Mathematics;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
@@ -25,28 +26,73 @@ public readonly record struct GraphVisInputFrame(
   float DeltaSeconds);
 
 /// <summary>
-/// Turns per-frame input into view changes: drag to pan, wheel to zoom about the pointer, keys to
-/// pan, and scroll bar values. Owns the camera.
+/// Turns per-frame input into view changes and selection: click to select, drag a node to move
+/// it, drag empty space or an edge to pan, wheel to zoom about the pointer, keys to pan, and
+/// scroll bar values. Owns the camera and the selection.
 /// </summary>
 /// <remarks>
-/// A drag starts only when the button goes down over the viewport, and then continues while the
-/// button is held, even outside the viewport. Wheel and keys act only while the pointer is over
-/// the viewport. After every change the camera is clamped so the graph cannot be lost, and the
-/// user cannot zoom out further than the zoom that shows the whole graph.
+/// <para>A press over the viewport starts a gesture. Until the pointer has moved farther than
+/// <see cref="GraphVisStyle.DragThreshold"/> it is a click: releasing selects what was under the
+/// press (or clears the selection on empty space). Beyond the threshold it becomes a drag: a
+/// node pressed on is selected, pinned and follows the pointer (its neighbours react through the
+/// simulation); anything else pans the view. A drag continues while the button is held, even
+/// outside the viewport.</para>
+/// <para>Wheel and keys act only while the pointer is over the viewport. After every view change
+/// the camera is clamped so the graph cannot be lost, and the user cannot zoom out further than
+/// the zoom that shows the whole graph.</para>
 /// </remarks>
 public sealed class GraphVisInteraction
 {
+  /// <summary>
+  /// What the held primary button is doing.
+  /// </summary>
+  private enum EnGesture
+  {
+    /// <summary>Button not held, or pressed outside the viewport.</summary>
+    None,
+
+    /// <summary>Pressed over the viewport, not moved beyond the drag threshold yet (may still be a click).</summary>
+    Pending,
+
+    /// <summary>Dragging the view.</summary>
+    Panning,
+
+    /// <summary>Dragging a node.</summary>
+    DraggingNode,
+  }
+
   /// <summary>Limits and speeds.</summary>
   private readonly GraphVisStyle _style;
+
+  /// <summary>Node physics of the current graph; null when there is none (navigation still works).</summary>
+  private GraphVisSimulation? _simulation;
+
+  /// <summary>Node radii of the current graph.</summary>
+  private IReadOnlyList<float> _radii = [];
+
+  /// <summary>Edge shapes of the current graph.</summary>
+  private IReadOnlyList<GraphVisEdgeShape> _edges = [];
 
   /// <summary>Whether the primary button was held in the previous frame (to detect presses).</summary>
   private bool _wasPrimaryDown;
 
-  /// <summary>Pointer position in the previous frame of a drag.</summary>
+  /// <summary>Current gesture of the primary button.</summary>
+  private EnGesture _gesture;
+
+  /// <summary>Pointer position at the press that started the gesture.</summary>
+  private Vector2 _pressPointer;
+
+  /// <summary>Element under the pointer at the press.</summary>
+  private GraphVisHit _pressHit = GraphVisHit.None;
+
+  /// <summary>Pointer position in the previous frame of a pan.</summary>
   private Vector2 _lastPointer;
 
+  /// <summary>Offset from the pointer (in world units) to the center of the dragged node, so it does not jump.</summary>
+  private Vector2 _grabOffset;
+
   /// <summary>
-  /// Creates the interaction with the identity camera.
+  /// Creates the interaction with the identity camera and no graph.
   /// </summary>
   /// <param name="style">Limits and speeds.</param>
   /// <exception cref="ArgumentNullException"><paramref name="style"/> is null.</exception>
@@ -59,16 +105,45 @@ public sealed class GraphVisInteraction
   public GraphVisCamera Camera { get; private set; } = GraphVisCamera.Identity;
 
   /// <summary>Whether the view is being dragged.</summary>
-  public bool IsPanning { get; private set; }
+  public bool IsPanning => _gesture == EnGesture.Panning;
+
+  /// <summary>Index of the node being dragged, or null.</summary>
+  public int? DraggedNode => _gesture == EnGesture.DraggingNode ? _pressHit.Index : null;
+
+  /// <summary>Selected node or edge, or <see cref="GraphVisHit.None"/>.</summary>
+  public GraphVisHit Selection { get; private set; } = GraphVisHit.None;
 
   /// <summary>
-  /// Replaces the view (for example after fitting a new graph) and ends a drag in progress.
+  /// Sets the graph that clicks and drags act on. Clears the selection and ends a gesture in progress.
+  /// </summary>
+  /// <param name="simulation">Node physics (gives positions; dragged nodes are moved through it); null for no graph.</param>
+  /// <param name="radii">Node radii, in node order.</param>
+  /// <param name="edges">Edge shapes as drawn, in edge order.</param>
+  /// <exception cref="ArgumentNullException"><paramref name="radii"/> or <paramref name="edges"/> is null.</exception>
+  /// <exception cref="ArgumentException">The radii do not match the simulation's nodes.</exception>
+  public void SetGraph(GraphVisSimulation? simulation, IReadOnlyList<float> radii, IReadOnlyList<GraphVisEdgeShape> edges)
+  {
+    ArgumentNullException.ThrowIfNull(radii);
+    ArgumentNullException.ThrowIfNull(edges);
+    if (simulation != null && simulation.Positions.Count != radii.Count)
+      throw new ArgumentException("Every node needs a radius.", nameof(radii));
+
+    EndGesture();
+    _simulation = simulation;
+    _radii = simulation == null ? [] : radii;
+    _edges = simulation == null ? [] : edges;
+    Selection = GraphVisHit.None;
+  }
+
+  /// <summary>
+  /// Replaces the view (for example after fitting a new graph) and ends a gesture in progress.
+  /// The selection stays.
   /// </summary>
   /// <param name="camera">New view.</param>
   public void Reset(GraphVisCamera camera)
   {
     Camera = camera;
-    IsPanning = false;
+    EndGesture();
   }
 
   /// <summary>
@@ -80,26 +155,7 @@ public sealed class GraphVisInteraction
   /// <returns>True if the view changed.</returns>
   public bool Update(GraphVisInputFrame input, GraphVisBounds bounds, Vector2 viewportSize)
   {
-    GraphVisCamera camera = Camera;
-
-    // Drag: starts with a press over the viewport, follows the pointer while held.
-    bool pressed = input.IsPrimaryDown && !_wasPrimaryDown;
-    _wasPrimaryDown = input.IsPrimaryDown;
-    if (pressed && input.IsPointerOver)
-    {
-      IsPanning = true;
-      _lastPointer = input.Pointer;
-    }
-    else if (!input.IsPrimaryDown)
-    {
-      IsPanning = false;
-    }
-
-    if (IsPanning)
-    {
-      camera = camera.PanBy(input.Pointer - _lastPointer);
-      _lastPointer = input.Pointer;
-    }
+    GraphVisCamera camera = UpdateGesture(input, Camera);
 
     if (input.IsPointerOver)
     {
@@ -134,6 +190,94 @@ public sealed class GraphVisInteraction
   public void ScrollTo(EnGraphVisAxis axis, float value, GraphVisBounds bounds, Vector2 viewportSize)
   {
     Camera = Camera.ScrolledTo(axis, value, bounds, viewportSize, _style.ViewPadding);
+  }
+
+  /// <summary>
+  /// Finds the node or edge under a viewport point.
+  /// </summary>
+  /// <param name="pointer">Point relative to the viewport's top-left corner, in pixels.</param>
+  /// <returns>Element under the point, or <see cref="GraphVisHit.None"/>.</returns>
+  public GraphVisHit HitAt(Vector2 pointer)
+  {
+    if (_simulation == null) return GraphVisHit.None;
+
+    // The tolerance is in screen pixels beside the drawn line, so it stays the same on screen at any zoom.
+    float tolerance = _style.EdgeWidth / 2f + _style.EdgeHitTolerance / Camera.Zoom;
+    return GraphVisHitTest.Find(Camera.ScreenToWorld(pointer), _simulation.Positions, _radii, _edges, tolerance);
+  }
+
+  /// <summary>
+  /// Advances the primary-button gesture by one frame: click, node drag or pan.
+  /// </summary>
+  /// <param name="input">Input of this frame.</param>
+  /// <param name="camera">View so far this frame.</param>
+  /// <returns>View after panning.</returns>
+  private GraphVisCamera UpdateGesture(GraphVisInputFrame input, GraphVisCamera camera)
+  {
+    bool pressed = input.IsPrimaryDown && !_wasPrimaryDown;
+    _wasPrimaryDown = input.IsPrimaryDown;
+
+    if (!input.IsPrimaryDown)
+    {
+      // Released without moving far: a click selects what was under the press.
+      if (_gesture == EnGesture.Pending) Selection = _pressHit;
+      EndGesture();
+      return camera;
+    }
+
+    if (pressed && input.IsPointerOver)
+    {
+      _gesture = EnGesture.Pending;
+      _pressPointer = input.Pointer;
+      _pressHit = HitAt(input.Pointer);
+    }
+
+    if (_gesture == EnGesture.Pending && Vector2.Distance(input.Pointer, _pressPointer) > _style.DragThreshold)
+    {
+      if (_pressHit.Kind == EnGraphVisHitKind.Node && _simulation != null)
+      {
+        _gesture = EnGesture.DraggingNode;
+        Selection = _pressHit;
+        _simulation.PinnedNode = _pressHit.Index;
+        _grabOffset = _simulation.Positions[_pressHit.Index] - camera.ScreenToWorld(_pressPointer);
+      }
+      else
+      {
+        // Pan from the press point, so the movement below the threshold is not lost.
+        _gesture = EnGesture.Panning;
+        _lastPointer = _pressPointer;
+      }
+    }
+
+    switch (_gesture)
+    {
+      case EnGesture.Panning:
+        camera = camera.PanBy(input.Pointer - _lastPointer);
+        _lastPointer = input.Pointer;
+        break;
+
+      case EnGesture.DraggingNode when _simulation != null:
+        Vector2 target = camera.ScreenToWorld(input.Pointer) + _grabOffset;
+        if (target != _simulation.Positions[_pressHit.Index]) _simulation.MoveNode(_pressHit.Index, target);
+        break;
+    }
+
+    return camera;
+  }
+
+  /// <summary>
+  /// Ends the current gesture and releases a dragged node to the physics.
+  /// </summary>
+  private void EndGesture()
+  {
+    if (_gesture == EnGesture.DraggingNode && _simulation != null)
+    {
+      _simulation.PinnedNode = null;
+      _simulation.Wake();
+    }
+
+    _gesture = EnGesture.None;
+    _pressHit = GraphVisHit.None;
   }
 
   /// <summary>

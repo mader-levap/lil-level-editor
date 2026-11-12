@@ -8,10 +8,10 @@ section, the phase checklists and the logs at the end of every session so work c
 
 | Item | Value |
 |---|---|
-| Active phase | Phase 5 (awaiting verification) |
-| Last finished phase | Phase 4 |
+| Active phase | Phase 6 (awaiting verification) |
+| Last finished phase | Phase 5 |
 | Blockers | none |
-| Next action | User navigates a large graph (drag, wheel, WASD, scroll bars); then start Phase 6 |
+| Next action | User selects and drags nodes, selects relationships with conditions, checks the data panel; then Phase 7 |
 
 | Phase | Title | Status |
 |---|---|---|
@@ -20,8 +20,8 @@ section, the phase checklists and the logs at the end of every session so work c
 | 2 | Component shell and static rendering | done |
 | 3 | LevelGen adapter and overlay integration | done |
 | 4 | Layout (stress) and live physics | done |
-| 5 | Navigation | awaiting verification |
-| 6 | Selection, dragging and data panel | not started |
+| 5 | Navigation | done |
+| 6 | Selection, dragging and data panel | awaiting verification |
 | 7 | Polish and cleanup | not started |
 
 Statuses: `not started`, `in progress`, `awaiting verification`, `done`.
@@ -153,9 +153,12 @@ How level data maps onto it (done by the adapter, Phase 3):
   (`GraphVisStyle.MaxMarkersShown`) collapse into one dot labelled with the count. The dots are
   arranged in rows chosen to keep dots and labels inside the circle (`GraphVisGeometry.MarkerPositions`):
   every split into rows is scored by how far labels and dots stick out; fewer rows win ties.
-- Selection highlight for nodes and edges. With an edge selected, its `HighlightMarkerIds` dots
-  and labels are highlighted; if such a marker is hidden inside a collapsed dot, that dot is highlighted.
-- Draw order: edges, nodes, markers, texts, selection on top.
+- Selection highlight (`GraphVisStyle.HighlightColor`): a selected node gets a ring just outside
+  its circle; a selected edge gets a glow along its line and arrowheads and a highlighted rim on
+  its label plate. With an edge selected, its `HighlightMarkerIds` dots sit on a highlight plate
+  covering dot and label (drawn in the bright-node marker colour); a collapsed dot standing for any
+  such marker is highlighted the same way.
+- Draw order: edge glow, edges, nodes, node ring, markers (plates first), edge labels.
 
 ### Group colours
 
@@ -199,8 +202,13 @@ distance between any two nodes is made to match their distance through the graph
 - The interaction logic receives a plain per-frame record (pointer position in viewport pixels,
   button states, wheel delta, pan axis from keys, elapsed time) and is tested headlessly.
   `GumGraphViewport` fills that record from Gum/Stride.
-- Pan: left-drag on empty space, or WASD. Zoom: mouse wheel, about the cursor. Left-click selects
-  a node or edge; left-drag on a node moves it.
+- Pan: left-drag on empty space or on an edge, or WASD. Zoom: mouse wheel, about the cursor.
+  Left-click selects a node or edge (empty space clears the selection); left-drag on a node selects,
+  pins and moves it. A press becomes a drag once the pointer moved more than `DragThreshold`
+  (4 px); a pan then catches up from the press point.
+- Hit test (`GraphVisHitTest`): nodes first, topmost (highest index) wins; then the closest edge
+  within half the line width plus `EdgeHitTolerance` screen pixels, measured to the drawn curve
+  (sampled), so each arc of a parallel pair is picked on its own.
 - **WASD conflict with the camera:** the graph owns WASD while the pointer is over the viewport.
   The canvas element implements `IClaimsKeyboardWhileHovered`, which `GumFocus.IsKeyboardCaptured`
   (the `GameInput` capture predicate) checks, so the camera stops; the viewport reads raw keys as
@@ -311,14 +319,15 @@ alternatives the user chose stress layout for the start plus the live physics.
 
 ### Phase 6 – Selection, dragging and data panel
 
-- [ ] `GraphVisHitTest.cs` with tests (nodes win over edges; edge tolerance scales with zoom).
+- [x] `GraphVisHitTest.cs` with tests (nodes win over edges; edge tolerance scales with zoom).
       Edges between the same two nodes are arcs: measure the distance to the curve
       (`GraphVisGeometry.EdgeCurve`, sampled), not to the straight segment.
-- [ ] Selection and node dragging in `GraphVisInteraction` (click versus drag threshold; dragged
+- [x] Selection and node dragging in `GraphVisInteraction` (click versus drag threshold; dragged
       node pinned; neighbours react through the simulation) with tests.
-- [ ] Highlight rendering for node, edge, condition markers and collapsed-marker dot.
-- [ ] `GumGraphDataPanel.cs`: shows all `Properties` of the selection, scrollable, cleared on
+- [x] Highlight rendering for node, edge, condition markers and collapsed-marker dot.
+- [x] `GumGraphDataPanel.cs`: shows all `Properties` of the selection, scrollable, cleared on
       deselect or new data.
+- [x] Checked on screen with Medium seed `p8`: see Findings log.
 
 **Verify:** user selects and drags nodes, selects relationships with conditions, checks panel content.
 
@@ -381,6 +390,11 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | **Marker placement** (user request; Start room of Medium seed `p8` had its outer labels jutting out). All splits of a node's markers, in order, into consecutive rows are tried (3 markers: 3, 2+1, 1+2, 1+1+1); rows are spaced by label width and height so markers cannot overlap, the block is centred, and the split whose label rectangles and dots stick out least past the node's inner edge (radius minus outline) wins, fewer rows on ties. `MarkerDotDrop` replaced by `MarkerRowGap`. Computed once per `SetGraph`. |
 | 2026-11-12 | The view still re-fits when the viewport size changes (window resize), losing the user's pan and zoom; better resize behaviour stays in Phase 7. |
 | 2026-11-12 | The simulation sleeps at 0.05 units of movement per step (was 0.02): below that, movement is invisible but takes thousands of steps to die out. |
+| 2026-11-12 | **Selection.** `GraphVisInteraction` owns the selection (`GraphVisHit`: kind + index) next to the camera. A new graph clears it; a view reset (resize re-fit) keeps it. Dragging from an edge pans (only nodes are draggable) and keeps the selection; a node drag selects the node. The renderer exposes `EdgeShapes` (nodes + bend), which layout, physics and hit testing all use, so picking matches the drawing. |
+| 2026-11-12 | **Data panel.** `GumGraphDataPanel` shows a title ("Node", "Edge" or "Nothing selected") and the selection's `Properties` in their given order as key (muted) / value (wrapped) pairs in a Gum `ScrollViewer`, scrolled to the top for each selection. Its vertical scroll bar is 15 px like the graph's (user); the thickness and square-button code moved to `Ui/Gum/Common/GumScrollBarSizing` and is shared by both. Gum's scroll viewer narrows its content by the bar's actual width, so nothing else needed changing. `GumGraphVisualizer` keeps the shown data and refreshes the panel when the viewport's selection changes. |
+| 2026-11-12 | **Data panel rows** (user). Pairs whose key and value fit side by side share one row, in two aligned columns; the rest show the value below the key, wrapped. `GraphVisDataRows.Arrange` (tested) tries each key width as the key column width and keeps the one giving the most single-row pairs (narrower on ties), so one long key cannot push all values off their rows. Text is measured as Gum lays it out (label `AbsoluteWidth` at natural width). The row width always leaves room for the vertical scroll bar, so rows do not change when the bar appears. |
+| 2026-11-12 | Data panel keys and values use the normal font size minus 1 (user); the title keeps its size. |
+| 2026-11-12 | **Indented properties** (user). The model gained `IndentedPropertyKeys` on `GraphVisNode` and `GraphVisEdge` (additive, default empty; keys without a property are ignored), so the component stays generic. The adapter lists the `POI x` and `Condition x` keys there. The data panel indents those rows by 12 px; for the one-row decision the indent counts as part of the key's width, so the value column stays aligned. |
 
 ## Findings log
 
@@ -406,6 +420,7 @@ Filled during Phase 0 and later.
 | 2026-11-12 | **Horizontal scroll bar buttons** (user report). Gum's horizontal layout keeps the arrow buttons at a fixed 24 px height, so on a 20 px bar they stuck out 2 px above and below (the vertical bar's buttons fill its width). Fixed by giving both button visuals `Height = 0` relative to the parent; checked by pixel sampling. Later (user): buttons must be squares. Gum's default visual makes each button 24 px long along the bar and the track container (`ThumbContainer`) 48 px shorter than the bar; `MakeArrowButtonsSquare` sets the buttons to the bar thickness on both axes and the container to minus twice that. Checked by pixel runs: 15 × 15 buttons on both bars. |
 | 2026-11-12 | **Parallel passages in LevelGen.** `GraphBuilderLinear` adds an extra passage beside the skeleton one (`ExtraPassage`, at most one extra per pair) and `ProcRelSecrets` can give a secret two passages (`ChanceTwoPassages`). Headless count over 20 Medium/Hard seeds: 15 levels had node pairs with two edges, up to 33 pairs in one level. Before the fix they were drawn exactly on top of each other. Checked on screen with Medium seed `p8`: two arcs between Start and Exit rooms, each with its condition plate, arrows following the arcs. |
 | 2026-11-12 | **Navigation on screen.** Hard levels (113 nodes / 201 edges, 133 / 184): wheel zooms about the pointer and both bars appear; left-drag, WASD, thumb drag, arrow clicks and track clicks all move the view, and bars and camera stay in sync. While D was held over the graph the 3D scene did not move; W with the pointer outside the panel moved the camera as before. Synthetic input, read off screenshots. |
+| 2026-11-12 | **Selection on screen.** Medium seed `p8`: a click on the upper arc between Exit and Start rooms selected that passage alone (glow, label rim), highlighted the Solution marker it requires and filled the panel (wrapped ids, scroll bar for the rest). Dragging a dashed side room moved it, selected it (ring) and its neighbours made room; a click on empty space cleared selection and panel. Synthetic input, read off screenshots. No collapsed marker dot in that level, so that highlight was not seen on screen. |
 | 2026-11-12 | **Missing obstacles and solutions: generator side.** Checked headless on 36 runs (12 seeds each for Easy, Medium, Hard). The adapter loses nothing: markers always equal the POI count, edge labels the number of passages with conditions. In LevelGen 0.0.9 only `GraphBuilderLinear` creates solution POIs and conditions; `GraphBuilderSimple` ignores `CnfGraph.Complexity` (chosen at random for about half of the runs). Complexity is drawn from 0 up to `min(Size, Difficulty/2+1)` exclusive, so it is always 0 on Easy and sometimes 0 elsewhere. A level only has obstacles when the builder is Linear and complexity is above 0 (13 of the 24 Medium/Hard runs). |
 
 ## Session log
@@ -419,7 +434,8 @@ Filled during Phase 0 and later.
 | 2026-11-12 | 3 | `LevelGraphVisAdapter` with tests; overlay shows the real level graph; demo data removed. Checked on screen with Medium and Hard levels. Build green, 253 tests pass. | User check; Phase 4. |
 | 2026-11-12 | 4 | Layout alternatives researched; stress layout + physics implemented and wired. Checked on screen with Medium and Hard levels. Build green, 267 tests pass. | User check; Phase 5. |
 | 2026-11-12 | – | Missing obstacles/solutions investigated: generator side, adapter loses nothing (Findings log). | – |
-| 2026-11-12 | 5 | Interaction, scroll range math, keyboard claim, scroll bars and input wiring. Checked on screen with Hard levels. Build green, 288 tests pass. | User check; Phase 6. |
+| 2026-11-12 | 5 | Interaction, scroll range math, keyboard claim, scroll bars and input wiring. Checked on screen with Hard levels. Fixes after user review: scroll bar size and squares, corner filler, parallel arcs, marker rows. Build green, 309 tests pass. | Verified by user; Phase 6. |
+| 2026-11-12 | 6 | Hit test, selection and node dragging, highlights, data panel. Checked on screen with Medium `p8`. Build green, 324 tests pass. | User check; Phase 7. |
 
 ## Further research needed
 

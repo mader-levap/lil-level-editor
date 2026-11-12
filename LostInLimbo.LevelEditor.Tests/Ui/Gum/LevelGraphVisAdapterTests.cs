@@ -170,6 +170,7 @@ public sealed class LevelGraphVisAdapterTests
     Assert.Equal("2", nodes[0].Properties["POIs"]);
     Assert.Equal("Start", nodes[0].Properties["POI 1"]);
     Assert.Equal("Red Key (Solution)", nodes[0].Properties["POI 2"]);
+    Assert.Equal(["POI 1", "POI 2"], nodes[0].IndentedPropertyKeys.Order());
     Assert.Equal(LevelGraphVisAdapter.NoGroupText, nodes[0].Properties["Group"]);
     Assert.Equal(LevelGraphVisAdapter.NoneText, nodes[0].Properties["Open reach from"]);
 
@@ -279,6 +280,7 @@ public sealed class LevelGraphVisAdapterTests
     Assert.Equal("2", converted.Properties["Conditions"]);
     Assert.Equal("RequiresSolution: Red Key", converted.Properties["Condition 1"]);
     Assert.Equal("RequiresSolution: Blue Key", converted.Properties["Condition 2"]);
+    Assert.Equal(["Condition 1", "Condition 2"], converted.IndentedPropertyKeys.Order());
   }
 
   /// <summary>

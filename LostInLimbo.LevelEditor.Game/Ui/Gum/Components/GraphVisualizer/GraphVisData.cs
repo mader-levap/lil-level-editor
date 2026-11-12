@@ -40,6 +40,12 @@ public sealed record GraphVisNode
 
   /// <summary>Arbitrary key/value data shown in the data panel when the node is selected.</summary>
   public IReadOnlyDictionary<string, string> Properties { get; init; } = new Dictionary<string, string>();
+
+  /// <summary>
+  /// Keys of <see cref="Properties"/> shown indented in the data panel (for example the items of
+  /// a list whose count is the property before them). Keys that match no property are ignored.
+  /// </summary>
+  public IReadOnlySet<string> IndentedPropertyKeys { get; init; } = new HashSet<string>();
 }
 
 /// <summary>
@@ -79,6 +85,12 @@ public sealed record GraphVisEdge
 
   /// <summary>Arbitrary key/value data shown in the data panel when the edge is selected.</summary>
   public IReadOnlyDictionary<string, string> Properties { get; init; } = new Dictionary<string, string>();
+
+  /// <summary>
+  /// Keys of <see cref="Properties"/> shown indented in the data panel (for example the items of
+  /// a list whose count is the property before them). Keys that match no property are ignored.
+  /// </summary>
+  public IReadOnlySet<string> IndentedPropertyKeys { get; init; } = new HashSet<string>();
 }
 
 /// <summary>
