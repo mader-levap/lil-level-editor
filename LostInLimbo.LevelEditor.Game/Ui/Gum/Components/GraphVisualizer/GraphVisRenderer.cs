@@ -77,8 +77,10 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="IsDashed">Whether the line is dashed.</param>
   /// <param name="Label">Text over the line, or null.</param>
   /// <param name="LabelWidth">Measured width of <paramref name="Label"/>.</param>
+  /// <param name="Bend">How far the edge bulges from the straight line (0: straight); see <see cref="GraphVisGeometry.ParallelEdgeBends"/>.</param>
   private readonly record struct PreparedEdge(
-    int FromIndex, int ToIndex, SKColor Color, bool ArrowAtFrom, bool ArrowAtTo, bool IsDashed, string? Label, float LabelWidth);
+    int FromIndex, int ToIndex, SKColor Color, bool ArrowAtFrom, bool ArrowAtTo, bool IsDashed, string? Label, float LabelWidth,
+    float Bend);
 
   #endregion
 
@@ -163,20 +165,25 @@ internal sealed class GraphVisRenderer : IDisposable
         PrepareDots(node));
     }
 
+    // Several edges between the same two nodes are drawn as arcs side by side.
+    (int From, int To)[] indexPairs = data.Edges.Select(edge => (indexById[edge.FromId], indexById[edge.ToId])).ToArray();
+    float[] bends = GraphVisGeometry.ParallelEdgeBends(indexPairs, _style.ParallelEdgeSpacing);
+
     _edges = new PreparedEdge[data.Edges.Count];
     for (int i = 0; i < _edges.Length; i++)
     {
       GraphVisEdge edge = data.Edges[i];
       string? label = string.IsNullOrEmpty(edge.Label) ? null : edge.Label;
       _edges[i] = new PreparedEdge(
-        indexById[edge.FromId],
-        indexById[edge.ToId],
+        indexPairs[i].From,
+        indexPairs[i].To,
         EditorTheme.ToSkColor(edge.Color ?? _style.DefaultEdgeColor),
         edge.ArrowAtFrom,
         edge.ArrowAtTo,
         edge.IsDashed,
         label,
-        label == null ? 0 : _edgeLabelFont.MeasureText(label));
+        label == null ? 0 : _edgeLabelFont.MeasureText(label),
+        bends[i]);
     }
 
     Radii = _nodes.Select(node => node.Radius).ToArray();
@@ -230,7 +237,7 @@ internal sealed class GraphVisRenderer : IDisposable
   }
 
   /// <summary>
-  /// Computes the visible border-to-border part of an edge.
+  /// Computes the visible border-to-border part of a straight edge.
   /// </summary>
   /// <param name="edge">Edge.</param>
   /// <param name="positions">Node centers.</param>
@@ -243,20 +250,38 @@ internal sealed class GraphVisRenderer : IDisposable
   }
 
   /// <summary>
-  /// Draws the line and arrowheads of an edge.
+  /// Computes the visible border-to-border part of a curved edge (one of several between two nodes).
+  /// </summary>
+  /// <param name="edge">Edge.</param>
+  /// <param name="positions">Node centers.</param>
+  /// <returns>Curve, or null when the nodes touch or overlap.</returns>
+  private GraphVisCurve? CurveOf(PreparedEdge edge, IReadOnlyList<Vector2> positions)
+  {
+    return GraphVisGeometry.EdgeCurve(
+      positions[edge.FromIndex], _nodes[edge.FromIndex].Radius,
+      positions[edge.ToIndex], _nodes[edge.ToIndex].Radius,
+      edge.Bend);
+  }
+
+  /// <summary>
+  /// Draws the line and arrowheads of an edge: straight, or an arc when it bends.
   /// </summary>
   /// <param name="canvas">Canvas, in world units.</param>
   /// <param name="edge">Edge.</param>
   /// <param name="positions">Node centers.</param>
   private void DrawEdge(SKCanvas canvas, PreparedEdge edge, IReadOnlyList<Vector2> positions)
   {
+    if (edge.Bend != 0)
+    {
+      DrawCurvedEdge(canvas, edge, positions);
+      return;
+    }
+
     if (SegmentOf(edge, positions) is not { } segment) return;
 
     if (GraphVisGeometry.LineBetweenArrows(segment, edge.ArrowAtFrom, edge.ArrowAtTo, _style.ArrowLength) is { } line)
     {
-      _stroke.Color = edge.Color;
-      _stroke.StrokeWidth = _style.EdgeWidth;
-      _stroke.PathEffect = edge.IsDashed ? _dash : null;
+      SetEdgeStroke(edge);
       canvas.DrawLine(line.Start.X, line.Start.Y, line.End.X, line.End.Y, _stroke);
       _stroke.PathEffect = null;
     }
@@ -264,6 +289,44 @@ internal sealed class GraphVisRenderer : IDisposable
     _fill.Color = edge.Color;
     if (edge.ArrowAtFrom) DrawArrowHead(canvas, segment.Start, segment.End);
     if (edge.ArrowAtTo) DrawArrowHead(canvas, segment.End, segment.Start);
+  }
+
+  /// <summary>
+  /// Draws a curved edge with arrowheads following the curve's direction at its ends.
+  /// </summary>
+  /// <param name="canvas">Canvas, in world units.</param>
+  /// <param name="edge">Edge (with a non-zero bend).</param>
+  /// <param name="positions">Node centers.</param>
+  private void DrawCurvedEdge(SKCanvas canvas, PreparedEdge edge, IReadOnlyList<Vector2> positions)
+  {
+    if (CurveOf(edge, positions) is not { } curve) return;
+
+    if (GraphVisGeometry.CurveBetweenArrows(curve, edge.ArrowAtFrom, edge.ArrowAtTo, _style.ArrowLength) is { } line)
+    {
+      using var builder = new SKPathBuilder();
+      builder.MoveTo(line.Start.X, line.Start.Y);
+      builder.QuadTo(line.Control.X, line.Control.Y, line.End.X, line.End.Y);
+      using SKPath path = builder.Detach();
+
+      SetEdgeStroke(edge);
+      canvas.DrawPath(path, _stroke);
+      _stroke.PathEffect = null;
+    }
+
+    _fill.Color = edge.Color;
+    if (edge.ArrowAtFrom) DrawArrowHead(canvas, curve.Start, curve.Start + curve.StartTangent);
+    if (edge.ArrowAtTo) DrawArrowHead(canvas, curve.End, curve.End - curve.EndTangent);
+  }
+
+  /// <summary>
+  /// Sets up the stroke paint for an edge line. Reset <c>_stroke.PathEffect</c> afterwards.
+  /// </summary>
+  /// <param name="edge">Edge.</param>
+  private void SetEdgeStroke(PreparedEdge edge)
+  {
+    _stroke.Color = edge.Color;
+    _stroke.StrokeWidth = _style.EdgeWidth;
+    _stroke.PathEffect = edge.IsDashed ? _dash : null;
   }
 
   /// <summary>
@@ -294,9 +357,11 @@ internal sealed class GraphVisRenderer : IDisposable
   private void DrawEdgeLabel(SKCanvas canvas, PreparedEdge edge, IReadOnlyList<Vector2> positions)
   {
     if (edge.Label == null) return;
-    if (SegmentOf(edge, positions) is not { } segment) return;
 
-    Vector2 middle = segment.Middle;
+    // Halfway along the edge: on the arc for bent edges, so plates of parallel edges sit apart.
+    Vector2? labelPoint = edge.Bend != 0 ? CurveOf(edge, positions)?.Middle : SegmentOf(edge, positions)?.Middle;
+    if (labelPoint is not { } middle) return;
+
     float plateRadius = Math.Max(edge.LabelWidth, _style.EdgeLabelFontSize) / 2f + _style.EdgeLabelPlatePadding;
 
     _fill.Color = EditorTheme.ToSkColor(_style.EdgeLabelPlateColor);

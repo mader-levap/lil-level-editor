@@ -146,7 +146,9 @@ How level data maps onto it (done by the adapter, Phase 3):
 
 - Node: filled circle, thick outline in a darker shade of the fill; dashed outline when `IsDashed`.
 - Edge: thick line from circle border to circle border, arrowheads per flags, dashed when
-  `IsDashed`, `Label` centred on the line.
+  `IsDashed`, `Label` centred on the line. Several edges between the same two nodes are drawn
+  as arcs side by side (`ParallelEdgeSpacing` apart, symmetric around the straight line, in edge
+  order); arrowheads follow the arc and the label sits at the arc's middle. A lone edge stays straight.
 - Markers: small dots inside the node with the label above each dot. More than 3 markers
   (`GraphVisStyle.MaxMarkersShown`) collapse into one dot labelled with the count.
 - Selection highlight for nodes and edges. With an edge selected, its `HighlightMarkerIds` dots
@@ -308,6 +310,8 @@ alternatives the user chose stress layout for the start plus the live physics.
 ### Phase 6 – Selection, dragging and data panel
 
 - [ ] `GraphVisHitTest.cs` with tests (nodes win over edges; edge tolerance scales with zoom).
+      Edges between the same two nodes are arcs: measure the distance to the curve
+      (`GraphVisGeometry.EdgeCurve`, sampled), not to the straight segment.
 - [ ] Selection and node dragging in `GraphVisInteraction` (click versus drag threshold; dragged
       node pinned; neighbours react through the simulation) with tests.
 - [ ] Highlight rendering for node, edge, condition markers and collapsed-marker dot.
@@ -371,6 +375,7 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | Zoom limits: zooming out stops at the zoom fit-to-view would choose (no point in a smaller graph); zooming in stops at `MaxZoom`. Panning is clamped after every change: a graph smaller than the viewport stays inside it, a larger one always covers it. |
 | 2026-11-12 | Scroll bars lie over the bottom and right edges of the canvas (the view padding keeps nodes clear of them) instead of shrinking it, so showing or hiding a bar never changes the viewport size. Values are written only when they changed, to spare Gum layout passes. |
 | 2026-11-12 | Scroll bars are 15 px thick (user). While both are shown, a filler in the track colour covers the bottom-right corner; it has events, so a press or the wheel there does not reach the graph. While only one is shown, it spans its whole edge. |
+| 2026-11-12 | **Parallel relationships as arcs** (user report: only one of two edges visible). Edges joining the same two nodes bend to alternating sides of the straight line (`GraphVisGeometry.ParallelEdgeBends`, `EdgeCurve`, `CurveBetweenArrows`; quadratic Bézier curves); a lone edge stays straight. Opposite directions get opposite stored signs so they still separate. Merging them into one line with a count was rejected: Phase 6 must select each relationship on its own. Layout and physics are unchanged (a doubled pair pulls a little harder). |
 | 2026-11-12 | The view still re-fits when the viewport size changes (window resize), losing the user's pan and zoom; better resize behaviour stays in Phase 7. |
 | 2026-11-12 | The simulation sleeps at 0.05 units of movement per step (was 0.02): below that, movement is invisible but takes thousands of steps to die out. |
 
@@ -396,6 +401,7 @@ Filled during Phase 0 and later.
 | 2026-11-12 | **Physics and impossible links.** A test graph with random long-range links (most links cannot be short on a plane) keeps creeping for about 2300 steps before it sleeps: attraction slowly compacts the whole graph. A grid-like graph settles well inside the 600-step pre-show budget. Level graphs seen so far behave like the latter; if a level ever shows slow drift after opening, this is why. |
 | 2026-11-12 | **Scroll bar events.** Gum `ScrollBar` raises `ValueChangedByUi` only for thumb drags; arrow buttons and track clicks raise just `ValueChanged`. The viewport listens to `ValueChanged` and ignores the changes it writes itself (flag set while syncing). Vertical orientation and setting `Value`/`Maximum`/`ViewportSize` from code work. |
 | 2026-11-12 | **Horizontal scroll bar buttons** (user report). Gum's horizontal layout keeps the arrow buttons at a fixed 24 px height, so on a 20 px bar they stuck out 2 px above and below (the vertical bar's buttons fill its width). Fixed by giving both button visuals `Height = 0` relative to the parent; checked by pixel sampling. Later (user): buttons must be squares. Gum's default visual makes each button 24 px long along the bar and the track container (`ThumbContainer`) 48 px shorter than the bar; `MakeArrowButtonsSquare` sets the buttons to the bar thickness on both axes and the container to minus twice that. Checked by pixel runs: 15 × 15 buttons on both bars. |
+| 2026-11-12 | **Parallel passages in LevelGen.** `GraphBuilderLinear` adds an extra passage beside the skeleton one (`ExtraPassage`, at most one extra per pair) and `ProcRelSecrets` can give a secret two passages (`ChanceTwoPassages`). Headless count over 20 Medium/Hard seeds: 15 levels had node pairs with two edges, up to 33 pairs in one level. Before the fix they were drawn exactly on top of each other. Checked on screen with Medium seed `p8`: two arcs between Start and Exit rooms, each with its condition plate, arrows following the arcs. |
 | 2026-11-12 | **Navigation on screen.** Hard levels (113 nodes / 201 edges, 133 / 184): wheel zooms about the pointer and both bars appear; left-drag, WASD, thumb drag, arrow clicks and track clicks all move the view, and bars and camera stay in sync. While D was held over the graph the 3D scene did not move; W with the pointer outside the panel moved the camera as before. Synthetic input, read off screenshots. |
 | 2026-11-12 | **Missing obstacles and solutions: generator side.** Checked headless on 36 runs (12 seeds each for Easy, Medium, Hard). The adapter loses nothing: markers always equal the POI count, edge labels the number of passages with conditions. In LevelGen 0.0.9 only `GraphBuilderLinear` creates solution POIs and conditions; `GraphBuilderSimple` ignores `CnfGraph.Complexity` (chosen at random for about half of the runs). Complexity is drawn from 0 up to `min(Size, Difficulty/2+1)` exclusive, so it is always 0 on Easy and sometimes 0 elsewhere. A level only has obstacles when the builder is Linear and complexity is above 0 (13 of the 24 Medium/Hard runs). |
 

@@ -47,6 +47,12 @@ public sealed record GraphVisStyle
   /// <summary>Half of the arrowhead base width.</summary>
   public float ArrowHalfWidth { get; init; } = 6f;
 
+  /// <summary>
+  /// Distance between the peaks of neighbouring edges that join the same two nodes (they are
+  /// drawn as arcs). Large enough that the label plates of two such edges do not overlap.
+  /// </summary>
+  public float ParallelEdgeSpacing { get; init; } = 24f;
+
   /// <summary>Font size of the text over an edge.</summary>
   public float EdgeLabelFontSize { get; init; } = 13f;
 

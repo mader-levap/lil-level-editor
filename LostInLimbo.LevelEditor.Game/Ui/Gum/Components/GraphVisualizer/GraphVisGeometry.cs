@@ -21,6 +21,38 @@ public readonly record struct GraphVisSegment(Vector2 Start, Vector2 End)
 }
 
 /// <summary>
+/// Curved line between two points: a quadratic Bézier curve pulled towards a control point.
+/// </summary>
+/// <param name="Start">Start point.</param>
+/// <param name="Control">Control point; the curve leaves the start towards it and arrives at the end from it.</param>
+/// <param name="End">End point.</param>
+public readonly record struct GraphVisCurve(Vector2 Start, Vector2 Control, Vector2 End)
+{
+  /// <summary>Point halfway along the curve (parameter 0.5).</summary>
+  public Vector2 Middle => Start * 0.25f + Control * 0.5f + End * 0.25f;
+
+  /// <summary>Unit direction in which the curve leaves the start.</summary>
+  public Vector2 StartTangent => Direction(Control - Start);
+
+  /// <summary>Unit direction in which the curve arrives at the end.</summary>
+  public Vector2 EndTangent => Direction(End - Control);
+
+  /// <summary>
+  /// Normalizes a tangent; when the control point sits on an end (zero tangent) the curve is a
+  /// straight line there, so the chord direction is used, and the X axis if the curve is a point.
+  /// </summary>
+  /// <param name="tangent">Unnormalized tangent.</param>
+  /// <returns>Unit vector.</returns>
+  private Vector2 Direction(Vector2 tangent)
+  {
+    if (tangent.LengthSquared() == 0) tangent = End - Start;
+    if (tangent.LengthSquared() == 0) return Vector2.UnitX;
+    tangent.Normalize();
+    return tangent;
+  }
+}
+
+/// <summary>
 /// Triangular arrowhead.
 /// </summary>
 /// <param name="Tip">Point of the arrow.</param>
@@ -96,6 +128,108 @@ public static class GraphVisGeometry
     return new GraphVisSegment(
       arrowAtStart ? segment.Start + direction * arrowLength : segment.Start,
       arrowAtEnd ? segment.End - direction * arrowLength : segment.End);
+  }
+
+  /// <summary>
+  /// Decides how far each edge bends away from the straight line, so several edges between the
+  /// same two nodes do not lie on top of each other. A lone edge stays straight.
+  /// </summary>
+  /// <param name="edges">Edges as node index pairs.</param>
+  /// <param name="spacing">Distance between the peaks of two neighbouring edges of one pair.</param>
+  /// <returns>
+  /// Bend of each edge, in edge order, for <see cref="EdgeCurve"/>: positive bends to the left of
+  /// the edge's own direction. A pair with n edges gets bends of (k − (n − 1) / 2) × spacing,
+  /// k = 0..n−1 in edge order, all measured on the same side of the pair; for
+  /// an edge stored the other way round the sign is flipped, so it still lands on its own side.
+  /// </returns>
+  /// <exception cref="ArgumentNullException"><paramref name="edges"/> is null.</exception>
+  /// <exception cref="ArgumentOutOfRangeException"><paramref name="spacing"/> is negative or not finite.</exception>
+  public static float[] ParallelEdgeBends(IReadOnlyList<(int From, int To)> edges, float spacing)
+  {
+    ArgumentNullException.ThrowIfNull(edges);
+    if (!float.IsFinite(spacing) || spacing < 0)
+      throw new ArgumentOutOfRangeException(nameof(spacing), spacing, "Spacing must be finite and not negative.");
+
+    // Edges of each unordered pair, in edge order.
+    var edgesByPair = new Dictionary<(int Low, int High), List<int>>();
+    for (int i = 0; i < edges.Count; i++)
+    {
+      (int from, int to) = edges[i];
+      var pair = (Math.Min(from, to), Math.Max(from, to));
+      if (!edgesByPair.TryGetValue(pair, out List<int>? group))
+      {
+        group = [];
+        edgesByPair[pair] = group;
+      }
+      group.Add(i);
+    }
+
+    var bends = new float[edges.Count];
+    foreach (List<int> group in edgesByPair.Values)
+    {
+      if (group.Count < 2) continue; // lone edge: straight
+      for (int k = 0; k < group.Count; k++)
+      {
+        int edge = group[k];
+        float bend = (k - (group.Count - 1) / 2f) * spacing; // relative to the low-to-high direction
+        bends[edge] = edges[edge].From <= edges[edge].To ? bend : -bend;
+      }
+    }
+
+    return bends;
+  }
+
+  /// <summary>
+  /// Computes the visible part of an edge drawn as a curve between the borders of two node circles.
+  /// </summary>
+  /// <param name="fromCenter">Center of the node the edge starts at.</param>
+  /// <param name="fromRadius">Radius of that node.</param>
+  /// <param name="toCenter">Center of the node the edge ends at.</param>
+  /// <param name="toRadius">Radius of that node.</param>
+  /// <param name="bend">
+  /// How far the curve bulges from the straight line between the centers, to the left of the
+  /// edge's direction (negative: to the right); 0 gives the same line as <see cref="EdgeSegment"/>.
+  /// The middle of the curve lies at least this far from the line: exactly for small nodes, a
+  /// little further for nodes large compared with their distance, because the curve's ends move
+  /// sideways along the circle borders towards the bulge.
+  /// </param>
+  /// <returns>Curve from border to border, or null when the circles touch or overlap (nothing to draw).</returns>
+  public static GraphVisCurve? EdgeCurve(Vector2 fromCenter, float fromRadius, Vector2 toCenter, float toRadius, float bend)
+  {
+    if (EdgeSegment(fromCenter, fromRadius, toCenter, toRadius) is not { } straight) return null;
+
+    // The curve's middle lies halfway between the straight line's middle and the control point,
+    // so the control point sits twice the bend away for the middle to be "bend" away. Using the
+    // border-to-border middle keeps an unbent curve identical to the straight edge.
+    Vector2 direction = Vector2.Normalize(toCenter - fromCenter);
+    var left = new Vector2(-direction.Y, direction.X);
+    Vector2 control = straight.Middle + left * (2f * bend);
+
+    // Leave and enter each circle where the curve crosses its border: towards the control point.
+    Vector2 start = fromCenter + Vector2.Normalize(control - fromCenter) * fromRadius;
+    Vector2 end = toCenter + Vector2.Normalize(control - toCenter) * toRadius;
+    return new GraphVisCurve(start, control, end);
+  }
+
+  /// <summary>
+  /// Shortens a curved edge so it ends at the bases of its arrowheads instead of poking through
+  /// their tips. The ends move back along their tangents; the control point stays.
+  /// </summary>
+  /// <param name="curve">Border-to-border curve.</param>
+  /// <param name="arrowAtStart">Whether an arrowhead sits at the start.</param>
+  /// <param name="arrowAtEnd">Whether an arrowhead sits at the end.</param>
+  /// <param name="arrowLength">Arrowhead length.</param>
+  /// <returns>Curve to draw, or null when the arrowheads leave no room for a line.</returns>
+  public static GraphVisCurve? CurveBetweenArrows(GraphVisCurve curve, bool arrowAtStart, bool arrowAtEnd, float arrowLength)
+  {
+    float trimmed = (arrowAtStart ? arrowLength : 0) + (arrowAtEnd ? arrowLength : 0);
+    if (Vector2.Distance(curve.Start, curve.End) <= trimmed) return null;
+
+    return curve with
+    {
+      Start = arrowAtStart ? curve.Start + curve.StartTangent * arrowLength : curve.Start,
+      End = arrowAtEnd ? curve.End - curve.EndTangent * arrowLength : curve.End,
+    };
   }
 
   /// <summary>

@@ -299,4 +299,172 @@ public sealed class GraphVisGeometryTests
   }
 
   #endregion
+
+  #region Parallel edges
+
+  /// <summary>Spacing between parallel edges used by the tests.</summary>
+  private const float Spacing = 24f;
+
+  /// <summary>
+  /// Verifies a lone edge stays straight, and edges of other pairs do not influence it.
+  /// </summary>
+  [Fact]
+  public void ParallelEdgeBends_LoneEdges_AreStraight()
+  {
+    // Act: Three edges, each between a different pair.
+    float[] bends = GraphVisGeometry.ParallelEdgeBends([(0, 1), (1, 2), (2, 0)], Spacing);
+
+    // Assert: No bends.
+    Assert.Equal([0f, 0f, 0f], bends);
+  }
+
+  /// <summary>
+  /// Verifies parallel edges of one pair spread symmetrically around the straight line, in edge
+  /// order, while an edge of another pair stays straight.
+  /// </summary>
+  [Fact]
+  public void ParallelEdgeBends_SameDirection_SpreadSymmetrically()
+  {
+    // Act: Two edges 0→1, three edges 2→3, one edge 1→2.
+    float[] bends = GraphVisGeometry.ParallelEdgeBends([(0, 1), (2, 3), (0, 1), (2, 3), (1, 2), (2, 3)], Spacing);
+
+    // Assert: Pair 0-1 at ±spacing/2, pair 2-3 at -spacing, 0, +spacing, the lone edge straight.
+    Assert.Equal([-12f, -24f, 12f, 0f, 0f, 24f], bends);
+  }
+
+  /// <summary>
+  /// Verifies two edges in opposite directions end up on different sides: their bends are equal
+  /// in their own directions, and the left side of 1→0 is the right side of 0→1.
+  /// </summary>
+  [Fact]
+  public void ParallelEdgeBends_OppositeDirections_LandOnDifferentSides()
+  {
+    // Act: Edge 0→1 and edge 1→0.
+    float[] bends = GraphVisGeometry.ParallelEdgeBends([(0, 1), (1, 0)], Spacing);
+    GraphVisCurve forward = GraphVisGeometry.EdgeCurve(new Vector2(0, 0), 10f, new Vector2(200, 0), 10f, bends[0])!.Value;
+    GraphVisCurve backward = GraphVisGeometry.EdgeCurve(new Vector2(200, 0), 10f, new Vector2(0, 0), 10f, bends[1])!.Value;
+
+    // Assert: Same stored bend; the arcs bulge to opposite sides of the line, at least spacing apart.
+    Assert.Equal(-12f, bends[0]);
+    Assert.Equal(-12f, bends[1]);
+    Assert.True(forward.Middle.Y * backward.Middle.Y < 0);
+    Assert.True(MathF.Abs(forward.Middle.Y - backward.Middle.Y) >= Spacing);
+  }
+
+  /// <summary>
+  /// Verifies invalid arguments are rejected.
+  /// </summary>
+  [Fact]
+  public void ParallelEdgeBends_WithInvalidArguments_Throws()
+  {
+    // Act + Assert: Null edges, negative or infinite spacing.
+    Assert.Throws<ArgumentNullException>(() => GraphVisGeometry.ParallelEdgeBends(null!, Spacing));
+    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisGeometry.ParallelEdgeBends([(0, 1)], -1f));
+    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisGeometry.ParallelEdgeBends([(0, 1)], float.PositiveInfinity));
+  }
+
+  /// <summary>
+  /// Verifies a curve without bend is the straight border-to-border line.
+  /// </summary>
+  [Fact]
+  public void EdgeCurve_WithoutBend_MatchesEdgeSegment()
+  {
+    // Arrange: Two circles on a diagonal.
+    var from = new Vector2(10, 20);
+    var to = new Vector2(130, 180);
+
+    // Act: Straight curve and straight segment.
+    GraphVisCurve curve = GraphVisGeometry.EdgeCurve(from, 15f, to, 25f, 0f)!.Value;
+    GraphVisSegment segment = GraphVisGeometry.EdgeSegment(from, 15f, to, 25f)!.Value;
+
+    // Assert: Same ends, control point in the middle.
+    AssertClose(segment.Start, curve.Start);
+    AssertClose(segment.End, curve.End);
+    AssertClose(segment.Middle, curve.Middle);
+  }
+
+  /// <summary>
+  /// Verifies a bent curve starts and ends on the circle borders and its middle lies at least the
+  /// bend away from the line between the centers, on the left of the edge direction.
+  /// </summary>
+  [Fact]
+  public void EdgeCurve_WithBend_EndsOnBordersAndBulgesLeft()
+  {
+    // Arrange: Edge along +X; with screen Y pointing down, "left" of +X is +Y.
+    var from = new Vector2(0, 0);
+    var to = new Vector2(200, 0);
+    const float bend = 20f;
+
+    // Act: Bent curve.
+    GraphVisCurve curve = GraphVisGeometry.EdgeCurve(from, 10f, to, 30f, bend)!.Value;
+
+    // Assert: Ends on the borders, middle at least the bend away on the +Y side.
+    Assert.Equal(10f, Vector2.Distance(from, curve.Start), Tolerance);
+    Assert.Equal(30f, Vector2.Distance(to, curve.End), Tolerance);
+    Assert.True(curve.Middle.Y >= bend);
+  }
+
+  /// <summary>
+  /// Verifies the middle of a curve between small nodes lies (almost exactly) the bend away from
+  /// the line, on the right for a negative bend.
+  /// </summary>
+  [Fact]
+  public void EdgeCurve_SmallNodes_MiddleIsTheBendAway()
+  {
+    // Act: Tiny circles far apart, bend to the right (-Y for an edge along +X).
+    GraphVisCurve curve = GraphVisGeometry.EdgeCurve(new Vector2(0, 0), 1f, new Vector2(400, 0), 1f, -15f)!.Value;
+
+    // Assert: Middle 15 below the line, at the middle of the edge.
+    Assert.Equal(-15f, curve.Middle.Y, 0.1f);
+    Assert.Equal(200f, curve.Middle.X, 0.1f);
+  }
+
+  /// <summary>
+  /// Verifies there is no curve when the circles touch or overlap.
+  /// </summary>
+  [Fact]
+  public void EdgeCurve_OverlappingCircles_ReturnsNull()
+  {
+    // Act + Assert: Centers 30 apart, radii 20 + 20.
+    Assert.Null(GraphVisGeometry.EdgeCurve(new Vector2(0, 0), 20f, new Vector2(30, 0), 20f, 12f));
+  }
+
+  /// <summary>
+  /// Verifies arrowheads shorten a curve along its tangents and keep the control point, and that
+  /// a curve too short for its arrowheads is not drawn.
+  /// </summary>
+  [Fact]
+  public void CurveBetweenArrows_MovesEndsAlongTangents()
+  {
+    // Arrange: A bent curve.
+    GraphVisCurve curve = GraphVisGeometry.EdgeCurve(new Vector2(0, 0), 10f, new Vector2(200, 0), 10f, 20f)!.Value;
+
+    // Act: Arrow at the end only, then arrows too long for the curve.
+    GraphVisCurve? shortened = GraphVisGeometry.CurveBetweenArrows(curve, false, true, 12f);
+    GraphVisCurve? tooShort = GraphVisGeometry.CurveBetweenArrows(curve, true, true, 100f);
+
+    // Assert: Start kept, end moved back 12 along the end tangent, control unchanged; no room → null.
+    Assert.NotNull(shortened);
+    AssertClose(curve.Start, shortened.Value.Start);
+    AssertClose(curve.End - curve.EndTangent * 12f, shortened.Value.End);
+    AssertClose(curve.Control, shortened.Value.Control);
+    Assert.Null(tooShort);
+  }
+
+  /// <summary>
+  /// Verifies the tangents of a curve point from the ends towards the control point.
+  /// </summary>
+  [Fact]
+  public void Curve_Tangents_PointAlongTheCurve()
+  {
+    // Arrange: Start, control and end of a simple arch.
+    var curve = new GraphVisCurve(new Vector2(0, 0), new Vector2(50, 50), new Vector2(100, 0));
+
+    // Assert: Leaves towards the control point, arrives from it; both unit length.
+    float diagonal = MathF.Sqrt(0.5f);
+    AssertClose(new Vector2(diagonal, diagonal), curve.StartTangent);
+    AssertClose(new Vector2(diagonal, -diagonal), curve.EndTangent);
+  }
+
+  #endregion
 }
