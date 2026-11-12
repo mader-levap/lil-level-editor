@@ -23,8 +23,10 @@ lil-level-editor/
 ├ LostInLimbo.LevelEditor.Game/          - Stride game package: all engine code, scripts and assets.
 │  ├ LostInLimbo.LevelEditor.Game.sdpkg  - Stride package manifest (asset/resource folders).
 │  ├ Assets/                             - Stride assets, YAML-serialized (.sdscene, .sdmat, .sdtex, ...).
-│  ├ Generator/                          - All scripts related to generator handling.
+│  ├ Input/                              - Input handling.
+│  ├ Main/                               - Main start point.
 │  └ Resources/                          - Raw imported files, usually binary (.dds textures, ...).
+│  └ Services/                           - Services.
 │  └ Ui/                                 - All scripts related to user interface.
 ├ LostInLimbo.LevelEditor.Tests/         - xUnit test project (namespace LostInLimbo.LevelEditor.Tests).
 │  ├ LostInLimbo.LevelEditor.Tests.csproj - References the Game project; net10.0-windows7.0.
@@ -151,7 +153,15 @@ Reference implementation: `LostInLimbo.LevelEditor.Game/BasicCameraController.cs
 
 ## Gum
 
-### New components
+### Directories
+
+```text
+Ui/Gum/
+├ App/                                   - All panels, screens and overlays specific to application.
+├ Common/                                - Common classes.
+├ Components/                            - Our custom components.
+└ Theme/                                 - Theme data.
+```
 
 If our own custom components are needed, place them in `/Ui/Gum/Components/<name>`.
 
