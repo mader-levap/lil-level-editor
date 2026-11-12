@@ -4,7 +4,7 @@ using Gum;
 using LostInLimbo.LevelEditor.Input;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
-using LostInLimbo.LevelEditor.Ui.Gum;
+using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using Stride.Engine;
 using Stride.Games;

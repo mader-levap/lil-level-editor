@@ -73,7 +73,9 @@ public sealed class UiMain : SyncScript
     _gumLevelGenPanel = levelGenPanel;
     _overlaySwitcher.Register(EnOverlay.LevelGen, levelGenPanel);
 
-    var levelInfoPanel = new GumLevelInfoPanel(levelGenService);
+    // Raw keys: the graph pans with WASD only while the pointer is over it, and claims the
+    // keyboard from gameplay meanwhile (see IClaimsKeyboardWhileHovered).
+    var levelInfoPanel = new GumLevelInfoPanel(levelGenService, key => Input.IsKeyDown(key));
     levelInfoPanel.Build();
     _gumLevelInfoPanel = levelInfoPanel;
     _overlaySwitcher.Register(EnOverlay.LevelInfo, levelInfoPanel);

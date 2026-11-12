@@ -270,4 +270,96 @@ public sealed class GraphVisCameraTests
     // Assert: Nothing to enclose.
     Assert.Null(GraphVisBounds.AroundCircles([]));
   }
+
+  /// <summary>
+  /// Verifies the scroll range of a graph wider than the viewport: the bar spans the graph plus
+  /// padding, and its value is 0 at the graph's start and the maximum at its end.
+  /// </summary>
+  [Fact]
+  public void ScrollRange_GraphLargerThanViewport_SpansGraphAndPadding()
+  {
+    // Arrange: Graph 0..1000 wide at zoom 1, viewport 400 wide, padding 20 (content 1040 px).
+    var bounds = new GraphVisBounds(new Vector2(0, 0), new Vector2(1000, 100));
+    var viewport = new Vector2(400, 300);
+    const float padding = 20f;
+    var atStart = new GraphVisCamera(1f, new Vector2(padding, 0));
+    var atEnd = new GraphVisCamera(1f, new Vector2(400 - padding - 1000, 0));
+
+    // Act: Horizontal ranges at both ends.
+    GraphVisScrollRange startRange = atStart.ScrollRange(EnGraphVisAxis.Horizontal, bounds, viewport, padding);
+    GraphVisScrollRange endRange = atEnd.ScrollRange(EnGraphVisAxis.Horizontal, bounds, viewport, padding);
+
+    // Assert: Needed; maximum = content minus viewport; value follows the position.
+    Assert.True(startRange.IsNeeded);
+    Assert.Equal(640f, startRange.Maximum, Tolerance);
+    Assert.Equal(400f, startRange.ViewportSize, Tolerance);
+    Assert.Equal(0f, startRange.Value, Tolerance);
+    Assert.Equal(640f, endRange.Value, Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies the scroll range follows zoom and works on the vertical axis.
+  /// </summary>
+  [Fact]
+  public void ScrollRange_Vertical_ScalesWithZoom()
+  {
+    // Arrange: Graph -50..150 tall, zoom 2 (400 px), viewport 300 tall, no padding; graph start 30 px above the top.
+    var bounds = new GraphVisBounds(new Vector2(0, -50), new Vector2(10, 150));
+    var camera = new GraphVisCamera(2f, new Vector2(0, 70)); // -50 * 2 + 70 = -30
+
+    // Act: Vertical range.
+    GraphVisScrollRange range = camera.ScrollRange(EnGraphVisAxis.Vertical, bounds, new Vector2(300, 300), 0f);
+
+    // Assert: Content 400 in a 300 viewport, scrolled 30 down.
+    Assert.True(range.IsNeeded);
+    Assert.Equal(100f, range.Maximum, Tolerance);
+    Assert.Equal(30f, range.Value, Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies a graph that fits the viewport needs no scroll bar.
+  /// </summary>
+  [Fact]
+  public void ScrollRange_GraphSmallerThanViewport_IsNotNeeded()
+  {
+    // Arrange: Graph 100 wide in a 400 wide viewport.
+    var bounds = new GraphVisBounds(new Vector2(0, 0), new Vector2(100, 100));
+
+    // Act: Horizontal range.
+    GraphVisScrollRange range = new GraphVisCamera(1f, new Vector2(50, 50))
+      .ScrollRange(EnGraphVisAxis.Horizontal, bounds, new Vector2(400, 300), 20f);
+
+    // Assert: Not needed, nothing to scroll.
+    Assert.False(range.IsNeeded);
+    Assert.Equal(0f, range.Maximum, Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies scrolling to a value and reading the value back agree, and that values outside the
+  /// range are clamped; the other axis is untouched.
+  /// </summary>
+  /// <param name="value">Value to scroll to.</param>
+  /// <param name="expected">Value read back.</param>
+  [Theory]
+  [InlineData(0f, 0f)]
+  [InlineData(250f, 250f)]
+  [InlineData(640f, 640f)]
+  [InlineData(-30f, 0f)]
+  [InlineData(900f, 640f)]
+  public void ScrolledTo_RoundTripsAndClamps(float value, float expected)
+  {
+    // Arrange: Same setup as the horizontal range test (maximum 640).
+    var bounds = new GraphVisBounds(new Vector2(0, 0), new Vector2(1000, 100));
+    var viewport = new Vector2(400, 300);
+    const float padding = 20f;
+    var camera = new GraphVisCamera(1f, new Vector2(padding, 77));
+
+    // Act: Scroll and read back.
+    GraphVisCamera scrolled = camera.ScrolledTo(EnGraphVisAxis.Horizontal, value, bounds, viewport, padding);
+
+    // Assert: Value as expected, zoom and vertical translation unchanged.
+    Assert.Equal(expected, scrolled.ScrollRange(EnGraphVisAxis.Horizontal, bounds, viewport, padding).Value, Tolerance);
+    Assert.Equal(1f, scrolled.Zoom, Tolerance);
+    Assert.Equal(77f, scrolled.Translation.Y, Tolerance);
+  }
 }

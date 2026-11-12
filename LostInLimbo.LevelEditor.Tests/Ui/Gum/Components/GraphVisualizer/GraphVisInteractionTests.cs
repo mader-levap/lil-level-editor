@@ -1,0 +1,261 @@
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+using Stride.Core.Mathematics;
+
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer;
+
+/// <summary>
+/// Headless tests for <see cref="GraphVisInteraction"/> (pan, zoom and scroll navigation).
+/// </summary>
+public sealed class GraphVisInteractionTests
+{
+  /// <summary>Tolerance for floating-point comparisons.</summary>
+  private const float Tolerance = 0.001f;
+
+  /// <summary>Style used by the tests: the defaults.</summary>
+  private static readonly GraphVisStyle Style = GraphVisStyle.Default;
+
+  /// <summary>Viewport size used by the tests.</summary>
+  private static readonly Vector2 Viewport = new(800, 400);
+
+  /// <summary>A graph much larger than the viewport at zoom 1, so panning has room on both axes.</summary>
+  private static readonly GraphVisBounds LargeGraph = new(new Vector2(-2000, -2000), new Vector2(2000, 2000));
+
+  /// <summary>
+  /// Creates an interaction whose camera is at zoom 1, world origin at the viewport center.
+  /// </summary>
+  /// <returns>Interaction.</returns>
+  private static GraphVisInteraction CreateCentered()
+  {
+    var interaction = new GraphVisInteraction(Style);
+    interaction.Reset(new GraphVisCamera(1f, Viewport / 2f));
+    return interaction;
+  }
+
+  /// <summary>
+  /// Creates an input frame with the pointer over the viewport and nothing pressed.
+  /// </summary>
+  /// <param name="pointer">Pointer position.</param>
+  /// <returns>Input frame.</returns>
+  private static GraphVisInputFrame Idle(Vector2 pointer) => new(pointer, true, false, 0f, Vector2.Zero, 0.016f);
+
+  /// <summary>
+  /// Asserts two points are equal within <see cref="Tolerance"/>.
+  /// </summary>
+  /// <param name="expected">Expected point.</param>
+  /// <param name="actual">Actual point.</param>
+  private static void AssertClose(Vector2 expected, Vector2 actual)
+  {
+    Assert.Equal(expected.X, actual.X, Tolerance);
+    Assert.Equal(expected.Y, actual.Y, Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies dragging moves the graph with the pointer, and releasing ends the drag.
+  /// </summary>
+  [Fact]
+  public void Update_DragOverViewport_PansByPointerMovement()
+  {
+    // Arrange: Centered camera.
+    GraphVisInteraction interaction = CreateCentered();
+    Vector2 start = interaction.Camera.Translation;
+
+    // Act: Press at (100,100), move to (130,90), then release and move on.
+    interaction.Update(Idle(new Vector2(100, 100)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    interaction.Update(Idle(new Vector2(130, 90)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    bool panningWhileHeld = interaction.IsPanning;
+    interaction.Update(Idle(new Vector2(130, 90)), LargeGraph, Viewport);
+    interaction.Update(Idle(new Vector2(300, 300)), LargeGraph, Viewport);
+
+    // Assert: Moved by the drag only; the drag ended with the release.
+    Assert.True(panningWhileHeld);
+    Assert.False(interaction.IsPanning);
+    AssertClose(start + new Vector2(30, -10), interaction.Camera.Translation);
+  }
+
+  /// <summary>
+  /// Verifies a drag continues when the pointer leaves the viewport while the button is held.
+  /// </summary>
+  [Fact]
+  public void Update_DragLeavingViewport_KeepsPanning()
+  {
+    // Arrange: Drag started inside.
+    GraphVisInteraction interaction = CreateCentered();
+    Vector2 start = interaction.Camera.Translation;
+    interaction.Update(Idle(new Vector2(100, 100)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+
+    // Act: Move outside the viewport with the button held.
+    interaction.Update(
+      Idle(new Vector2(-50, 100)) with { IsPrimaryDown = true, IsPointerOver = false }, LargeGraph, Viewport);
+
+    // Assert: Still panning, by the whole movement.
+    Assert.True(interaction.IsPanning);
+    AssertClose(start + new Vector2(-150, 0), interaction.Camera.Translation);
+  }
+
+  /// <summary>
+  /// Verifies a press outside the viewport (for example on a scroll bar) that moves into it does
+  /// not pan.
+  /// </summary>
+  [Fact]
+  public void Update_PressOutsideViewport_DoesNotPan()
+  {
+    // Arrange: Centered camera.
+    GraphVisInteraction interaction = CreateCentered();
+    GraphVisCamera before = interaction.Camera;
+
+    // Act: Press outside, then move over the viewport with the button still held.
+    interaction.Update(
+      Idle(new Vector2(100, 100)) with { IsPrimaryDown = true, IsPointerOver = false }, LargeGraph, Viewport);
+    bool changed = interaction.Update(Idle(new Vector2(200, 150)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+
+    // Assert: Nothing happened.
+    Assert.False(changed);
+    Assert.False(interaction.IsPanning);
+    Assert.Equal(before, interaction.Camera);
+  }
+
+  /// <summary>
+  /// Verifies the wheel zooms in by the zoom step per notch, keeping the world point under the
+  /// pointer in place.
+  /// </summary>
+  [Fact]
+  public void Update_WheelOverViewport_ZoomsAboutPointer()
+  {
+    // Arrange: Centered camera; remember the world point under the pointer.
+    GraphVisInteraction interaction = CreateCentered();
+    var pointer = new Vector2(600, 100);
+    Vector2 anchor = interaction.Camera.ScreenToWorld(pointer);
+
+    // Act: Two notches in.
+    bool changed = interaction.Update(Idle(pointer) with { WheelNotches = 2 }, LargeGraph, Viewport);
+
+    // Assert: Zoomed by step², anchor still under the pointer.
+    Assert.True(changed);
+    Assert.Equal(Style.ZoomStep * Style.ZoomStep, interaction.Camera.Zoom, Tolerance);
+    AssertClose(pointer, interaction.Camera.WorldToScreen(anchor));
+  }
+
+  /// <summary>
+  /// Verifies zooming out stops at the zoom that shows the whole graph, and zooming in at the maximum.
+  /// </summary>
+  [Fact]
+  public void Update_WheelBeyondLimits_StopsAtFitAndMaximumZoom()
+  {
+    // Arrange: Centered camera and the zoom fit-to-view would choose for the large graph.
+    GraphVisInteraction interaction = CreateCentered();
+    float fitZoom = GraphVisCamera.Fit(LargeGraph, Viewport, Style.ViewPadding, Style.MinZoom, Style.MaxFitZoom).Zoom;
+
+    // Act + Assert: Far out stops at the fit zoom.
+    interaction.Update(Idle(Viewport / 2f) with { WheelNotches = -100 }, LargeGraph, Viewport);
+    Assert.Equal(fitZoom, interaction.Camera.Zoom, Tolerance);
+
+    // Act + Assert: Far in stops at the maximum.
+    interaction.Update(Idle(Viewport / 2f) with { WheelNotches = 100 }, LargeGraph, Viewport);
+    Assert.Equal(Style.MaxZoom, interaction.Camera.Zoom, Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies keys move the view along the axis at the keyboard speed (the graph moves the other
+  /// way), with diagonals no faster than straight moves.
+  /// </summary>
+  /// <param name="axisX">Pan axis X.</param>
+  /// <param name="axisY">Pan axis Y.</param>
+  [Theory]
+  [InlineData(1f, 0f)]
+  [InlineData(0f, -1f)]
+  [InlineData(1f, 1f)]
+  public void Update_PanKeys_MoveViewAtKeyboardSpeed(float axisX, float axisY)
+  {
+    // Arrange: Centered camera, half a second of key press.
+    GraphVisInteraction interaction = CreateCentered();
+    Vector2 start = interaction.Camera.Translation;
+    var axis = new Vector2(axisX, axisY);
+    const float seconds = 0.5f;
+
+    // Act: One frame with the keys held.
+    interaction.Update(Idle(Viewport / 2f) with { PanAxis = axis, DeltaSeconds = seconds }, LargeGraph, Viewport);
+
+    // Assert: Graph moved against the axis by speed × time, whatever the direction.
+    Vector2 moved = interaction.Camera.Translation - start;
+    Assert.Equal(Style.KeyboardPanSpeed * seconds, moved.Length(), Tolerance);
+    Assert.True(Vector2.Dot(moved, axis) < 0);
+  }
+
+  /// <summary>
+  /// Verifies wheel and keys do nothing while the pointer is not over the viewport.
+  /// </summary>
+  [Fact]
+  public void Update_WheelAndKeysWithPointerOutside_AreIgnored()
+  {
+    // Arrange: Centered camera.
+    GraphVisInteraction interaction = CreateCentered();
+    GraphVisCamera before = interaction.Camera;
+
+    // Act: Wheel and keys with the pointer elsewhere.
+    bool changed = interaction.Update(
+      Idle(Viewport / 2f) with { IsPointerOver = false, WheelNotches = 3, PanAxis = new Vector2(1, 0) },
+      LargeGraph, Viewport);
+
+    // Assert: Nothing happened.
+    Assert.False(changed);
+    Assert.Equal(before, interaction.Camera);
+  }
+
+  /// <summary>
+  /// Verifies panning cannot push a small graph out of the viewport.
+  /// </summary>
+  [Fact]
+  public void Update_PanSmallGraphAway_StaysInsideViewport()
+  {
+    // Arrange: Graph 100×100 around the origin, shown in the viewport center.
+    var smallGraph = new GraphVisBounds(new Vector2(-50, -50), new Vector2(50, 50));
+    GraphVisInteraction interaction = CreateCentered();
+
+    // Act: Drag far to the right.
+    interaction.Update(Idle(new Vector2(100, 100)) with { IsPrimaryDown = true }, smallGraph, Viewport);
+    interaction.Update(Idle(new Vector2(5000, 100)) with { IsPrimaryDown = true }, smallGraph, Viewport);
+
+    // Assert: The graph's right side stops at the viewport edge minus padding.
+    float right = interaction.Camera.WorldToScreen(smallGraph.Max).X;
+    Assert.Equal(Viewport.X - Style.ViewPadding, right, Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies scrolling moves only the given axis to the given scroll value.
+  /// </summary>
+  [Fact]
+  public void ScrollTo_MovesViewToScrollValue()
+  {
+    // Arrange: Centered camera.
+    GraphVisInteraction interaction = CreateCentered();
+    float startY = interaction.Camera.Translation.Y;
+
+    // Act: Scroll horizontally to 500.
+    interaction.ScrollTo(EnGraphVisAxis.Horizontal, 500f, LargeGraph, Viewport);
+
+    // Assert: The horizontal scroll value is 500; vertical position unchanged.
+    GraphVisScrollRange range = interaction.Camera.ScrollRange(EnGraphVisAxis.Horizontal, LargeGraph, Viewport, Style.ViewPadding);
+    Assert.Equal(500f, range.Value, Tolerance);
+    Assert.Equal(startY, interaction.Camera.Translation.Y, Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies resetting replaces the camera and ends a drag.
+  /// </summary>
+  [Fact]
+  public void Reset_EndsDragAndReplacesCamera()
+  {
+    // Arrange: A drag in progress.
+    GraphVisInteraction interaction = CreateCentered();
+    interaction.Update(Idle(new Vector2(100, 100)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    var camera = new GraphVisCamera(0.5f, new Vector2(10, 20));
+
+    // Act: Reset.
+    interaction.Reset(camera);
+
+    // Assert: New camera, no drag; further movement with the button held does not pan.
+    Assert.False(interaction.IsPanning);
+    interaction.Update(Idle(new Vector2(300, 100)) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    Assert.Equal(camera, interaction.Camera);
+  }
+}

@@ -8,10 +8,10 @@ section, the phase checklists and the logs at the end of every session so work c
 
 | Item | Value |
 |---|---|
-| Active phase | Phase 4 (awaiting verification) |
-| Last finished phase | Phase 3 |
+| Active phase | Phase 5 (awaiting verification) |
+| Last finished phase | Phase 4 |
 | Blockers | none |
-| Next action | User judges the layout of real graphs in the info overlay; then start Phase 5 |
+| Next action | User navigates a large graph (drag, wheel, WASD, scroll bars); then start Phase 6 |
 
 | Phase | Title | Status |
 |---|---|---|
@@ -19,8 +19,8 @@ section, the phase checklists and the logs at the end of every session so work c
 | 1 | Data model and pure helpers | done |
 | 2 | Component shell and static rendering | done |
 | 3 | LevelGen adapter and overlay integration | done |
-| 4 | Layout (stress) and live physics | awaiting verification |
-| 5 | Navigation | not started |
+| 4 | Layout (stress) and live physics | done |
+| 5 | Navigation | awaiting verification |
 | 6 | Selection, dragging and data panel | not started |
 | 7 | Polish and cleanup | not started |
 
@@ -197,10 +197,12 @@ distance between any two nodes is made to match their distance through the graph
   `GumGraphViewport` fills that record from Gum/Stride.
 - Pan: left-drag on empty space, or WASD. Zoom: mouse wheel, about the cursor. Left-click selects
   a node or edge; left-drag on a node moves it.
-- **WASD conflict with the camera:** default decision is that the graph owns WASD while the
-  pointer is over the viewport, implemented by extending the keyboard-capture predicate used by
-  `GameInput` (camera stops) while the viewport reads raw keys as UI code. To be confirmed in
-  spike S3.
+- **WASD conflict with the camera:** the graph owns WASD while the pointer is over the viewport.
+  The canvas element implements `IClaimsKeyboardWhileHovered`, which `GumFocus.IsKeyboardCaptured`
+  (the `GameInput` capture predicate) checks, so the camera stops; the viewport reads raw keys as
+  UI code.
+- Scroll bars (Gum Forms `ScrollBar`) lie over the canvas's bottom and right edges and appear
+  only on axes where the graph is larger than the viewport.
 - Viewport has `HasEvents = true` so right-drag over it does not rotate the camera
   (`GumFocus.IsPointerOverUi`).
 
@@ -291,11 +293,15 @@ alternatives the user chose stress layout for the start plus the live physics.
 
 ### Phase 5 – Navigation
 
-- [ ] `GraphVisInteraction.cs` pan and zoom parts with tests.
-- [ ] Scroll bar range math in `GraphVisCamera` (maximum, viewport size, value both ways) with tests.
-- [ ] Mouse-drag pan, WASD pan, wheel zoom about cursor, zoom and pan limits.
-- [ ] Scroll bars shown only when the graph exceeds the viewport, in sync with the camera both ways.
-- [ ] Keyboard capture so the 3D camera does not move while the graph is being navigated.
+- [x] `GraphVisInteraction.cs` pan and zoom parts with tests (input record `GraphVisInputFrame`;
+      the interaction owns the camera).
+- [x] Scroll bar range math in `GraphVisCamera` (`ScrollRange`, `ScrolledTo`) with tests.
+- [x] Mouse-drag pan, WASD pan, wheel zoom about cursor, zoom and pan limits (no zooming out
+      beyond the whole graph; panning clamped by `ClampTo`).
+- [x] Scroll bars shown only when the graph exceeds the viewport, in sync with the camera both ways.
+- [x] Keyboard capture so the 3D camera does not move while the graph is being navigated
+      (`IClaimsKeyboardWhileHovered`, checked by `GumFocus.IsKeyboardCaptured`).
+- [x] Checked on screen with Hard levels (113 and 133 nodes): see Findings log.
 
 **Verify:** user navigates a large graph; camera stays still; nothing leaks outside the viewport.
 
@@ -360,6 +366,12 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | The graph is converted on every overlay refresh (on show and on result change), so reopening the overlay restarts the layout (open decision 5). |
 | 2026-11-12 | **Layout algorithm.** Compared: force-directed only, stress (Kamada–Kawai style), layered from Start, radial from Start, spanning tree, spectral, generator positions. User chose stress + live physics. Layered/radial would show progression but need a root hint in the model and a force that fights free movement; tree and spectral fit this graph density poorly; generator positions do not exist yet (`LilMap` is empty in LevelGen 0.0.9) and are worth revisiting once the map is generated. |
 | 2026-11-12 | Starting guess of the stress layout is distance-to-two-far-nodes, not the ring planned at first: it is already unfolded, so refinement does not have to untie knots. `PlaceOnRing` was removed. |
+| 2026-11-12 | **Keyboard capture.** A Gum element implementing the marker interface `IClaimsKeyboardWhileHovered` (`Ui/Gum/Common`) takes the keyboard from gameplay while it is under the cursor; `GumFocus.IsKeyboardCaptured` checks `Cursor.VisualOver`. No static flags; hiding the element releases the keyboard. The graph reads WASD only while hovered and no text box or open list has focus (`GumFocus.IsKeyboardFocused`). |
+| 2026-11-12 | Raw keys reach the component as `Func<Keys, bool>` (`UiMain` passes `Input.IsKeyDown`), the same as the spike; mouse and wheel come from the Gum cursor. `GumGraphVisualizer` and `GumLevelInfoPanel` constructors gained that parameter. |
+| 2026-11-12 | Zoom limits: zooming out stops at the zoom fit-to-view would choose (no point in a smaller graph); zooming in stops at `MaxZoom`. Panning is clamped after every change: a graph smaller than the viewport stays inside it, a larger one always covers it. |
+| 2026-11-12 | Scroll bars lie over the bottom and right edges of the canvas (the view padding keeps nodes clear of them) instead of shrinking it, so showing or hiding a bar never changes the viewport size. Values are written only when they changed, to spare Gum layout passes. |
+| 2026-11-12 | Scroll bars are 15 px thick (user). While both are shown, a filler in the track colour covers the bottom-right corner; it has events, so a press or the wheel there does not reach the graph. While only one is shown, it spans its whole edge. |
+| 2026-11-12 | The view still re-fits when the viewport size changes (window resize), losing the user's pan and zoom; better resize behaviour stays in Phase 7. |
 | 2026-11-12 | The simulation sleeps at 0.05 units of movement per step (was 0.02): below that, movement is invisible but takes thousands of steps to die out. |
 
 ## Findings log
@@ -382,6 +394,9 @@ Filled during Phase 0 and later.
 | 2026-11-12 | **Real data.** Easy gave 2 nodes / 1 edge, Medium 48 / 91, Hard 93 / 134 (one seed each). All nodes of those levels were in a single group. On the ring, most edges join ring neighbours (nodes arrive in generation order). At the fitted zoom of such graphs (about 0.2) labels are unreadable; that is for Phases 4 and 5 to solve. |
 | 2026-11-12 | **Layout on real data.** Medium (41 nodes / 42 edges): one large loop with short branches, shown as exactly that. Hard (70 / 98): an untangled mesh at about 0.4 fitted zoom (the ring needed about 0.2). No overlapping nodes. |
 | 2026-11-12 | **Physics and impossible links.** A test graph with random long-range links (most links cannot be short on a plane) keeps creeping for about 2300 steps before it sleeps: attraction slowly compacts the whole graph. A grid-like graph settles well inside the 600-step pre-show budget. Level graphs seen so far behave like the latter; if a level ever shows slow drift after opening, this is why. |
+| 2026-11-12 | **Scroll bar events.** Gum `ScrollBar` raises `ValueChangedByUi` only for thumb drags; arrow buttons and track clicks raise just `ValueChanged`. The viewport listens to `ValueChanged` and ignores the changes it writes itself (flag set while syncing). Vertical orientation and setting `Value`/`Maximum`/`ViewportSize` from code work. |
+| 2026-11-12 | **Horizontal scroll bar buttons** (user report). Gum's horizontal layout keeps the arrow buttons at a fixed 24 px height, so on a 20 px bar they stuck out 2 px above and below (the vertical bar's buttons fill its width). Fixed by giving both button visuals `Height = 0` relative to the parent; checked by pixel sampling. Later (user): buttons must be squares. Gum's default visual makes each button 24 px long along the bar and the track container (`ThumbContainer`) 48 px shorter than the bar; `MakeArrowButtonsSquare` sets the buttons to the bar thickness on both axes and the container to minus twice that. Checked by pixel runs: 15 × 15 buttons on both bars. |
+| 2026-11-12 | **Navigation on screen.** Hard levels (113 nodes / 201 edges, 133 / 184): wheel zooms about the pointer and both bars appear; left-drag, WASD, thumb drag, arrow clicks and track clicks all move the view, and bars and camera stay in sync. While D was held over the graph the 3D scene did not move; W with the pointer outside the panel moved the camera as before. Synthetic input, read off screenshots. |
 | 2026-11-12 | **Missing obstacles and solutions: generator side.** Checked headless on 36 runs (12 seeds each for Easy, Medium, Hard). The adapter loses nothing: markers always equal the POI count, edge labels the number of passages with conditions. In LevelGen 0.0.9 only `GraphBuilderLinear` creates solution POIs and conditions; `GraphBuilderSimple` ignores `CnfGraph.Complexity` (chosen at random for about half of the runs). Complexity is drawn from 0 up to `min(Size, Difficulty/2+1)` exclusive, so it is always 0 on Easy and sometimes 0 elsewhere. A level only has obstacles when the builder is Linear and complexity is above 0 (13 of the 24 Medium/Hard runs). |
 
 ## Session log
@@ -394,9 +409,10 @@ Filled during Phase 0 and later.
 | 2026-11-12 | 2 | Renderer, viewport, visualizer shell, ring placement, demo graph and overlay integration. Checked on screen (empty state and demo graph). Build green, 239 tests pass. | User check; Phase 3. |
 | 2026-11-12 | 3 | `LevelGraphVisAdapter` with tests; overlay shows the real level graph; demo data removed. Checked on screen with Medium and Hard levels. Build green, 253 tests pass. | User check; Phase 4. |
 | 2026-11-12 | 4 | Layout alternatives researched; stress layout + physics implemented and wired. Checked on screen with Medium and Hard levels. Build green, 267 tests pass. | User check; Phase 5. |
+| 2026-11-12 | – | Missing obstacles/solutions investigated: generator side, adapter loses nothing (Findings log). | – |
+| 2026-11-12 | 5 | Interaction, scroll range math, keyboard claim, scroll bars and input wiring. Checked on screen with Hard levels. Build green, 288 tests pass. | User check; Phase 6. |
 
 ## Further research needed
 
-- Vertical ScrollBar and two-way sync (setting Value from code while panning) – check in Phase 5.
 - Behaviour on window resize and on non-100 % display scaling – check in Phase 2 / Phase 7.
 - Baseline frame time without the canvas, to confirm the canvas costs nothing noticeable – check in Phase 2.

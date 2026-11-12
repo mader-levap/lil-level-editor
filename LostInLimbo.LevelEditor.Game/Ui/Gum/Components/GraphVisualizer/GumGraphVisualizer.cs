@@ -5,6 +5,7 @@ using Gum.GueDeriving;
 using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
+using Stride.Input;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 
@@ -33,10 +34,12 @@ public sealed class GumGraphVisualizer
   /// <summary>
   /// Creates the visualizer. Call <see cref="Build"/> to create its visuals.
   /// </summary>
+  /// <param name="isKeyDown">Reports the raw down-state of a key (for keyboard panning).</param>
   /// <param name="style">Look of the graph; null uses <see cref="GraphVisStyle.Default"/>.</param>
-  public GumGraphVisualizer(GraphVisStyle? style = null)
+  /// <exception cref="ArgumentNullException"><paramref name="isKeyDown"/> is null.</exception>
+  public GumGraphVisualizer(Func<Keys, bool> isKeyDown, GraphVisStyle? style = null)
   {
-    _viewport = new GumGraphViewport(style ?? GraphVisStyle.Default);
+    _viewport = new GumGraphViewport(style ?? GraphVisStyle.Default, isKeyDown);
   }
 
   /// <summary>Root container; null until <see cref="Build"/> is called.</summary>
@@ -92,7 +95,7 @@ public sealed class GumGraphVisualizer
   }
 
   /// <summary>
-  /// Advances the node physics. Call every frame while the visualizer is visible.
+  /// Advances the node physics and applies navigation input. Call every frame while the visualizer is visible.
   /// </summary>
   /// <param name="deltaSeconds">Elapsed time since the last frame, in seconds.</param>
   public void Update(float deltaSeconds)

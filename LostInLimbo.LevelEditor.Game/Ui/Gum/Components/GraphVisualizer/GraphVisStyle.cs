@@ -117,7 +117,10 @@ public sealed record GraphVisStyle
   /// </summary>
   public UiRgba BackgroundColor { get; init; } = new(176, 178, 184);
 
-  /// <summary>Smallest zoom factor; small enough that a graph of about a hundred nodes fits the view.</summary>
+  /// <summary>
+  /// Smallest zoom factor; small enough that a graph of about a hundred nodes fits the view. The
+  /// user cannot zoom out further than the zoom that fits the whole graph either.
+  /// </summary>
   public float MinZoom { get; init; } = 0.05f;
 
   /// <summary>Largest zoom factor.</summary>
@@ -131,6 +134,12 @@ public sealed record GraphVisStyle
 
   /// <summary>Free space kept between the graph and the viewport edges, in screen pixels.</summary>
   public float ViewPadding { get; init; } = 24f;
+
+  /// <summary>Panning speed with the keyboard, in screen pixels per second.</summary>
+  public float KeyboardPanSpeed { get; init; } = 600f;
+
+  /// <summary>How far one click on a scroll bar arrow moves the view, in screen pixels.</summary>
+  public float ScrollSmallChange { get; init; } = 40f;
 
   #endregion
 

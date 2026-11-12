@@ -43,6 +43,30 @@ public readonly record struct GraphVisBounds(Vector2 Min, Vector2 Max)
 }
 
 /// <summary>
+/// Screen axis of the graph viewport.
+/// </summary>
+public enum EnGraphVisAxis
+{
+  /// <summary>Left to right.</summary>
+  Horizontal,
+
+  /// <summary>Top to bottom.</summary>
+  Vertical,
+}
+
+/// <summary>
+/// Scroll bar values for one axis, in viewport pixels. The scroll bar minimum is always 0.
+/// </summary>
+/// <param name="Maximum">Largest value: content length minus viewport length; 0 when the graph fits.</param>
+/// <param name="ViewportSize">Viewport length (thumb size relative to the content).</param>
+/// <param name="Value">Current value: 0 when the graph's start (plus padding) is at the near edge.</param>
+public readonly record struct GraphVisScrollRange(float Maximum, float ViewportSize, float Value)
+{
+  /// <summary>Whether the graph is longer than the viewport on this axis, so a scroll bar is useful.</summary>
+  public bool IsNeeded => Maximum > 0;
+}
+
+/// <summary>
 /// View of the graph: maps world units to viewport pixels as
 /// <c>screen = world * Zoom + Translation</c>. Immutable; every operation returns a new camera.
 /// </summary>
@@ -145,6 +169,65 @@ public readonly record struct GraphVisCamera(float Zoom, Vector2 Translation)
         ClampAxis(Translation.X, bounds.Min.X, bounds.Max.X, viewportSize.X, padding),
         ClampAxis(Translation.Y, bounds.Min.Y, bounds.Max.Y, viewportSize.Y, padding)),
     };
+  }
+
+  /// <summary>
+  /// Computes scroll bar values for one axis. The content is the graph plus padding on both
+  /// sides, so the ends of the scroll range match the limits of <see cref="ClampTo"/>.
+  /// </summary>
+  /// <param name="axis">Axis.</param>
+  /// <param name="bounds">World rectangle of the graph.</param>
+  /// <param name="viewportSize">Viewport size, in pixels.</param>
+  /// <param name="padding">Free space kept at every viewport edge, in pixels.</param>
+  /// <returns>Scroll values; <see cref="GraphVisScrollRange.IsNeeded"/> is false when the graph fits.</returns>
+  public GraphVisScrollRange ScrollRange(EnGraphVisAxis axis, GraphVisBounds bounds, Vector2 viewportSize, float padding)
+  {
+    (float translation, float worldMin, float worldMax, float viewport) = AxisValues(axis, bounds, viewportSize);
+    float startAligned = padding - worldMin * Zoom;
+    float endAligned = viewport - padding - worldMax * Zoom;
+
+    float maximum = Math.Max(0f, startAligned - endAligned);
+    float value = Math.Clamp(startAligned - translation, 0f, maximum);
+    return new GraphVisScrollRange(maximum, viewport, value);
+  }
+
+  /// <summary>
+  /// Moves the view on one axis to a scroll bar value (the inverse of <see cref="ScrollRange"/>).
+  /// </summary>
+  /// <param name="axis">Axis.</param>
+  /// <param name="value">Scroll value; clamped to the scroll range.</param>
+  /// <param name="bounds">World rectangle of the graph.</param>
+  /// <param name="viewportSize">Viewport size, in pixels.</param>
+  /// <param name="padding">Free space kept at every viewport edge, in pixels.</param>
+  /// <returns>Camera moved on <paramref name="axis"/> only; unchanged when the graph fits on that axis.</returns>
+  public GraphVisCamera ScrolledTo(EnGraphVisAxis axis, float value, GraphVisBounds bounds, Vector2 viewportSize, float padding)
+  {
+    GraphVisScrollRange range = ScrollRange(axis, bounds, viewportSize, padding);
+    if (!range.IsNeeded) return this;
+
+    (_, float worldMin, _, _) = AxisValues(axis, bounds, viewportSize);
+    float translation = padding - worldMin * Zoom - Math.Clamp(value, 0f, range.Maximum);
+    return this with
+    {
+      Translation = axis == EnGraphVisAxis.Horizontal
+        ? new Vector2(translation, Translation.Y)
+        : new Vector2(Translation.X, translation),
+    };
+  }
+
+  /// <summary>
+  /// Picks the values of one axis.
+  /// </summary>
+  /// <param name="axis">Axis.</param>
+  /// <param name="bounds">World rectangle of the graph.</param>
+  /// <param name="viewportSize">Viewport size, in pixels.</param>
+  /// <returns>Translation, graph extent and viewport length on that axis.</returns>
+  private (float Translation, float WorldMin, float WorldMax, float Viewport) AxisValues(
+    EnGraphVisAxis axis, GraphVisBounds bounds, Vector2 viewportSize)
+  {
+    return axis == EnGraphVisAxis.Horizontal
+      ? (Translation.X, bounds.Min.X, bounds.Max.X, viewportSize.X)
+      : (Translation.Y, bounds.Min.Y, bounds.Max.Y, viewportSize.Y);
   }
 
   /// <summary>

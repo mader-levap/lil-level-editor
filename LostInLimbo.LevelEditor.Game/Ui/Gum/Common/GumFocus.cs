@@ -2,7 +2,7 @@ using Gum;
 using Gum.Forms.Controls;
 using Gum.Wireframe;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Common;
 
 /// <summary>
 /// Queries and pure decision helpers for Gum focus and pointer-over state, used by the
@@ -20,6 +20,21 @@ public static class GumFocus
   /// must ignore it. Used as the <c>GameInput</c> capture predicate.
   /// </summary>
   /// <returns>
+  /// <see langword="true"/> when Gum is initialized and either a control has keyboard focus
+  /// (<see cref="IsKeyboardFocused"/>) or the pointer is over an element that uses the keyboard
+  /// while hovered (<see cref="IClaimsKeyboardWhileHovered"/>); otherwise <see langword="false"/>.
+  /// </returns>
+  public static bool IsKeyboardCaptured()
+  {
+    if (!GumService.Default.IsInitialized) return false;
+    return IsKeyboardFocused() || ClaimsKeyboardWhileHovered(GumService.Default.Cursor?.VisualOver);
+  }
+
+  /// <summary>
+  /// Determines whether a Gum control has keyboard focus (typing or list navigation). Elements
+  /// that use the keyboard while hovered must not react to keys meanwhile.
+  /// </summary>
+  /// <returns>
   /// <see langword="true"/> when Gum is initialized and a text box or an open list (for
   /// example a ComboBox dropdown) receives keyboard input; otherwise <see langword="false"/>.
   /// </returns>
@@ -29,11 +44,18 @@ public static class GumFocus
   /// move the selection); it returns to null when the dropdown closes. Non-text focus (e.g. a
   /// Button) leaves it null, so gameplay keys (WASD, arrows) keep working.
   /// </remarks>
-  public static bool IsKeyboardCaptured()
+  public static bool IsKeyboardFocused()
   {
     if (!GumService.Default.IsInitialized) return false;
     return CapturesKeyboard(Classify(InteractiveGue.CurrentInputReceiver));
   }
+
+  /// <summary>
+  /// Decides whether the element under the pointer takes the keyboard away from gameplay.
+  /// </summary>
+  /// <param name="visualOver">Element under the Gum cursor, or null.</param>
+  /// <returns><see langword="true"/> when it is marked with <see cref="IClaimsKeyboardWhileHovered"/>.</returns>
+  public static bool ClaimsKeyboardWhileHovered(object? visualOver) => visualOver is IClaimsKeyboardWhileHovered;
 
   /// <summary>
   /// Classifies a Gum keyboard receiver.

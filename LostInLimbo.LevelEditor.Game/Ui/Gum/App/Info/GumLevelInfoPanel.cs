@@ -14,6 +14,7 @@ using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using Stride.Core.Diagnostics;
+using Stride.Input;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
 
@@ -61,7 +62,7 @@ public sealed class GumLevelInfoPanel : IOverlayView
   private readonly ILevelGenService _levelGenService;
 
   /// <summary>Graph visualization panel.</summary>
-  private readonly GumGraphVisualizer _graphVisualizer = new();
+  private readonly GumGraphVisualizer _graphVisualizer;
 
   /// <summary>Overlay root (full window, no events of its own).</summary>
   private ContainerRuntime? _root;
@@ -82,10 +83,13 @@ public sealed class GumLevelInfoPanel : IOverlayView
   /// Creates the panel. Call <see cref="Build"/> to create its visuals.
   /// </summary>
   /// <param name="levelGenService">Level generation service.</param>
-  /// <exception cref="ArgumentNullException"><paramref name="levelGenService"/> is null.</exception>
-  public GumLevelInfoPanel(ILevelGenService levelGenService)
+  /// <param name="isKeyDown">Reports the raw down-state of a key (keyboard panning of the graph).</param>
+  /// <exception cref="ArgumentNullException">An argument is null.</exception>
+  public GumLevelInfoPanel(ILevelGenService levelGenService, Func<Keys, bool> isKeyDown)
   {
     _levelGenService = levelGenService ?? throw new ArgumentNullException(nameof(levelGenService));
+    ArgumentNullException.ThrowIfNull(isKeyDown);
+    _graphVisualizer = new GumGraphVisualizer(isKeyDown);
   }
 
   /// <summary>Whether the overlay is currently shown.</summary>

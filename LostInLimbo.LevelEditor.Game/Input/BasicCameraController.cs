@@ -1,5 +1,5 @@
 using System;
-using LostInLimbo.LevelEditor.Ui.Gum;
+using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;

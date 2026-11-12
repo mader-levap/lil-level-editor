@@ -1,4 +1,5 @@
 using LostInLimbo.LevelEditor.Ui.Gum;
+using LostInLimbo.LevelEditor.Ui.Gum.Common;
 
 namespace LostInLimbo.LevelEditor.Tests.Ui;
 
@@ -25,6 +26,22 @@ public sealed class GumFocusTests
 
     // Assert: Text input and list navigation capture; nothing else does.
     Assert.Equal(expected, captured);
+  }
+
+  /// <summary>Stand-in for a Gum element that uses the keyboard while hovered.</summary>
+  private sealed class KeyboardClaimer : IClaimsKeyboardWhileHovered;
+
+  /// <summary>
+  /// Verifies only elements marked with <see cref="IClaimsKeyboardWhileHovered"/> take the
+  /// keyboard while the pointer is over them.
+  /// </summary>
+  [Fact]
+  public void ClaimsKeyboardWhileHovered_OnlyForMarkedElements()
+  {
+    // Act + Assert: Marked element claims; nothing under the pointer or an ordinary object does not.
+    Assert.True(GumFocus.ClaimsKeyboardWhileHovered(new KeyboardClaimer()));
+    Assert.False(GumFocus.ClaimsKeyboardWhileHovered(null));
+    Assert.False(GumFocus.ClaimsKeyboardWhileHovered(new object()));
   }
 
   /// <summary>
