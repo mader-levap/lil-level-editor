@@ -52,8 +52,8 @@ internal sealed class GraphVisRenderer : IDisposable
   /// One marker dot, ready to draw.
   /// </summary>
   /// <param name="Label">Text above the dot.</param>
-  /// <param name="OffsetX">Horizontal offset of the dot from the node center.</param>
-  private readonly record struct PreparedDot(string Label, float OffsetX);
+  /// <param name="Offset">Position of the dot's center relative to the node center.</param>
+  private readonly record struct PreparedDot(string Label, Vector2 Offset);
 
   /// <summary>
   /// One node, ready to draw.
@@ -156,13 +156,14 @@ internal sealed class GraphVisRenderer : IDisposable
       indexById[node.Id] = i;
 
       var fill = node.Color ?? _style.DefaultNodeColor;
+      float radius = GraphVisGeometry.NodeRadius(node.RelativeSize, _style);
       _nodes[i] = new PreparedNode(
-        GraphVisGeometry.NodeRadius(node.RelativeSize, _style),
+        radius,
         EditorTheme.ToSkColor(fill),
         EditorTheme.ToSkColor(GraphVisColors.Darken(fill, _style.NodeOutlineBrightness)),
         node.IsDashed,
         EditorTheme.ToSkColor(GraphVisColors.ReadableOn(fill, _style.MarkerColor, _style.MarkerColorOnDark)),
-        PrepareDots(node));
+        PrepareDots(node, radius));
     }
 
     // Several edges between the same two nodes are drawn as arcs side by side.
@@ -193,12 +194,25 @@ internal sealed class GraphVisRenderer : IDisposable
   /// Decides and places the marker dots of a node.
   /// </summary>
   /// <param name="node">Node.</param>
-  /// <returns>Dots with their horizontal offsets.</returns>
-  private PreparedDot[] PrepareDots(GraphVisNode node)
+  /// <param name="radius">Node radius.</param>
+  /// <returns>Dots with their positions relative to the node center.</returns>
+  private PreparedDot[] PrepareDots(GraphVisNode node, float radius)
   {
     IReadOnlyList<GraphVisMarkerDot> dots = GraphVisGeometry.MarkerDots(node.Markers, _style.MaxMarkersShown);
+    if (dots.Count == 0) return [];
+
     float[] widths = dots.Select(dot => _markerFont.MeasureText(dot.Label)).ToArray();
-    IReadOnlyList<float> offsets = GraphVisGeometry.MarkerOffsets(widths, _style.MarkerMinSpacing, _style.MarkerLabelGap);
+    var metrics = new GraphVisMarkerMetrics(
+      _style.MarkerRadius,
+      _style.MarkerLabelRise,
+      _markerFont.Metrics.CapHeight,
+      _style.MarkerRowGap,
+      _style.MarkerMinSpacing,
+      _style.MarkerLabelGap);
+
+    // Markers should stay clear of the outline, not only of the circle's outer edge.
+    float availableRadius = Math.Max(radius - _style.NodeOutlineWidth, _style.MarkerRadius);
+    IReadOnlyList<Vector2> offsets = GraphVisGeometry.MarkerPositions(widths, availableRadius, metrics);
 
     var prepared = new PreparedDot[dots.Count];
     for (int i = 0; i < prepared.Length; i++) prepared[i] = new PreparedDot(dots[i].Label, offsets[i]);
@@ -405,12 +419,11 @@ internal sealed class GraphVisRenderer : IDisposable
     if (node.Dots.Length == 0) return;
 
     _fill.Color = node.MarkerColor;
-    float dotY = center.Y + _style.MarkerDotDrop;
     foreach (PreparedDot dot in node.Dots)
     {
-      float dotX = center.X + dot.OffsetX;
-      canvas.DrawCircle(dotX, dotY, _style.MarkerRadius, _fill);
-      canvas.DrawText(dot.Label, dotX, dotY - _style.MarkerLabelRise, SKTextAlign.Center, _markerFont, _fill);
+      Vector2 position = center + dot.Offset;
+      canvas.DrawCircle(position.X, position.Y, _style.MarkerRadius, _fill);
+      canvas.DrawText(dot.Label, position.X, position.Y - _style.MarkerLabelRise, SKTextAlign.Center, _markerFont, _fill);
     }
   }
 

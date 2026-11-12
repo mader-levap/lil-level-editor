@@ -150,7 +150,9 @@ How level data maps onto it (done by the adapter, Phase 3):
   as arcs side by side (`ParallelEdgeSpacing` apart, symmetric around the straight line, in edge
   order); arrowheads follow the arc and the label sits at the arc's middle. A lone edge stays straight.
 - Markers: small dots inside the node with the label above each dot. More than 3 markers
-  (`GraphVisStyle.MaxMarkersShown`) collapse into one dot labelled with the count.
+  (`GraphVisStyle.MaxMarkersShown`) collapse into one dot labelled with the count. The dots are
+  arranged in rows chosen to keep dots and labels inside the circle (`GraphVisGeometry.MarkerPositions`):
+  every split into rows is scored by how far labels and dots stick out; fewer rows win ties.
 - Selection highlight for nodes and edges. With an edge selected, its `HighlightMarkerIds` dots
   and labels are highlighted; if such a marker is hidden inside a collapsed dot, that dot is highlighted.
 - Draw order: edges, nodes, markers, texts, selection on top.
@@ -376,6 +378,7 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | Scroll bars lie over the bottom and right edges of the canvas (the view padding keeps nodes clear of them) instead of shrinking it, so showing or hiding a bar never changes the viewport size. Values are written only when they changed, to spare Gum layout passes. |
 | 2026-11-12 | Scroll bars are 15 px thick (user). While both are shown, a filler in the track colour covers the bottom-right corner; it has events, so a press or the wheel there does not reach the graph. While only one is shown, it spans its whole edge. |
 | 2026-11-12 | **Parallel relationships as arcs** (user report: only one of two edges visible). Edges joining the same two nodes bend to alternating sides of the straight line (`GraphVisGeometry.ParallelEdgeBends`, `EdgeCurve`, `CurveBetweenArrows`; quadratic Bézier curves); a lone edge stays straight. Opposite directions get opposite stored signs so they still separate. Merging them into one line with a count was rejected: Phase 6 must select each relationship on its own. Layout and physics are unchanged (a doubled pair pulls a little harder). |
+| 2026-11-12 | **Marker placement** (user request; Start room of Medium seed `p8` had its outer labels jutting out). All splits of a node's markers, in order, into consecutive rows are tried (3 markers: 3, 2+1, 1+2, 1+1+1); rows are spaced by label width and height so markers cannot overlap, the block is centred, and the split whose label rectangles and dots stick out least past the node's inner edge (radius minus outline) wins, fewer rows on ties. `MarkerDotDrop` replaced by `MarkerRowGap`. Computed once per `SetGraph`. |
 | 2026-11-12 | The view still re-fits when the viewport size changes (window resize), losing the user's pan and zoom; better resize behaviour stays in Phase 7. |
 | 2026-11-12 | The simulation sleeps at 0.05 units of movement per step (was 0.02): below that, movement is invisible but takes thousands of steps to die out. |
 

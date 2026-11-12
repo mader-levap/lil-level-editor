@@ -97,8 +97,8 @@ public sealed record GraphVisStyle
   /// <summary>Distance from a marker dot's center up to the baseline of its label.</summary>
   public float MarkerLabelRise { get; init; } = 7f;
 
-  /// <summary>How far below the node center the row of marker dots sits, so dots and labels together look centered.</summary>
-  public float MarkerDotDrop { get; init; } = 5f;
+  /// <summary>Free space between two rows of markers, when a node's markers need more than one row to fit.</summary>
+  public float MarkerRowGap { get; init; } = 2f;
 
   /// <summary>Color of marker dots and their labels on bright nodes.</summary>
   public UiRgba MarkerColor { get; init; } = UiRgba.Black;

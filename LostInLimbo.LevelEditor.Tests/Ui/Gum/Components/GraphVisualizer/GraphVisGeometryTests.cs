@@ -467,4 +467,185 @@ public sealed class GraphVisGeometryTests
   }
 
   #endregion
+
+  #region Marker positions
+
+  /// <summary>Marker sizes used by the tests (close to the default style at font size 10).</summary>
+  private static readonly GraphVisMarkerMetrics MarkerMetrics = new(
+    DotRadius: 3.5f, LabelRise: 7f, LabelHeight: 7f, RowGap: 2f, MinSpacing: 12f, LabelGap: 4f);
+
+  /// <summary>Dot height of a single row centered in the node: (label height + rise − dot radius) / 2.</summary>
+  private const float SingleRowDotY = 5.25f;
+
+  /// <summary>
+  /// Computes the label rectangle of a marker.
+  /// </summary>
+  /// <param name="dot">Dot center.</param>
+  /// <param name="width">Label width.</param>
+  /// <returns>Left, top, right and bottom (baseline) of the label.</returns>
+  private static (float Left, float Top, float Right, float Bottom) LabelRect(Vector2 dot, float width)
+  {
+    float baseline = dot.Y - MarkerMetrics.LabelRise;
+    return (dot.X - width / 2f, baseline - MarkerMetrics.LabelHeight, dot.X + width / 2f, baseline);
+  }
+
+  /// <summary>
+  /// Asserts no two markers overlap: label rectangles do not intersect and no dot touches another
+  /// marker's label.
+  /// </summary>
+  /// <param name="widths">Label widths.</param>
+  /// <param name="positions">Dot centers.</param>
+  private static void AssertNoMarkerOverlap(IReadOnlyList<float> widths, IReadOnlyList<Vector2> positions)
+  {
+    for (int i = 0; i < positions.Count; i++)
+    {
+      var a = LabelRect(positions[i], widths[i]);
+      for (int j = 0; j < positions.Count; j++)
+      {
+        if (i == j) continue;
+        var b = LabelRect(positions[j], widths[j]);
+        bool labelsApart = a.Right <= b.Left || b.Right <= a.Left || a.Bottom <= b.Top || b.Bottom <= a.Top;
+        Assert.True(labelsApart, $"Labels {i} and {j} overlap.");
+
+        Vector2 dot = positions[j];
+        float r = MarkerMetrics.DotRadius;
+        bool dotApart = dot.X + r <= a.Left || dot.X - r >= a.Right || dot.Y + r <= a.Top || dot.Y - r >= a.Bottom;
+        Assert.True(dotApart, $"Dot {j} touches label {i}.");
+      }
+    }
+  }
+
+  /// <summary>
+  /// Asserts every label rectangle and dot lies inside a circle around the node center.
+  /// </summary>
+  /// <param name="widths">Label widths.</param>
+  /// <param name="positions">Dot centers.</param>
+  /// <param name="radius">Circle radius.</param>
+  private static void AssertMarkersInside(IReadOnlyList<float> widths, IReadOnlyList<Vector2> positions, float radius)
+  {
+    for (int i = 0; i < positions.Count; i++)
+    {
+      var rect = LabelRect(positions[i], widths[i]);
+      foreach (var corner in new[] { new Vector2(rect.Left, rect.Top), new Vector2(rect.Right, rect.Top), new Vector2(rect.Left, rect.Bottom), new Vector2(rect.Right, rect.Bottom) })
+      {
+        Assert.True(corner.Length() <= radius + Tolerance, $"Label {i} sticks out at {corner}.");
+      }
+      Assert.True(positions[i].Length() + MarkerMetrics.DotRadius <= radius + Tolerance, $"Dot {i} sticks out.");
+    }
+  }
+
+  /// <summary>
+  /// Verifies no markers give no positions.
+  /// </summary>
+  [Fact]
+  public void MarkerPositions_WithoutMarkers_IsEmpty()
+  {
+    // Act + Assert: Nothing to place.
+    Assert.Empty(GraphVisGeometry.MarkerPositions([], 40f, MarkerMetrics));
+  }
+
+  /// <summary>
+  /// Verifies a single marker is centered: dot and label together are centered on the node.
+  /// </summary>
+  [Fact]
+  public void MarkerPositions_SingleMarker_IsCentered()
+  {
+    // Act: One marker.
+    Vector2 position = Assert.Single(GraphVisGeometry.MarkerPositions([30f], 40f, MarkerMetrics));
+
+    // Assert: Horizontally centered, dot slightly below the center so the block is centered.
+    AssertClose(new Vector2(0f, SingleRowDotY), position);
+  }
+
+  /// <summary>
+  /// Verifies a single label wider than the node is still placed centered (there is no better place).
+  /// </summary>
+  [Fact]
+  public void MarkerPositions_SingleWideLabel_StaysCentered()
+  {
+    // Act: A 100 wide label in a node with radius 10.
+    Vector2 position = Assert.Single(GraphVisGeometry.MarkerPositions([100f], 10f, MarkerMetrics));
+
+    // Assert: Same as any single marker.
+    AssertClose(new Vector2(0f, SingleRowDotY), position);
+  }
+
+  /// <summary>
+  /// Verifies markers that fit side by side keep the single horizontal row.
+  /// </summary>
+  [Fact]
+  public void MarkerPositions_FittingMarkers_StayInOneRow()
+  {
+    // Arrange: Three short labels in a large node.
+    float[] widths = [20f, 30f, 20f];
+
+    // Act: Place them.
+    IReadOnlyList<Vector2> positions = GraphVisGeometry.MarkerPositions(widths, 100f, MarkerMetrics);
+
+    // Assert: One row at the single-row height, spaced exactly like MarkerOffsets.
+    IReadOnlyList<float> expectedX = GraphVisGeometry.MarkerOffsets(widths, MarkerMetrics.MinSpacing, MarkerMetrics.LabelGap);
+    for (int i = 0; i < widths.Length; i++) AssertClose(new Vector2(expectedX[i], SingleRowDotY), positions[i]);
+  }
+
+  /// <summary>
+  /// Verifies markers that jut out of the node in one row are rearranged into rows that fit,
+  /// without overlapping. The first case is the Start room of Medium seed "p8" ("Start",
+  /// "Solution", "Goal" in a node of radius 44 minus its outline).
+  /// </summary>
+  /// <param name="first">Width of the first label.</param>
+  /// <param name="second">Width of the second label.</param>
+  /// <param name="third">Width of the third label (0: only two markers).</param>
+  /// <param name="radius">Available radius.</param>
+  [Theory]
+  [InlineData(24f, 38f, 21f, 40f)]
+  [InlineData(40f, 40f, 0f, 30f)]
+  [InlineData(30f, 20f, 30f, 36f)]
+  public void MarkerPositions_TooWideForOneRow_RearrangeToFit(float first, float second, float third, float radius)
+  {
+    // Arrange: Two or three labels.
+    float[] widths = third > 0 ? [first, second, third] : [first, second];
+
+    // Act: Place them.
+    IReadOnlyList<Vector2> positions = GraphVisGeometry.MarkerPositions(widths, radius, MarkerMetrics);
+
+    // Assert: More than one row, everything inside the circle, nothing overlapping.
+    Assert.True(positions.Select(p => p.Y).Distinct().Count() > 1, "Markers stayed in one row.");
+    AssertMarkersInside(widths, positions, radius);
+    AssertNoMarkerOverlap(widths, positions);
+  }
+
+  /// <summary>
+  /// Verifies markers never overlap, even when nothing can make them fit.
+  /// </summary>
+  /// <param name="radius">Available radius.</param>
+  [Theory]
+  [InlineData(8f)]
+  [InlineData(18f)]
+  [InlineData(60f)]
+  public void MarkerPositions_AnyNodeSize_MarkersDoNotOverlap(float radius)
+  {
+    // Arrange: Three labels of mixed width.
+    float[] widths = [24f, 60f, 21f];
+
+    // Act: Place them.
+    IReadOnlyList<Vector2> positions = GraphVisGeometry.MarkerPositions(widths, radius, MarkerMetrics);
+
+    // Assert: One position per marker, no overlaps.
+    Assert.Equal(widths.Length, positions.Count);
+    AssertNoMarkerOverlap(widths, positions);
+  }
+
+  /// <summary>
+  /// Verifies invalid arguments are rejected.
+  /// </summary>
+  [Fact]
+  public void MarkerPositions_WithInvalidArguments_Throws()
+  {
+    // Act + Assert: Null widths, non-positive or infinite radius.
+    Assert.Throws<ArgumentNullException>(() => GraphVisGeometry.MarkerPositions(null!, 40f, MarkerMetrics));
+    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisGeometry.MarkerPositions([10f], 0f, MarkerMetrics));
+    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisGeometry.MarkerPositions([10f], float.NaN, MarkerMetrics));
+  }
+
+  #endregion
 }

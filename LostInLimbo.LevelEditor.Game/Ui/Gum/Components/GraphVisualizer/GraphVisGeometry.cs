@@ -69,11 +69,32 @@ public readonly record struct GraphVisArrowHead(Vector2 Tip, Vector2 BaseLeft, V
 public sealed record GraphVisMarkerDot(string Label, IReadOnlyList<string> MarkerIds, bool IsCollapsed);
 
 /// <summary>
+/// Sizes that decide how marker dots and their labels are arranged inside a node.
+/// </summary>
+/// <param name="DotRadius">Radius of a marker dot.</param>
+/// <param name="LabelRise">Distance from a dot's center up to the baseline of its label.</param>
+/// <param name="LabelHeight">Height of a label above its baseline (cap height of the font).</param>
+/// <param name="RowGap">Free space between two rows of markers.</param>
+/// <param name="MinSpacing">Smallest distance between the centers of two neighbouring dots in a row.</param>
+/// <param name="LabelGap">Free space kept between two neighbouring labels in a row.</param>
+public readonly record struct GraphVisMarkerMetrics(
+  float DotRadius, float LabelRise, float LabelHeight, float RowGap, float MinSpacing, float LabelGap);
+
+/// <summary>
 /// Pure geometry of the graph visualizer: node radii, edge lines between node borders,
 /// arrowheads and marker placement. Works in any consistent unit (world units or pixels).
 /// </summary>
 public static class GraphVisGeometry
 {
+  /// <summary>
+  /// Most markers for which every split into rows is tried; more are laid out in one row. The
+  /// number of splits doubles with every marker, and nodes show only a few markers anyway.
+  /// </summary>
+  private const int MaxMarkersForRowSearch = 8;
+
+  /// <summary>Scores closer than this count as equal, so the layout with fewer rows wins.</summary>
+  private const float MarkerScoreEpsilon = 0.01f;
+
   /// <summary>
   /// Computes a node's radius. The circle area (not the radius) grows with the relative size, so
   /// a node four times as big looks four times as big.
@@ -300,5 +321,149 @@ public static class GraphVisGeometry
     float shift = offsets[^1] / 2f;
     for (int i = 0; i < offsets.Length; i++) offsets[i] -= shift;
     return offsets;
+  }
+
+  /// <summary>
+  /// Arranges the marker dots of a node so that dots and labels stay inside the node as far as
+  /// possible, without overlapping each other.
+  /// </summary>
+  /// <param name="labelWidths">Measured width of each dot's label, in display order.</param>
+  /// <param name="availableRadius">Radius of the area markers should stay inside (node radius minus its outline).</param>
+  /// <param name="metrics">Sizes of dots, labels and gaps.</param>
+  /// <returns>Center of each dot relative to the node center, in display order; empty without markers.</returns>
+  /// <remarks>
+  /// <para>Every split of the markers, in their order, into consecutive rows is tried: one row,
+  /// two rows (2 + 1 or 1 + 2 for three markers), one marker per row, and so on. Within a row the
+  /// dots are spaced by <see cref="MarkerOffsets"/> and centered; rows are stacked so a label never
+  /// reaches the dots of the row above, and the whole block is centered vertically.</para>
+  /// <para>Each layout is scored by how far its label rectangles and dots stick out past
+  /// <paramref name="availableRadius"/>; the lowest score wins, and among equal scores the layout
+  /// with fewer rows. A node whose markers fit in one row therefore keeps that row.</para>
+  /// </remarks>
+  /// <exception cref="ArgumentNullException"><paramref name="labelWidths"/> is null.</exception>
+  /// <exception cref="ArgumentOutOfRangeException"><paramref name="availableRadius"/> is not positive and finite.</exception>
+  public static IReadOnlyList<Vector2> MarkerPositions(
+    IReadOnlyList<float> labelWidths, float availableRadius, GraphVisMarkerMetrics metrics)
+  {
+    ArgumentNullException.ThrowIfNull(labelWidths);
+    if (!float.IsFinite(availableRadius) || availableRadius <= 0)
+      throw new ArgumentOutOfRangeException(nameof(availableRadius), availableRadius, "Available radius must be positive and finite.");
+    if (labelWidths.Count == 0) return [];
+
+    Vector2[] best = []; // replaced by the first split, whose score is always finite
+    float bestScore = float.PositiveInfinity;
+    foreach (int[] rowSizes in RowSplits(labelWidths.Count))
+    {
+      Vector2[] positions = LayOutRows(labelWidths, rowSizes, metrics);
+      float score = MarkerOverflow(labelWidths, positions, availableRadius, metrics);
+
+      // Splits come with fewer rows first, so only a clearly better score replaces the best.
+      if (score < bestScore - MarkerScoreEpsilon)
+      {
+        best = positions;
+        bestScore = score;
+      }
+    }
+
+    return best;
+  }
+
+  /// <summary>
+  /// Lists the ways to split markers, in their order, into consecutive rows.
+  /// </summary>
+  /// <param name="count">Number of markers (at least 1).</param>
+  /// <returns>Row sizes of each split, ordered by number of rows (one row first).</returns>
+  private static IEnumerable<int[]> RowSplits(int count)
+  {
+    if (count > MaxMarkersForRowSearch) return [[count]];
+
+    // Each of the count - 1 gaps between neighbouring markers either starts a new row or not.
+    var splits = new List<int[]>();
+    int gaps = count - 1;
+    for (int mask = 0; mask < 1 << gaps; mask++)
+    {
+      var sizes = new List<int>();
+      int size = 1;
+      for (int gap = 0; gap < gaps; gap++)
+      {
+        if ((mask & (1 << gap)) != 0)
+        {
+          sizes.Add(size);
+          size = 1;
+        }
+        else
+        {
+          size++;
+        }
+      }
+      sizes.Add(size);
+      splits.Add([.. sizes]);
+    }
+
+    // Stable sort keeps the order within the same row count deterministic.
+    return splits.OrderBy(split => split.Length);
+  }
+
+  /// <summary>
+  /// Places markers in rows of the given sizes: rows centered horizontally, block centered vertically.
+  /// </summary>
+  /// <param name="labelWidths">Label widths, in display order.</param>
+  /// <param name="rowSizes">Number of markers in each row, top to bottom.</param>
+  /// <param name="metrics">Sizes of dots, labels and gaps.</param>
+  /// <returns>Dot centers relative to the node center.</returns>
+  private static Vector2[] LayOutRows(IReadOnlyList<float> labelWidths, int[] rowSizes, GraphVisMarkerMetrics metrics)
+  {
+    // One row spans from the top of its labels to the bottom of its dots.
+    float rowHeight = metrics.LabelHeight + metrics.LabelRise + metrics.DotRadius;
+    float blockHeight = rowSizes.Length * rowHeight + (rowSizes.Length - 1) * metrics.RowGap;
+    float rowTop = -blockHeight / 2f;
+
+    var positions = new Vector2[labelWidths.Count];
+    int first = 0;
+    foreach (int rowSize in rowSizes)
+    {
+      float dotY = rowTop + metrics.LabelHeight + metrics.LabelRise;
+      float[] rowWidths = Enumerable.Range(first, rowSize).Select(i => labelWidths[i]).ToArray();
+      IReadOnlyList<float> offsets = MarkerOffsets(rowWidths, metrics.MinSpacing, metrics.LabelGap);
+      for (int i = 0; i < rowSize; i++) positions[first + i] = new Vector2(offsets[i], dotY);
+
+      first += rowSize;
+      rowTop += rowHeight + metrics.RowGap;
+    }
+
+    return positions;
+  }
+
+  /// <summary>
+  /// Measures how far markers stick out of a circle: for every marker, how far each corner of its
+  /// label rectangle and the outer edge of its dot lie beyond the radius, summed up. A rectangle
+  /// whose corners are all inside a circle is entirely inside, so 0 means everything fits.
+  /// </summary>
+  /// <param name="labelWidths">Label widths, in display order.</param>
+  /// <param name="positions">Dot centers relative to the node center.</param>
+  /// <param name="radius">Radius markers should stay inside.</param>
+  /// <param name="metrics">Sizes of dots and labels.</param>
+  /// <returns>Total overflow (0 when everything is inside).</returns>
+  private static float MarkerOverflow(
+    IReadOnlyList<float> labelWidths, IReadOnlyList<Vector2> positions, float radius, GraphVisMarkerMetrics metrics)
+  {
+    float overflow = 0;
+    for (int i = 0; i < positions.Count; i++)
+    {
+      Vector2 dot = positions[i];
+      float halfWidth = labelWidths[i] / 2f;
+      float baseline = dot.Y - metrics.LabelRise;
+      float top = baseline - metrics.LabelHeight;
+
+      overflow += Beyond(new Vector2(dot.X - halfWidth, top), radius);
+      overflow += Beyond(new Vector2(dot.X + halfWidth, top), radius);
+      overflow += Beyond(new Vector2(dot.X - halfWidth, baseline), radius);
+      overflow += Beyond(new Vector2(dot.X + halfWidth, baseline), radius);
+      overflow += Math.Max(0f, dot.Length() + metrics.DotRadius - radius);
+    }
+
+    return overflow;
+
+    static float Beyond(Vector2 point, float limit) => Math.Max(0f, point.Length() - limit);
   }
 }
