@@ -13,6 +13,7 @@ using LostInLimbo.LevelEditor.Ui.Gum.Editor;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
+using Stride.Core.Diagnostics;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
 
@@ -29,6 +30,9 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
 /// </remarks>
 public sealed class GumLevelInfoPanel : IOverlayView
 {
+  /// <summary>Logger for this class.</summary>
+  private static readonly Logger Log = GlobalLogger.GetLogger(nameof(GumLevelInfoPanel));
+
   /// <summary>Padding inside the card, in pixels.</summary>
   private const float PanelPadding = 12;
 
@@ -213,12 +217,36 @@ public sealed class GumLevelInfoPanel : IOverlayView
 
     _shownResult = status.Result;
 
-    // TEMPORARY (Phase 2 of GRAPH_VISUALIZATION.md): a demo graph stands in for the level graph.
-    _graphVisualizer.SetGraph(world == null ? null : GraphVisDemoData.Create());
+    _graphVisualizer.SetGraph(ConvertGraph(world));
 
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(status.Result, status.FailureReason, facts);
     if (rows.SequenceEqual(_shownRows)) return; // nothing to redraw
     ShowRows(rows);
+  }
+
+  /// <summary>
+  /// Translates the world's graph for the visualizer.
+  /// </summary>
+  /// <param name="world">World, or null if none is available.</param>
+  /// <returns>
+  /// Graph to show; null when there is no world or its graph is malformed (logged), so the
+  /// visualizer shows that no graph is available.
+  /// </returns>
+  private static GraphVisData? ConvertGraph(LilWorld? world)
+  {
+    if (world == null) return null;
+
+    try
+    {
+      return LevelGraphVisAdapter.Convert(world.Graph);
+    }
+    catch (ArgumentException exception)
+    {
+      // A graph the generator left inconsistent (for example after a failed run) cannot be
+      // drawn; the overlay must still open, so report it and show no graph.
+      Log.Error($"Level graph cannot be visualized: {exception.Message}");
+      return null;
+    }
   }
 
   /// <summary>

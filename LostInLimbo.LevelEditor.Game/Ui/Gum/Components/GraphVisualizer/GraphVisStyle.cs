@@ -120,8 +120,8 @@ public sealed record GraphVisStyle
   /// <summary>Free space kept between two neighbouring nodes by the layout.</summary>
   public float NodeGap { get; init; } = 30f;
 
-  /// <summary>Smallest zoom factor.</summary>
-  public float MinZoom { get; init; } = 0.2f;
+  /// <summary>Smallest zoom factor; small enough that a graph of about a hundred nodes fits the view.</summary>
+  public float MinZoom { get; init; } = 0.05f;
 
   /// <summary>Largest zoom factor.</summary>
   public float MaxZoom { get; init; } = 4f;

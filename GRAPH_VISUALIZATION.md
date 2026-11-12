@@ -8,17 +8,17 @@ section, the phase checklists and the logs at the end of every session so work c
 
 | Item | Value |
 |---|---|
-| Active phase | Phase 2 (awaiting verification) |
-| Last finished phase | Phase 1 |
+| Active phase | Phase 3 (awaiting verification) |
+| Last finished phase | Phase 2 |
 | Blockers | none |
-| Next action | User checks the demo graph and the empty state in the info overlay; then start Phase 3 |
+| Next action | User generates levels and checks the real graphs in the info overlay; then start Phase 4 |
 
 | Phase | Title | Status |
 |---|---|---|
 | 0 | Research spikes | done |
 | 1 | Data model and pure helpers | done |
-| 2 | Component shell and static rendering | awaiting verification |
-| 3 | LevelGen adapter and overlay integration | not started |
+| 2 | Component shell and static rendering | done |
+| 3 | LevelGen adapter and overlay integration | awaiting verification |
 | 4 | Layout simulation | not started |
 | 5 | Navigation | not started |
 | 6 | Selection, dragging and data panel | not started |
@@ -246,11 +246,11 @@ and the "No graph data available" state.
 
 ### Phase 3 – LevelGen adapter and overlay integration
 
-- [ ] `LevelGraphVisAdapter.cs` with tests (mapping table above, including POI name fallback and
+- [x] `LevelGraphVisAdapter.cs` with tests (mapping table above, including POI name fallback and
       conditions pointing at markers).
-- [ ] `GumLevelInfoPanel` converts the world graph on result change only and calls `SetGraph`;
+- [x] `GumLevelInfoPanel` converts the world graph on result change only and calls `SetGraph`;
       demo graph removed (`GraphVisDemoData.cs` and the `TEMPORARY` line in `GumLevelInfoPanel.Refresh`).
-- [ ] Group colours wired through the adapter.
+- [x] Group colours wired through the adapter.
 
 **Verify:** user generates several levels and sees real graphs (still with the simple placement).
 
@@ -329,6 +329,10 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | Zoom scales everything, text and line widths included (the canvas is scaled, not the coordinates). |
 | 2026-11-12 | Until Phase 5 the view re-fits whenever the graph or the viewport size changes (also covers window resize). |
 | 2026-11-12 | Overlay layout: upper 45 % of the window holds the info card (centred), lower 55 % the graph panel at 80 % width. |
+| 2026-11-12 | Adapter: a malformed level graph makes `GraphVisData` throw; `GumLevelInfoPanel` logs the error and shows "No graph data available" (nothing is repaired or filtered). A non-positive `RelSize` is drawn at the smallest size, with the real value kept in the properties. |
+| 2026-11-12 | Adapter: properties are added in display order (id, size, flags, group, POIs, reach data / ends, direction, flags, conditions); POIs in conditions and reach data are shown by name. The data panel (Phase 6) should keep that order. |
+| 2026-11-12 | `MinZoom` lowered from 0.2 to 0.05 so a ring of about a hundred nodes still fits the view. |
+| 2026-11-12 | The graph is converted on every overlay refresh (on show and on result change), so reopening the overlay restarts the layout (open decision 5). |
 
 ## Findings log
 
@@ -347,6 +351,7 @@ Filled during Phase 0 and later.
 | 2026-11-12 | **Load.** 200 circles with outlines, 200 lines (a quarter dashed) and 200 texts, all moving: about 1.8 ms per render in a Debug build, creating paints and fonts every frame. No fallback needed. Frame time was about 18 ms with the spike; the baseline without it was not measured. |
 | 2026-11-12 | **Design note for Phase 2.** Marker labels of neighbouring dots overlap ("Start" / "Red Key" ran together at 10 px); marker placement must space dots by label width or stagger labels. |
 | 2026-11-12 | **Method note.** Input findings come from synthetic mouse/keyboard input sent to the running app and read off screenshots, not from a person using it. |
+| 2026-11-12 | **Real data.** Easy gave 2 nodes / 1 edge, Medium 48 / 91, Hard 93 / 134 (one seed each). All nodes of those levels were in a single group. On the ring, most edges join ring neighbours (nodes arrive in generation order). At the fitted zoom of such graphs (about 0.2) labels are unreadable; that is for Phases 4 and 5 to solve. |
 
 ## Session log
 
@@ -356,6 +361,7 @@ Filled during Phase 0 and later.
 | 2026-11-12 | 0 | Spike panel built (`Spike/GraphVisSpike.cs`), run and measured; findings and decisions recorded. Build and 146 tests green. | User verification; remove spike; Phase 1. |
 | 2026-11-12 | 1 | Spike removed. Model, style, colours, camera and geometry written with tests. Build green, 224 tests pass. | User review; Phase 2. |
 | 2026-11-12 | 2 | Renderer, viewport, visualizer shell, ring placement, demo graph and overlay integration. Checked on screen (empty state and demo graph). Build green, 239 tests pass. | User check; Phase 3. |
+| 2026-11-12 | 3 | `LevelGraphVisAdapter` with tests; overlay shows the real level graph; demo data removed. Checked on screen with Medium and Hard levels. Build green, 253 tests pass. | User check; Phase 4. |
 
 ## Further research needed
 
