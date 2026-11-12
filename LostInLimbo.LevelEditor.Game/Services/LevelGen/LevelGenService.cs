@@ -58,12 +58,12 @@ public interface ILevelGenService
   public LilWorld? World();
 
   /// <summary>
-  /// Get the text seed of the current or last run, as given in <see cref="PropMain.TextSeed"/>
-  /// when the run was started from scratch (a resumed run keeps it).
+  /// Get the properties and generated configuration of the current or last run, as they were
+  /// when the run was started from scratch (a resumed run keeps them).
   /// </summary>
-  /// <returns>Text seed; null or empty means a time-based seed, or that no run was started (or it was cleared).</returns>
+  /// <returns>Run inputs, or null if no run was started (or the session was cleared).</returns>
   /// <remarks>The numeric seed actually used is <see cref="GenerationStatus.Seed"/>.</remarks>
-  string? TextSeed();
+  LevelGenRunInputs? RunInputs();
 }
 
 /// <summary>
@@ -74,8 +74,8 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   /// <summary>Level generation session.</summary>
   private readonly LevelGenSession _levelGenSession = new();
 
-  /// <summary>Text seed of the run last started from scratch; null after <see cref="Clear"/>.</summary>
-  private string? _textSeed;
+  /// <summary>Properties and configuration of the run last started from scratch; null before the first run and after <see cref="Clear"/>.</summary>
+  private LevelGenRunInputs? _runInputs;
 
   #region Main methods
 
@@ -143,7 +143,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
 
     // Zero timeout: never wait. A non-running session has no run in flight, so it clears at once.
     bool cleared = _levelGenSession.Clear(TimeSpan.Zero);
-    if (cleared) _textSeed = null;
+    if (cleared) _runInputs = null;
     return cleared;
   }
 
@@ -170,13 +170,13 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   }
 
   /// <summary>
-  /// Get the text seed of the current or last run, as given in <see cref="PropMain.TextSeed"/>
-  /// when the run was started from scratch (a resumed run keeps it).
+  /// Get the properties and generated configuration of the current or last run, as they were
+  /// when the run was started from scratch (a resumed run keeps them).
   /// </summary>
-  /// <returns>Text seed; null or empty means a time-based seed, or that no run was started (or it was cleared).</returns>
-  public string? TextSeed()
+  /// <returns>Run inputs, or null if no run was started (or the session was cleared).</returns>
+  public LevelGenRunInputs? RunInputs()
   {
-    return _textSeed;
+    return _runInputs;
   }
 
   #endregion
@@ -211,7 +211,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     }
     else
     {
-      _textSeed = props.TextSeed;
+      _runInputs = new LevelGenRunInputs(props, config);
     }
     return started;
   }

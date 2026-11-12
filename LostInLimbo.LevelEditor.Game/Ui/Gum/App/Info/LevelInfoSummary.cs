@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
 using LostInLimbo.LevelGen.Data.Result.Stats;
 using LostInLimbo.LevelGen.Data.Status;
@@ -18,12 +19,15 @@ public sealed record LevelInfoRow(string Label, string Value);
 /// library's world by the panel, so the formatting stays testable without building a world.
 /// </summary>
 /// <param name="Phase">Generation phase the world is in.</param>
-/// <param name="TextSeed">Text seed the run was started with; null or empty means a time-based seed.</param>
+/// <param name="RunInputs">
+/// Properties and generated configuration the run was started with, source of the run settings
+/// the card shows (for now the text seed); null if unknown (for example after a clear).
+/// </param>
 /// <param name="NumericSeed">Numeric seed the library actually used (reproduces the run).</param>
 /// <param name="Nodes">Graph node count.</param>
 /// <param name="Edges">Graph edge count.</param>
 /// <param name="Steps">Map generation steps.</param>
-public sealed record LevelWorldFacts(EnPhase Phase, string? TextSeed, long NumericSeed, int Nodes, int Edges, long Steps);
+public sealed record LevelWorldFacts(EnPhase Phase, LevelGenRunInputs? RunInputs, long NumericSeed, int Nodes, int Edges, long Steps);
 
 /// <summary>
 /// Builds the rows of the level information card.
@@ -65,7 +69,7 @@ public static class LevelInfoSummary
     }
 
     rows.Add(new("Phase:", world.Phase.ToString()));
-    rows.Add(new("Text seed:", LevelGenSeedFormat.TextSeed(world.TextSeed)));
+    rows.Add(new("Text seed:", LevelGenSeedFormat.TextSeed(world.RunInputs?.Props.TextSeed)));
     rows.Add(new("Numeric seed:", world.NumericSeed.ToString(CultureInfo.InvariantCulture)));
     rows.Add(new("Graph nodes:", world.Nodes.ToString()));
     rows.Add(new("Graph edges:", world.Edges.ToString()));

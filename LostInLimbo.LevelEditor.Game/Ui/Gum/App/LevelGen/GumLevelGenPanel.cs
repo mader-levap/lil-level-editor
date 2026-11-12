@@ -215,7 +215,7 @@ public sealed class GumLevelGenPanel : IOverlayView
     LilWorld? world = _levelGenService.World();
     _statusLog.Add(LevelGenStatusMessages.ForOutcome(
       status.Result,
-      _levelGenService.TextSeed(),
+      _levelGenService.RunInputs()?.Props.TextSeed,
       world?.Graph.Nodes.Count ?? 0,
       world?.Graph.Edges.Count ?? 0,
       world?.Stats.Steps ?? 0,

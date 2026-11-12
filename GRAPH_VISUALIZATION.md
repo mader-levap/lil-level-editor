@@ -8,10 +8,10 @@ section, the phase checklists and the logs at the end of every session so work c
 
 | Item | Value |
 |---|---|
-| Active phase | Phase 7 (awaiting verification) |
-| Last finished phase | Phase 6 |
+| Active phase | none (feature complete) |
+| Last finished phase | Phase 7 |
 | Blockers | none |
-| Next action | User does a full pass over the feature (including window resize); then the feature is done |
+| Next action | none; open research items below remain |
 
 | Phase | Title | Status |
 |---|---|---|
@@ -22,7 +22,7 @@ section, the phase checklists and the logs at the end of every session so work c
 | 4 | Layout (stress) and live physics | done |
 | 5 | Navigation | done |
 | 6 | Selection, dragging and data panel | done |
-| 7 | Polish and cleanup | awaiting verification |
+| 7 | Polish and cleanup | done |
 
 Statuses: `not started`, `in progress`, `awaiting verification`, `done`.
 
@@ -406,7 +406,7 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | Default edge colour is dark gray (RGB 70, the same as secret edges) instead of black (user), so the hover brightening shows: a hovered edge goes to RGB 106 (checked by pixel sampling). Secret edges remain distinguishable by their dashes. |
 | 2026-11-12 | **Window resize** (Phase 7). `GraphVisInteraction.IsFitted` is true after `FitView` (new graph) until the user pans, zooms or scrolls (clicks and node drags keep it). On a viewport size change `ResizeView` fits again while fitted; otherwise it keeps the zoom and the world point at the viewport centre, then clamps. |
 | 2026-11-12 | **Cleanup** (Phase 7). Replacing the graph resets interaction (selection, hover, gesture, pin), highlight fade and data panel; Skia paths are created per draw in `using` blocks, paints and fonts live with the renderer. `GumGraphViewport`, `GumGraphVisualizer` and `GumLevelInfoPanel` are `IDisposable` (renderer disposed, canvas hidden); `UiMain.Cancel` disposes the info panel. Hiding the overlay stops updates and the hidden canvas stops claiming the keyboard; showing it again converts the graph anew, which resets all state. |
-| 2026-11-12 | **Data panel width** (user). 25 % of the visualizer width, kept between 260 px and 520 px (double); computed each frame by `GumGraphVisualizer.DataPanelWidthFor` (tested), written only on whole-pixel changes, and the shown properties are laid out again for the new width. Widths are Gum units: when maximizing only stretches the rendered image (seen here: everything scaled, same proportions), Gum's width does not change and the panel stays at its minimum. |
+| 2026-11-12 | **Data panel width** (user). 25 % of the visualizer width, kept between 260 px and 520 px (double); computed each frame by `GumGraphVisualizer.DataPanelWidthFor` (tested), written only on whole-pixel changes, and the shown properties are laid out again for the new width. Confirmed by the user: the panel widens with the window. (A screenshot taken right after maximizing showed the old layout stretched: the engine rescales the UI about half a second after a resize.) |
 
 ## Findings log
 
@@ -448,7 +448,7 @@ Filled during Phase 0 and later.
 | 2026-11-12 | – | Missing obstacles/solutions investigated: generator side, adapter loses nothing (Findings log). | – |
 | 2026-11-12 | 5 | Interaction, scroll range math, keyboard claim, scroll bars and input wiring. Checked on screen with Hard levels. Fixes after user review: scroll bar size and squares, corner filler, parallel arcs, marker rows. Build green, 309 tests pass. | Verified by user; Phase 6. |
 | 2026-11-12 | 6 | Hit test, selection and node dragging, highlights, data panel. Checked on screen with Medium `p8`. Build green, 324 tests pass. Follow-ups after user review: panel scroll bar 15 px, single-row pairs, smaller font, indented items, hover highlight with fade, dark gray edges (341 tests). | Verified by user; Phase 7. |
-| 2026-11-12 | 7 | Review, resize behaviour, disposal chain, AGENTS.md conventions. Compiles, 344 tests pass. | User full pass. |
+| 2026-11-12 | 7 | Review, resize behaviour, disposal chain, AGENTS.md conventions; proportional data panel width (user). Build green, 351 tests pass. Resize and panel width confirmed by user. | Feature complete. |
 
 ## Further research needed
 

@@ -133,6 +133,11 @@ Reference implementation: `LostInLimbo.LevelEditor.Game/BasicCameraController.cs
 - Use `Game.UpdateTime.Elapsed` for frame-rate-independent movement, as `BasicCameraController` does.
 - Runtime-generated content must be cleaned up when it is replaced or unloaded (no leaked entities/components when regenerating a chunk).
 
+### Documentation
+
+- Code should be well-commented.
+- Add XML documentation comments to all classes, types and members. Exception: overridden methods.
+
 ## Stride engine
 
 ### General
@@ -167,7 +172,7 @@ If our own custom components are needed, place them in `/Ui/Gum/Components/<name
 
 ### Component conventions
 
-Reference implementation: `Ui/Gum/Components/GraphVisualizer/` (see `GRAPH_VISUALIZATION.md`).
+Reference implementation: `Ui/Gum/Components/GraphVisualizer/`.
 
 - Split a component into plain, engine-free logic (geometry, layout, state machines fed a per-frame input record) with tests, and a thin Gum shell (`Gum*` classes) that only reads Gum/Stride and draws.
 - Components know only their own generic model; callers translate app data with an adapter in `Ui/Gum/App/` (e.g. `LevelGraphVisAdapter`).
@@ -175,7 +180,7 @@ Reference implementation: `Ui/Gum/Components/GraphVisualizer/` (see `GRAPH_VISUA
 - Poll pointer input from `GumService.Default.Cursor` each frame; `Cursor.VisualOver == element` is the "pointer over" test. An element that uses keys while hovered implements `IClaimsKeyboardWhileHovered`.
 - Scroll bars: use `GumScrollBarSizing.ApplyThickness` (15 px, square arrow buttons) for standalone `ScrollBar`s and for a `ScrollViewer`'s `VerticalScrollBar`.
 
-### Tests
+## Tests
 
 Tests reference the Game project directly (`ProjectReference`); Stride packages flow transitively. The Stride asset compiler does not run for test builds (it is gated on executable projects), so tests only need the compiled assemblies.
 
@@ -184,14 +189,17 @@ Rules:
 - If a bug is known, create a test first, run it to make sure the test catches the bug, then fix the bug.
 - Comment tests. Use Arrange/Act/Assert convention, for example `// Assert: Value is correct.`
 
-### Documentation
+### Live testing
 
-- Code should be well-commented.
-- Add XML documentation comments to all classes, types and members. Exception: overridden methods.
+You can do live testing (opening app on your own and doing app tests), but ask for permission first before hijacking mouse/keyboard. Permission lasts until end of session or revocation.
 
-### Other
+Notes and quirks:
+- After starting app wait for 5 seconds. App starts quickly.
+- Window resize is janky (and sometimes outright buggy). Wait second or so after resize before taking screenshot.
 
-- **Never commit or push.** The user reviews and commits manually.
+## Other
+
+- **Never commit or push.** The user reviews and commits manually. Human has last word.
 
 ## When uncertain
 

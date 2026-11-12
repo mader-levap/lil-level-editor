@@ -224,7 +224,7 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
       ? null
       : new LevelWorldFacts(
           world.Phase,
-          _levelGenService.TextSeed(),
+          _levelGenService.RunInputs(),
           status.Seed,
           world.Graph.Nodes.Count,
           world.Graph.Edges.Count,
