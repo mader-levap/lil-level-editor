@@ -61,7 +61,9 @@ public sealed class LostInLimboEditor : Game
     Services.AddService(new GameInput(
       hasKeyboard: () => Services.GetService<InputManager>()?.HasKeyboard ?? false,
       isKeyDown: key => Services.GetService<InputManager>()?.IsKeyDown(key) ?? false,
-      isKeyboardCaptured: GumFocus.IsKeyboardCaptured));
+      // SPIKE(graph-vis): the graph canvas owns the keyboard while the pointer is over it.
+      isKeyboardCaptured: () => GumFocus.IsKeyboardCaptured()
+        || Ui.Gum.Components.GraphVisualizer.Spike.GraphVisSpike.IsPointerOverCanvas));
   }
 
   /// <summary>

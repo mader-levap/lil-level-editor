@@ -3,6 +3,7 @@ using Gum;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Spike; // SPIKE(graph-vis)
 using LostInLimbo.LevelEditor.Ui.Gum.Editor;
 using LostInLimbo.LevelEditor.Ui.Gum.Info;
 using LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
@@ -47,7 +48,11 @@ public sealed class UiMain : SyncScript
 
     _gumLevelGenPanel?.Update((float)Game.UpdateTime.Elapsed.TotalSeconds);
     _gumLevelInfoPanel?.Update();
+    _graphVisSpike?.Update((float)Game.UpdateTime.Elapsed.TotalSeconds); // SPIKE(graph-vis)
   }
+
+  /// <summary>SPIKE(graph-vis): temporary research panel; removed at the end of Phase 0.</summary>
+  private GraphVisSpike? _graphVisSpike;
 
   /// <summary>
   /// Builds the Gum UI once, as soon as Gum is initialized (by <c>LostInLimboEditor</c>).
@@ -80,5 +85,10 @@ public sealed class UiMain : SyncScript
     var toolbar = new GumEditorToolbar(_overlaySwitcher);
     toolbar.Build();
     _gumToolbar = toolbar;
+
+    // SPIKE(graph-vis): always-visible research panel.
+    var spike = new GraphVisSpike(key => Input.IsKeyDown(key), () => Input.MouseWheelDelta);
+    spike.Build();
+    _graphVisSpike = spike;
   }
 }
