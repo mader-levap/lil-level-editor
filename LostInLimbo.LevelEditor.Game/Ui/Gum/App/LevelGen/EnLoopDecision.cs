@@ -1,4 +1,4 @@
-namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 
 /// <summary>
 /// What the generation loop does after one of its runs ended.

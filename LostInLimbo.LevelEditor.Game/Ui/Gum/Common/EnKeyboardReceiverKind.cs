@@ -1,4 +1,4 @@
-namespace LostInLimbo.LevelEditor.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Common;
 
 /// <summary>
 /// What kind of Gum control currently receives keyboard input

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using LostInLimbo.LevelGen.Data.Prop;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 
 /// <summary>
 /// A named difficulty choice shown in the level generation form.

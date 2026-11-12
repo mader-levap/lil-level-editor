@@ -1,13 +1,11 @@
 # TODO
 
 ## Current
-- Style stuff:
-  - Find files with namespaces not matching directory path and fix them.
 
 ## Later
 
-- Add config form where selected config params are manually set and override whatever was generated from props form.
-  - Active: if false, this form is not active and won't modify config generated from props form.
+- Add config form where selected config params are manually set and override whatever was generated from props form. This form is on right to props form.
+  - Active: if false (default), this form is not active and won't modify config generated from props form.
   - Builder: combobox, pick one builder. Create list from enum, so any addition in LevelGen library will be automatically shown here.
 
 - Make better difficulty preset.

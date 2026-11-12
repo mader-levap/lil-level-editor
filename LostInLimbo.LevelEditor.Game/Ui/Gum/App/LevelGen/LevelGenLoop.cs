@@ -1,7 +1,7 @@
 using System;
 using LostInLimbo.LevelGen.Data.Status;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 
 /// <summary>
 /// State of continuous (loop) generation: whether a loop is active and which seed its current

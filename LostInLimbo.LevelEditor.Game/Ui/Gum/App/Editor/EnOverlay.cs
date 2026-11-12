@@ -1,4 +1,4 @@
-namespace LostInLimbo.LevelEditor.Ui.Gum.Editor;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
 
 /// <summary>
 /// Enumerates known overlays.

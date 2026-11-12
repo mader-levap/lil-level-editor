@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 
 /// <summary>
 /// Bounded list of status entries: once <see cref="MaxEntries"/> is exceeded the oldest

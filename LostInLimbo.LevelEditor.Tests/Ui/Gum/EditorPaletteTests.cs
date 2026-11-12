@@ -1,8 +1,6 @@
-using System;
-using System.Linq;
 using LostInLimbo.LevelEditor.Services.SystemInfo.Data;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
-using LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using SkiaSharp;
 

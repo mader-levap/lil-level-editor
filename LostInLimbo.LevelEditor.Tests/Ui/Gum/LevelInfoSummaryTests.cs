@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using LostInLimbo.LevelEditor.Services.LevelGen;
-using LostInLimbo.LevelEditor.Ui.Gum.Info;
+using LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 using LostInLimbo.LevelGen.Data.Config;
 using LostInLimbo.LevelGen.Data.Prop;
 using LostInLimbo.LevelGen.Data.Result.Stats;

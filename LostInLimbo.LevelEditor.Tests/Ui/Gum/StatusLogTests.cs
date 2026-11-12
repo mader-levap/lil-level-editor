@@ -1,4 +1,4 @@
-using LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 
 namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
 

@@ -8,7 +8,7 @@ using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.AppBar;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.AppBar;
 
 /// <summary>
 /// Gum app bar: a translucent full-width strip at the top of the window showing app name

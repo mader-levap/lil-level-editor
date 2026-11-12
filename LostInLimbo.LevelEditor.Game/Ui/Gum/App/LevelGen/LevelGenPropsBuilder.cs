@@ -1,6 +1,6 @@
 using LostInLimbo.LevelGen.Data.Prop;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 
 /// <summary>
 /// Turns the values of the level generation form into <see cref="PropMain"/>.

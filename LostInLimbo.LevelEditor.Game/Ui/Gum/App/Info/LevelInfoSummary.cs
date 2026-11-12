@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Globalization;
 using LostInLimbo.LevelEditor.Services.LevelGen;
-using LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
+using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 using LostInLimbo.LevelGen.Data.Result.Stats;
 using LostInLimbo.LevelGen.Data.Status;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 
 /// <summary>
 /// One label/value row of the level information card.

@@ -1,9 +1,9 @@
 using System;
 using Gum.Forms.Controls;
-using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
+using LostInLimbo.LevelEditor.Ui.Gum.App.AppBar;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Editor;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
 
 /// <summary>
 /// Gum editor toolbar: a vertical column of toggle buttons at the top-left, under the app bar,

@@ -4,9 +4,10 @@ using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
 using Gum.Wireframe;
+using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 
 /// <summary>
 /// Reusable Gum view of a <see cref="StatusLog"/>: a translucent panel with a scrollable list of

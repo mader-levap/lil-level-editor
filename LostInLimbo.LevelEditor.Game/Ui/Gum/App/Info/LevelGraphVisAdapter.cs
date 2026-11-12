@@ -6,7 +6,7 @@ using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 using LostInLimbo.LevelGen.Data.Result.Graph;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 
 /// <summary>
 /// Translates a generated level graph into the generic model of the graph visualizer. This is the

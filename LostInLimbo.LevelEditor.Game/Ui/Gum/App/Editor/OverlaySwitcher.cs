@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Editor;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
 
 /// <summary>
 /// Keeps at most one overlay visible at a time. Pure logic (no Gum or Stride), so the

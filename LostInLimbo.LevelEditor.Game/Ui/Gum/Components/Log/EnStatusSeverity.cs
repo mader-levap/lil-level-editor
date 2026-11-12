@@ -1,4 +1,4 @@
-namespace LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 
 /// <summary>
 /// Severity of a status log entry; decides its color.

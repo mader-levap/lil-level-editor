@@ -1,4 +1,4 @@
-using LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
+using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 
 namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
 

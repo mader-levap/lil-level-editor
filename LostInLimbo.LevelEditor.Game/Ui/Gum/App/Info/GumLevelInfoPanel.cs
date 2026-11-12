@@ -9,14 +9,14 @@ using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
-using LostInLimbo.LevelEditor.Ui.Gum.Editor;
+using LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using Stride.Core.Diagnostics;
 using Stride.Input;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 
 /// <summary>
 /// Gum level information overlay: a translucent card with the generation status and, when a

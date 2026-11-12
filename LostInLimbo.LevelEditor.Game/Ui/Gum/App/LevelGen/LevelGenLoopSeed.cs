@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 
 /// <summary>
 /// Text seed arithmetic for loop generation: the first seed comes from the form, every next

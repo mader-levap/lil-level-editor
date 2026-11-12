@@ -4,17 +4,17 @@ using Gum.Forms.Controls;
 using Gum.GueDeriving;
 using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Services.LevelGen;
-using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
+using LostInLimbo.LevelEditor.Ui.Gum.App.AppBar;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
-using LostInLimbo.LevelEditor.Ui.Gum.Common.Log;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.ProgressBar;
-using LostInLimbo.LevelEditor.Ui.Gum.Editor;
+using LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using LostInLimbo.LevelGen.Data.Prop;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 
 /// <summary>
 /// Gum level generation overlay: transport buttons (start/step/pause/stop) on the right, the

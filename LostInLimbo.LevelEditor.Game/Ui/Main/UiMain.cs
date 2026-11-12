@@ -2,10 +2,10 @@ using System;
 using Gum;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
-using LostInLimbo.LevelEditor.Ui.Gum.AppBar;
-using LostInLimbo.LevelEditor.Ui.Gum.Editor;
-using LostInLimbo.LevelEditor.Ui.Gum.Info;
-using LostInLimbo.LevelEditor.Ui.Gum.LevelGen;
+using LostInLimbo.LevelEditor.Ui.Gum.App.AppBar;
+using LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
+using LostInLimbo.LevelEditor.Ui.Gum.App.Info;
+using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 using Stride.Engine;
 
 namespace LostInLimbo.LevelEditor.Ui.Main;
