@@ -22,8 +22,14 @@ public sealed class GumGraphVisualizer : IDisposable
   /// <summary>Padding between the panel edges and its parts, and between the parts, in pixels.</summary>
   private const float Padding = 8f;
 
-  /// <summary>Width of the data panel, in pixels.</summary>
-  private const float DataPanelWidth = 260f;
+  /// <summary>Smallest width of the data panel, in pixels.</summary>
+  public const float DataPanelMinWidth = 260f;
+
+  /// <summary>Largest width of the data panel, in pixels: double the smallest.</summary>
+  public const float DataPanelMaxWidth = 2 * DataPanelMinWidth;
+
+  /// <summary>Share of the visualizer's width given to the data panel, between its smallest and largest width.</summary>
+  public const float DataPanelWidthShare = 0.25f;
 
   /// <summary>Data panel title while a node is selected.</summary>
   private const string NodeTitle = "Node";
@@ -42,6 +48,15 @@ public sealed class GumGraphVisualizer : IDisposable
 
   /// <summary>Selection the data panel currently shows.</summary>
   private GraphVisHit _shownSelection = GraphVisHit.None;
+
+  /// <summary>Drawing area container; null until built.</summary>
+  private ContainerRuntime? _viewportContainer;
+
+  /// <summary>Data panel container; null until built.</summary>
+  private ContainerRuntime? _dataPanelContainer;
+
+  /// <summary>Data panel width currently applied, in pixels.</summary>
+  private float _appliedDataPanelWidth = DataPanelMinWidth;
 
   /// <summary>
   /// Creates the visualizer. Call <see cref="Build"/> to create its visuals.
@@ -73,25 +88,63 @@ public sealed class GumGraphVisualizer : IDisposable
     ContainerRuntime viewport = _viewport.Build();
     viewport.X = Padding;
     viewport.Y = Padding;
-    viewport.Width = -(DataPanelWidth + 3 * Padding);
     viewport.WidthUnits = DimensionUnitType.RelativeToParent;
     viewport.Height = -2 * Padding;
     viewport.HeightUnits = DimensionUnitType.RelativeToParent;
     root.AddChild(viewport);
+    _viewportContainer = viewport;
 
-    // Data panel: fixed-width column on the right.
+    // Data panel: column on the right; its width follows the visualizer's (see UpdateDataPanelWidth).
     ContainerRuntime dataPanel = _dataPanel.Build();
     dataPanel.Anchor(Anchor.TopRight);
     dataPanel.X = -Padding;
     dataPanel.Y = Padding;
-    dataPanel.Width = DataPanelWidth;
     dataPanel.WidthUnits = DimensionUnitType.Absolute;
     dataPanel.Height = -2 * Padding;
     dataPanel.HeightUnits = DimensionUnitType.RelativeToParent;
     root.AddChild(dataPanel);
+    _dataPanelContainer = dataPanel;
 
+    ApplyDataPanelWidth(DataPanelMinWidth);
     Root = root;
     return root;
+  }
+
+  /// <summary>
+  /// Computes the data panel width for a visualizer width: a fixed share of it, kept between
+  /// <see cref="DataPanelMinWidth"/> and <see cref="DataPanelMaxWidth"/>.
+  /// </summary>
+  /// <param name="visualizerWidth">Width of the whole visualizer, in pixels.</param>
+  /// <returns>Data panel width, in pixels.</returns>
+  public static float DataPanelWidthFor(float visualizerWidth)
+  {
+    float proportional = float.IsFinite(visualizerWidth) ? visualizerWidth * DataPanelWidthShare : 0;
+    return Math.Clamp(proportional, DataPanelMinWidth, DataPanelMaxWidth);
+  }
+
+  /// <summary>
+  /// Resizes the data panel when the visualizer's width changed, and lays the shown properties
+  /// out again for the new width.
+  /// </summary>
+  private void UpdateDataPanelWidth()
+  {
+    if (Root == null) return;
+
+    float width = DataPanelWidthFor(Root.AbsoluteWidth);
+    if (MathF.Abs(width - _appliedDataPanelWidth) < 1f) return; // whole pixels only: no layout churn
+    ApplyDataPanelWidth(width);
+    ShowSelection(_shownSelection); // which pairs fit on one row depends on the width
+  }
+
+  /// <summary>
+  /// Sets the data panel width and gives the drawing area the rest.
+  /// </summary>
+  /// <param name="width">Data panel width, in pixels.</param>
+  private void ApplyDataPanelWidth(float width)
+  {
+    _appliedDataPanelWidth = width;
+    if (_dataPanelContainer != null) _dataPanelContainer.Width = width;
+    if (_viewportContainer != null) _viewportContainer.Width = -(width + 3 * Padding);
   }
 
   /// <summary>
@@ -113,6 +166,7 @@ public sealed class GumGraphVisualizer : IDisposable
   /// <param name="deltaSeconds">Elapsed time since the last frame, in seconds.</param>
   public void Update(float deltaSeconds)
   {
+    UpdateDataPanelWidth();
     _viewport.Update(deltaSeconds);
 
     GraphVisHit selection = _viewport.Selection;
