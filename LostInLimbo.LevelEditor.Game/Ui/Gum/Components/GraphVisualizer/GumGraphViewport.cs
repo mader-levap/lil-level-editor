@@ -1,6 +1,6 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
 using Gum.Wireframe;
@@ -36,8 +36,8 @@ public sealed class GumGraphViewport
   /// <summary>Label shown when there is no graph; null until built.</summary>
   private Label? _noGraphLabel;
 
-  /// <summary>Node centers in world units, in node order.</summary>
-  private Vector2[] _positions = [];
+  /// <summary>Physics moving the nodes of the current graph; null when there is no graph.</summary>
+  private GraphVisSimulation? _simulation;
 
   /// <summary>View of the graph.</summary>
   private GraphVisCamera _camera = GraphVisCamera.Identity;
@@ -104,13 +104,33 @@ public sealed class GumGraphViewport
 
     if (data == null || !hasGraph)
     {
-      _positions = [];
+      _simulation = null;
       return;
     }
 
     _renderer.SetGraph(data);
-    _positions = GraphVisLayout.PlaceOnRing(_renderer.Radii, _style.NodeGap);
+
+    // Edges as node index pairs, which is what layout and physics work with.
+    var indexById = new Dictionary<string, int>(data.Nodes.Count);
+    for (int i = 0; i < data.Nodes.Count; i++) indexById[data.Nodes[i].Id] = i;
+    (int From, int To)[] edges = data.Edges.Select(edge => (indexById[edge.FromId], indexById[edge.ToId])).ToArray();
+
+    // Starting layout, then let the physics settle before the graph is first shown, so the
+    // view is fitted to the final arrangement and nothing jumps on screen.
+    Vector2[] positions = GraphVisLayout.Place(_renderer.Radii, edges, _style.NodeGap * _style.LinkIdealGapFactor);
+    _simulation = new GraphVisSimulation(positions, _renderer.Radii, edges, _style);
+    _simulation.Settle(_style.SimulationSettleSteps);
     _fittedSize = null; // new graph: fit it on the next draw
+  }
+
+  /// <summary>
+  /// Advances the physics. Call every frame while the visualizer is visible; cheap once the
+  /// nodes have come to rest.
+  /// </summary>
+  /// <param name="deltaSeconds">Elapsed time since the last frame, in seconds.</param>
+  public void Update(float deltaSeconds)
+  {
+    _simulation?.Step(deltaSeconds);
   }
 
   /// <summary>
@@ -120,7 +140,7 @@ public sealed class GumGraphViewport
   /// <param name="canvas">Canvas (window space).</param>
   private void Render(SKRect rect, SKCanvas canvas)
   {
-    if (_renderer == null) return;
+    if (_renderer == null || _simulation == null) return;
 
     // Fit the whole graph whenever it or the viewport size changed.
     var size = new Vector2(rect.Width, rect.Height);
@@ -130,7 +150,7 @@ public sealed class GumGraphViewport
       _fittedSize = size;
     }
 
-    _renderer.Draw(canvas, rect, _camera, _positions);
+    _renderer.Draw(canvas, rect, _camera, _simulation.Positions);
   }
 
   /// <summary>
@@ -139,10 +159,10 @@ public sealed class GumGraphViewport
   /// <param name="viewportSize">Viewport size, in pixels.</param>
   private void FitToView(Vector2 viewportSize)
   {
-    if (_renderer == null) return;
+    if (_renderer == null || _simulation == null) return;
 
     GraphVisBounds? bounds = GraphVisBounds.AroundCircles(
-      _positions.Select((position, index) => (position, _renderer.Radii[index])));
+      _simulation.Positions.Select((position, index) => (position, _renderer.Radii[index])));
     if (bounds is not { } graphBounds) return;
 
     _camera = GraphVisCamera.Fit(graphBounds, viewportSize, _style.ViewPadding, _style.MinZoom, _style.MaxFitZoom);

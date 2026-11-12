@@ -8,18 +8,18 @@ section, the phase checklists and the logs at the end of every session so work c
 
 | Item | Value |
 |---|---|
-| Active phase | Phase 3 (awaiting verification) |
-| Last finished phase | Phase 2 |
+| Active phase | Phase 4 (awaiting verification) |
+| Last finished phase | Phase 3 |
 | Blockers | none |
-| Next action | User generates levels and checks the real graphs in the info overlay; then start Phase 4 |
+| Next action | User judges the layout of real graphs in the info overlay; then start Phase 5 |
 
 | Phase | Title | Status |
 |---|---|---|
 | 0 | Research spikes | done |
 | 1 | Data model and pure helpers | done |
 | 2 | Component shell and static rendering | done |
-| 3 | LevelGen adapter and overlay integration | awaiting verification |
-| 4 | Layout simulation | not started |
+| 3 | LevelGen adapter and overlay integration | done |
+| 4 | Layout (stress) and live physics | awaiting verification |
 | 5 | Navigation | not started |
 | 6 | Selection, dragging and data panel | not started |
 | 7 | Polish and cleanup | not started |
@@ -108,7 +108,8 @@ Public surface of `GumGraphVisualizer` (kept small): `Build(...)`, `SetGraph(Gra
 | `GraphVisColors.cs` | Darken, highlight and "key to distinct colour" helpers | yes |
 | `GraphVisCamera.cs` | Pan/zoom state, world/screen transforms, zoom about a point, clamping, fit-to-view, scroll bar ranges | yes |
 | `GraphVisGeometry.cs` | Edge end points on circle borders, arrowheads, label anchor, marker dot placement | yes |
-| `GraphVisLayout.cs` | Initial placement and force simulation with per-node mass | yes |
+| `GraphVisLayout.cs` | Starting placement (stress layout) | yes |
+| `GraphVisSimulation.cs` | Live physics: push apart, pull together, mass rule, sleeping | yes |
 | `GraphVisHitTest.cs` | Node (circle) and edge (distance to segment) picking | yes |
 | `GraphVisInteraction.cs` | State machine driven by a per-frame input record: pan, zoom, select, drag | yes |
 | `GraphVisRenderer.cs` | Skia draw calls for nodes, edges, markers, texts, highlights | by eye |
@@ -163,17 +164,31 @@ reserved for "no group" and is not in the palette.
 
 ### Layout
 
-Force simulation, run in small fixed steps from `Update`, sleeping when movement falls below a
-threshold (so an idle panel costs almost nothing) and waking on drag or new data.
+Two parts: a starting placement, then live physics that takes over from it.
 
-- Mass grows with node size. Every displacement between two nodes is split inversely to mass, so
-  a large node yanks small neighbours and a small node barely moves a large one.
-- Repulsion when two nodes are closer than their radii plus a gap, followed by a hard
-  overlap-resolution pass so circles never overlap.
-- Attraction along an edge only when the nodes are farther apart than a rest length.
-- A node being dragged is pinned (treated as infinitely heavy).
-- Initial placement is deterministic: breadth-first rings from the highest-degree node, ties broken
-  by id; disconnected parts placed side by side.
+**Starting placement: stress layout** (`GraphVisLayout.Place`, deterministic). On-screen
+distance between any two nodes is made to match their distance through the graph.
+
+- Each connected part is laid out on its own; parts are packed left to right, largest first.
+- The ideal length of a link is both radii plus `NodeGap × LinkIdealGapFactor`; ideal distances
+  of other pairs are shortest paths over those lengths, so large nodes get more room.
+- Starting guess: each node's coordinates are its graph distances to two far-apart nodes, plus a
+  tiny spiral offset so nodes with identical distances do not start on one point.
+- Refinement: stress majorization, one node at a time, weight 1 / distance², until nothing
+  moves more than a threshold (or an iteration limit).
+- Each part is rotated so its longest extent is horizontal (the drawing area is wide).
+
+**Live physics** (`GraphVisSimulation`, deterministic, fixed time steps).
+
+- Too close: borders nearer than `NodeGap` push apart.
+- Too far: connected nodes with more than `NodeGap × LinkRestGapFactor` between their borders
+  pull together. In between there is no force, so the stress layout keeps its shape.
+- Mass is the circle area; every displacement is split inversely to mass, so a large node yanks
+  small neighbours and a small node barely moves a large one.
+- A pinned node (being dragged) does not move; its partner takes the whole displacement.
+- Hard pass each step: circles never overlap.
+- Sleeps when the largest movement of a step is below a threshold; `Wake()` / `MoveNode()` wake it.
+- A new graph is settled before it is first shown, so the view is fitted to the final arrangement.
 
 ### Input
 
@@ -254,15 +269,25 @@ and the "No graph data available" state.
 
 **Verify:** user generates several levels and sees real graphs (still with the simple placement).
 
-### Phase 4 – Layout simulation
+### Phase 4 – Layout (stress) and live physics
 
-- [ ] `GraphVisLayout.cs`: deterministic initial placement, forces, mass rule, overlap resolution,
-      sleeping; tests (no overlap after settling, determinism, heavy/light displacement ratio,
-      connected nodes pulled within range, settles in bounded steps).
-- [ ] Simulation stepped from `GumGraphVisualizer.Update`; fit-to-view after first settle.
-- [ ] Tune constants on real graphs.
+Revised on 2026-11-12: the ring placement was judged uninformative; after comparing
+alternatives the user chose stress layout for the start plus the live physics.
 
-**Verify:** user judges readability of real graphs and the settling animation.
+- [x] `GraphVisLayout.Place`: connected parts, size-aware ideal distances, starting guess,
+      stress majorization, landscape rotation, packing. Ring placement removed.
+- [x] `GraphVisSimulation.cs`: push apart, pull together, mass rule, pinned node, hard overlap
+      pass, sleeping, fixed time steps, pre-show settling.
+- [x] Tests for both (layout: chain straight and evenly spaced, loop without crossings, star
+      leaves separated, larger nodes get more room, separate parts side by side, determinism;
+      physics: gap, rest length, neutral band, mass ratio, pinned node, no overlap after one
+      step, wake on move, time accumulation, 100-node grid settles within the budget).
+- [x] Wiring: `GumGraphViewport.Update`, `GumGraphVisualizer.Update`,
+      `GumLevelInfoPanel.Update(deltaSeconds)`, `UiMain`.
+- [x] Checked on real graphs (see Findings log).
+- [ ] Tune constants further if the user finds graphs hard to read.
+
+**Verify:** user judges readability of real graphs.
 
 ### Phase 5 – Navigation
 
@@ -333,6 +358,9 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | Adapter: properties are added in display order (id, size, flags, group, POIs, reach data / ends, direction, flags, conditions); POIs in conditions and reach data are shown by name. The data panel (Phase 6) should keep that order. |
 | 2026-11-12 | `MinZoom` lowered from 0.2 to 0.05 so a ring of about a hundred nodes still fits the view. |
 | 2026-11-12 | The graph is converted on every overlay refresh (on show and on result change), so reopening the overlay restarts the layout (open decision 5). |
+| 2026-11-12 | **Layout algorithm.** Compared: force-directed only, stress (Kamada–Kawai style), layered from Start, radial from Start, spanning tree, spectral, generator positions. User chose stress + live physics. Layered/radial would show progression but need a root hint in the model and a force that fights free movement; tree and spectral fit this graph density poorly; generator positions do not exist yet (`LilMap` is empty in LevelGen 0.0.9) and are worth revisiting once the map is generated. |
+| 2026-11-12 | Starting guess of the stress layout is distance-to-two-far-nodes, not the ring planned at first: it is already unfolded, so refinement does not have to untie knots. `PlaceOnRing` was removed. |
+| 2026-11-12 | The simulation sleeps at 0.05 units of movement per step (was 0.02): below that, movement is invisible but takes thousands of steps to die out. |
 
 ## Findings log
 
@@ -352,6 +380,9 @@ Filled during Phase 0 and later.
 | 2026-11-12 | **Design note for Phase 2.** Marker labels of neighbouring dots overlap ("Start" / "Red Key" ran together at 10 px); marker placement must space dots by label width or stagger labels. |
 | 2026-11-12 | **Method note.** Input findings come from synthetic mouse/keyboard input sent to the running app and read off screenshots, not from a person using it. |
 | 2026-11-12 | **Real data.** Easy gave 2 nodes / 1 edge, Medium 48 / 91, Hard 93 / 134 (one seed each). All nodes of those levels were in a single group. On the ring, most edges join ring neighbours (nodes arrive in generation order). At the fitted zoom of such graphs (about 0.2) labels are unreadable; that is for Phases 4 and 5 to solve. |
+| 2026-11-12 | **Layout on real data.** Medium (41 nodes / 42 edges): one large loop with short branches, shown as exactly that. Hard (70 / 98): an untangled mesh at about 0.4 fitted zoom (the ring needed about 0.2). No overlapping nodes. |
+| 2026-11-12 | **Physics and impossible links.** A test graph with random long-range links (most links cannot be short on a plane) keeps creeping for about 2300 steps before it sleeps: attraction slowly compacts the whole graph. A grid-like graph settles well inside the 600-step pre-show budget. Level graphs seen so far behave like the latter; if a level ever shows slow drift after opening, this is why. |
+| 2026-11-12 | **Missing obstacles and solutions: generator side.** Checked headless on 36 runs (12 seeds each for Easy, Medium, Hard). The adapter loses nothing: markers always equal the POI count, edge labels the number of passages with conditions. In LevelGen 0.0.9 only `GraphBuilderLinear` creates solution POIs and conditions; `GraphBuilderSimple` ignores `CnfGraph.Complexity` (chosen at random for about half of the runs). Complexity is drawn from 0 up to `min(Size, Difficulty/2+1)` exclusive, so it is always 0 on Easy and sometimes 0 elsewhere. A level only has obstacles when the builder is Linear and complexity is above 0 (13 of the 24 Medium/Hard runs). |
 
 ## Session log
 
@@ -362,6 +393,7 @@ Filled during Phase 0 and later.
 | 2026-11-12 | 1 | Spike removed. Model, style, colours, camera and geometry written with tests. Build green, 224 tests pass. | User review; Phase 2. |
 | 2026-11-12 | 2 | Renderer, viewport, visualizer shell, ring placement, demo graph and overlay integration. Checked on screen (empty state and demo graph). Build green, 239 tests pass. | User check; Phase 3. |
 | 2026-11-12 | 3 | `LevelGraphVisAdapter` with tests; overlay shows the real level graph; demo data removed. Checked on screen with Medium and Hard levels. Build green, 253 tests pass. | User check; Phase 4. |
+| 2026-11-12 | 4 | Layout alternatives researched; stress layout + physics implemented and wired. Checked on screen with Medium and Hard levels. Build green, 267 tests pass. | User check; Phase 5. |
 
 ## Further research needed
 

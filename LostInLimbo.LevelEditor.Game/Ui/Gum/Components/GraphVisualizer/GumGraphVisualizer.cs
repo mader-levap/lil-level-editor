@@ -90,4 +90,13 @@ public sealed class GumGraphVisualizer
   {
     _viewport.SetGraph(data);
   }
+
+  /// <summary>
+  /// Advances the node physics. Call every frame while the visualizer is visible.
+  /// </summary>
+  /// <param name="deltaSeconds">Elapsed time since the last frame, in seconds.</param>
+  public void Update(float deltaSeconds)
+  {
+    _viewport.Update(deltaSeconds);
+  }
 }

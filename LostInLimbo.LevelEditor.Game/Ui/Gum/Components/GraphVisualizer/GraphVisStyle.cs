@@ -117,9 +117,6 @@ public sealed record GraphVisStyle
   /// </summary>
   public UiRgba BackgroundColor { get; init; } = new(176, 178, 184);
 
-  /// <summary>Free space kept between two neighbouring nodes by the layout.</summary>
-  public float NodeGap { get; init; } = 30f;
-
   /// <summary>Smallest zoom factor; small enough that a graph of about a hundred nodes fits the view.</summary>
   public float MinZoom { get; init; } = 0.05f;
 
@@ -134,6 +131,46 @@ public sealed record GraphVisStyle
 
   /// <summary>Free space kept between the graph and the viewport edges, in screen pixels.</summary>
   public float ViewPadding { get; init; } = 24f;
+
+  #endregion
+
+  #region Layout and physics
+
+  /// <summary>Free space any two node borders must keep; closer nodes push each other away.</summary>
+  public float NodeGap { get; init; } = 30f;
+
+  /// <summary>
+  /// Free space the starting layout aims for between two connected nodes, as a multiple of
+  /// <see cref="NodeGap"/>. Lies between "too close" (1) and "too far" (<see cref="LinkRestGapFactor"/>).
+  /// </summary>
+  public float LinkIdealGapFactor { get; init; } = 2f;
+
+  /// <summary>
+  /// Free space between two connected nodes beyond which they pull each other closer, as a
+  /// multiple of <see cref="NodeGap"/>.
+  /// </summary>
+  public float LinkRestGapFactor { get; init; } = 3f;
+
+  /// <summary>Share of a "too close" distance corrected per simulation step (0..1).</summary>
+  public float SimulationRepelStrength { get; init; } = 0.3f;
+
+  /// <summary>Share of a "too far" distance corrected per simulation step (0..1).</summary>
+  public float SimulationAttractStrength { get; init; } = 0.1f;
+
+  /// <summary>Length of one simulation step, in seconds.</summary>
+  public float SimulationStepSeconds { get; init; } = 1f / 60f;
+
+  /// <summary>Most simulation steps run per update, so a slow frame cannot snowball.</summary>
+  public int SimulationMaxStepsPerUpdate { get; init; } = 4;
+
+  /// <summary>Most overlap-removal passes per simulation step.</summary>
+  public int SimulationOverlapPasses { get; init; } = 4;
+
+  /// <summary>The simulation falls asleep once no node moved farther than this in a step.</summary>
+  public float SimulationSleepDistance { get; init; } = 0.05f;
+
+  /// <summary>Most simulation steps run on a new graph before it is first shown.</summary>
+  public int SimulationSettleSteps { get; init; } = 600;
 
   #endregion
 }

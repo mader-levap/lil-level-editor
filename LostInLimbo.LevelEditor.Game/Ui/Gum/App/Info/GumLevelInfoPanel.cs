@@ -189,13 +189,15 @@ public sealed class GumLevelInfoPanel : IOverlayView
 
   /// <summary>
   /// Refreshes the card if the generation result changed while it is visible. Call every frame;
-  /// cheap when nothing changed (one status read, no world copy).
+  /// cheap when nothing changed (one status read, no world copy). Also advances the graph's
+  /// node physics.
   /// </summary>
-  public void Update()
+  /// <param name="deltaSeconds">Elapsed time since the last frame, in seconds.</param>
+  public void Update(float deltaSeconds)
   {
     if (!IsVisible) return;
-    if (_levelGenService.Status().Result == _shownResult) return;
-    Refresh();
+    if (_levelGenService.Status().Result != _shownResult) Refresh();
+    _graphVisualizer.Update(deltaSeconds);
   }
 
   /// <summary>

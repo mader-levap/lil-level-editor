@@ -45,8 +45,9 @@ public sealed class UiMain : SyncScript
   {
     EnsureGumUiBuilt();
 
-    _gumLevelGenPanel?.Update((float)Game.UpdateTime.Elapsed.TotalSeconds);
-    _gumLevelInfoPanel?.Update();
+    float deltaSeconds = (float)Game.UpdateTime.Elapsed.TotalSeconds;
+    _gumLevelGenPanel?.Update(deltaSeconds);
+    _gumLevelInfoPanel?.Update(deltaSeconds);
   }
 
   /// <summary>
