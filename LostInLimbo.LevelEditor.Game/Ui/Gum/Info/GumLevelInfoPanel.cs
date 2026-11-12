@@ -17,7 +17,7 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
 
 /// <summary>
 /// Gum level information overlay: a centered translucent card with the generation status and,
-/// when a world is available, its phase, graph size and map steps.
+/// when a world is available, its phase, seeds, graph size and map steps.
 /// </summary>
 /// <remarks>
 /// Refreshes when shown, and while visible when the generation result changes. It does not
@@ -156,7 +156,13 @@ public sealed class GumLevelInfoPanel : IOverlayView
     LilWorld? world = _levelGenService.World();
     LevelWorldFacts? facts = world == null
       ? null
-      : new LevelWorldFacts(world.Phase, world.Graph.Nodes.Count, world.Graph.Edges.Count, world.Stats.Steps);
+      : new LevelWorldFacts(
+          world.Phase,
+          _levelGenService.TextSeed(),
+          status.Seed,
+          world.Graph.Nodes.Count,
+          world.Graph.Edges.Count,
+          world.Stats.Steps);
 
     _shownResult = status.Result;
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(status.Result, status.FailureReason, facts);

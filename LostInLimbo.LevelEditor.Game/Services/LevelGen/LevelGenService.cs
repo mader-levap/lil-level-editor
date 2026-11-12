@@ -56,6 +56,14 @@ public interface ILevelGenService
   /// </summary>
   /// <returns>Generated world or null if world is not available.</returns>
   public LilWorld? World();
+
+  /// <summary>
+  /// Get the text seed of the current or last run, as given in <see cref="PropMain.TextSeed"/>
+  /// when the run was started from scratch (a resumed run keeps it).
+  /// </summary>
+  /// <returns>Text seed; null or empty means a time-based seed, or that no run was started (or it was cleared).</returns>
+  /// <remarks>The numeric seed actually used is <see cref="GenerationStatus.Seed"/>.</remarks>
+  string? TextSeed();
 }
 
 /// <summary>
@@ -65,6 +73,9 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
 {
   /// <summary>Level generation session.</summary>
   private readonly LevelGenSession _levelGenSession = new();
+
+  /// <summary>Text seed of the run last started from scratch; null after <see cref="Clear"/>.</summary>
+  private string? _textSeed;
 
   #region Main methods
 
@@ -131,7 +142,9 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     if (status.Result == EnGenResult.Running) return false; // running runs are cancelled, not cleared
 
     // Zero timeout: never wait. A non-running session has no run in flight, so it clears at once.
-    return _levelGenSession.Clear(TimeSpan.Zero);
+    bool cleared = _levelGenSession.Clear(TimeSpan.Zero);
+    if (cleared) _textSeed = null;
+    return cleared;
   }
 
   #endregion
@@ -154,6 +167,16 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   public LilWorld? World()
   {
     return _levelGenSession.World();
+  }
+
+  /// <summary>
+  /// Get the text seed of the current or last run, as given in <see cref="PropMain.TextSeed"/>
+  /// when the run was started from scratch (a resumed run keeps it).
+  /// </summary>
+  /// <returns>Text seed; null or empty means a time-based seed, or that no run was started (or it was cleared).</returns>
+  public string? TextSeed()
+  {
+    return _textSeed;
   }
 
   #endregion
@@ -185,6 +208,10 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     {
       // Another run already holds the claim, or the worker thread failed to launch.
       Log.Warning("LevelGen: Generation was not started; a run is already in flight or the worker failed to launch.");
+    }
+    else
+    {
+      _textSeed = props.TextSeed;
     }
     return started;
   }

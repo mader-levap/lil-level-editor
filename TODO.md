@@ -2,7 +2,6 @@
 
 ## Current
 
-- Add button for continuous generation.
 - Add panel with graph visualization.
   - Where it should go?
   - Research how to make canvas that I can draw on freely that can update every tick.

@@ -11,16 +11,16 @@ public sealed class LevelGenUiStateTests
   /// <summary>
   /// Verifies the state for every generation result (matrix carried over from the UGS overlay,
   /// plus form visibility: hidden while running or paused). Stop is enabled while paused: it
-  /// clears the paused run.
+  /// clears the paused run. Loop is enabled only when no run is in progress.
   /// </summary>
   [Theory]
-  [InlineData(EnGenResult.None, true, true, false, false, false, true)]
+  [InlineData(EnGenResult.None, true, true, false, false, true, true)]
   [InlineData(EnGenResult.Running, false, false, true, true, false, false)]
   [InlineData(EnGenResult.Paused, true, true, false, true, false, false)]
-  [InlineData(EnGenResult.Finished, true, true, false, false, false, true)]
-  [InlineData(EnGenResult.Cancelled, true, true, false, false, false, true)]
-  [InlineData(EnGenResult.Error, true, true, false, false, false, true)]
-  [InlineData(EnGenResult.ValidationError, true, true, false, false, false, true)]
+  [InlineData(EnGenResult.Finished, true, true, false, false, true, true)]
+  [InlineData(EnGenResult.Cancelled, true, true, false, false, true, true)]
+  [InlineData(EnGenResult.Error, true, true, false, false, true, true)]
+  [InlineData(EnGenResult.ValidationError, true, true, false, false, true, true)]
   public void For_Result_ReturnsExpectedState(EnGenResult result, bool start, bool step, bool pause, bool stop, bool loop, bool propsVisible)
   {
     // Act: Resolve the UI state.
@@ -44,6 +44,19 @@ public sealed class LevelGenUiStateTests
       // Assert: Not the all-disabled fallback.
       Assert.NotEqual(LevelGenUiState.AllDisabled, state);
     }
+  }
+
+  /// <summary>
+  /// Verifies that while looping only the Loop button (stop loop) is enabled and the form is hidden.
+  /// </summary>
+  [Fact]
+  public void Looping_EnablesOnlyLoop()
+  {
+    // Act: Get the looping state.
+    LevelGenUiState state = LevelGenUiState.Looping;
+
+    // Assert: Only Loop enabled, form hidden.
+    Assert.Equal(new LevelGenUiState(false, false, false, false, true, false), state);
   }
 
   /// <summary>

@@ -65,11 +65,20 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <summary>Progress caption while generation is paused.</summary>
   private const string CaptionPaused = "Paused";
 
+  /// <summary>Loop button tooltip while no loop runs.</summary>
+  private const string ToolTipLoopStart = "Start loop";
+
+  /// <summary>Loop button tooltip while a loop runs.</summary>
+  private const string ToolTipLoopStop = "Stop loop";
+
   /// <summary>Level generation service.</summary>
   private readonly ILevelGenService _levelGenService;
 
   /// <summary>Status log model.</summary>
   private readonly StatusLog _statusLog = new();
+
+  /// <summary>Loop generation state.</summary>
+  private readonly LevelGenLoop _loop = new();
 
   /// <summary>Overlay root (full window, no events of its own).</summary>
   private ContainerRuntime? _root;
@@ -193,13 +202,20 @@ public sealed class GumLevelGenPanel : IOverlayView
     _progressBar.SetTarget(status.Completion);
     if (status.Result == EnGenResult.Running) return; // still running
 
-    // Run reached a non-running state: hand the buttons back and report the outcome.
     _awaitingResult = false;
+    if (_loop.IsActive)
+    {
+      OnLoopRunEnded(status);
+      return;
+    }
+
+    // Run reached a non-running state: hand the buttons back and report the outcome.
     ApplyUiState(LevelGenUiState.For(status.Result));
 
     LilWorld? world = _levelGenService.World();
     _statusLog.Add(LevelGenStatusMessages.ForOutcome(
       status.Result,
+      _levelGenService.TextSeed(),
       world?.Graph.Nodes.Count ?? 0,
       world?.Graph.Edges.Count ?? 0,
       world?.Stats.Steps ?? 0,
@@ -238,7 +254,7 @@ public sealed class GumLevelGenPanel : IOverlayView
     _btnStop.Click += (_, _) => OnStopClicked();
     stack.AddChild(_btnStop);
 
-    _btnLoop = GumUiFactory.CreateIconButton(GumIcons.Loop, "Start loop");
+    _btnLoop = GumUiFactory.CreateIconButton(GumIcons.Loop, ToolTipLoopStart);
     _btnLoop.Click += (_, _) => OnLoopClicked();
     stack.AddChild(_btnLoop);
 
@@ -378,7 +394,7 @@ public sealed class GumLevelGenPanel : IOverlayView
   {
     bool wasPaused = _levelGenService.Status().Result == EnGenResult.Paused;
     bool started = _levelGenService.Start(BuildProps());
-    _statusLog.Add(LevelGenStatusMessages.ForStart(wasPaused, started));
+    _statusLog.Add(LevelGenStatusMessages.ForStart(wasPaused, started, _seedBox?.Text));
     if (!started) return;
 
     ApplyUiState(LevelGenUiState.For(EnGenResult.Running));
@@ -441,14 +457,6 @@ public sealed class GumLevelGenPanel : IOverlayView
   }
 
   /// <summary>
-  /// Starts or stops generation in loop.
-  /// </summary>
-  private void OnLoopClicked()
-  {
-    // TODO
-  }
-
-  /// <summary>
   /// Discards a paused run. Clearing is synchronous, so the new state is applied right away
   /// (no polling).
   /// </summary>
@@ -463,6 +471,123 @@ public sealed class GumLevelGenPanel : IOverlayView
     _statusLog.Add(LevelGenStatusMessages.Cleared);
     ApplyUiState(LevelGenUiState.For(_levelGenService.Status().Result));
   }
+
+  #endregion
+
+  #region Loop
+
+  /// <summary>
+  /// Starts or stops generation in loop.
+  /// </summary>
+  private void OnLoopClicked()
+  {
+    if (_loop.IsActive) StopLoop();
+    else StartLoop();
+  }
+
+  /// <summary>
+  /// Starts a generation loop from the form seed (see <see cref="LevelGenLoop"/>).
+  /// </summary>
+  private void StartLoop()
+  {
+    _loop.Begin(_seedBox?.Text);
+    SetLoopButtonIcon(looping: true);
+    _statusLog.Add(LevelGenStatusMessages.ForLoopStart(_loop.CurrentSeed));
+    StartLoopIteration();
+  }
+
+  /// <summary>
+  /// Starts generation of the current loop iteration. Its seed is written to the seed box first,
+  /// so the form always holds the seed of the latest run (a failure is reproducible with Start).
+  /// </summary>
+  private void StartLoopIteration()
+  {
+    if (_seedBox != null) _seedBox.Text = _loop.CurrentSeed;
+    if (!_levelGenService.Start(BuildProps()))
+    {
+      _statusLog.Add(LevelGenStatusMessages.ForLoopStartFailed(_loop.CurrentSeed));
+      EndLoop();
+      return;
+    }
+
+    ApplyUiState(LevelGenUiState.Looping);
+    _progressBar.Reset(_levelGenService.Status().Completion); // new run: no easing from the previous one
+    _awaitingResult = true;
+  }
+
+  /// <summary>
+  /// Handles the end of a loop iteration's run: starts the next iteration, or ends the loop on
+  /// failure.
+  /// </summary>
+  /// <param name="status">Non-running status the run reached.</param>
+  private void OnLoopRunEnded(GenerationStatus status)
+  {
+    string seed = _loop.CurrentSeed; // seed of the run that just ended (advanced on success)
+    LilWorld? world = _levelGenService.World();
+
+    switch (_loop.OnRunEnded(status.Result))
+    {
+      case EnLoopDecision.Continue:
+        _statusLog.Add(LevelGenStatusMessages.ForLoopIteration(
+          seed,
+          world?.Graph.Nodes.Count ?? 0,
+          world?.Graph.Edges.Count ?? 0,
+          world?.Stats.Steps ?? 0));
+        StartLoopIteration();
+        break;
+      case EnLoopDecision.Failed:
+        _statusLog.Add(LevelGenStatusMessages.ForLoopFailure(seed, status.Result, status.Error?.ToString()));
+        EndLoop();
+        break;
+    }
+  }
+
+  /// <summary>
+  /// Stops the loop on user request: cancels the current run. The run's outcome is reported by
+  /// <see cref="Update"/> as for a normal run.
+  /// </summary>
+  private void StopLoop()
+  {
+    _loop.End();
+    SetLoopButtonIcon(looping: false);
+    _statusLog.Add(LevelGenStatusMessages.LoopStopped);
+
+    if (_levelGenService.Cancel())
+    {
+      // Cancel is only requested; keep everything disabled until Update sees it end.
+      ApplyUiState(LevelGenUiState.AllDisabled);
+      _awaitingResult = true;
+      return;
+    }
+
+    // The run is not running anymore (it ended this frame); its result is polled as usual.
+    if (!_awaitingResult) ApplyUiState(LevelGenUiState.For(_levelGenService.Status().Result));
+  }
+
+  /// <summary>
+  /// Ends the loop (failure) and restores the loop button and the state of the other buttons.
+  /// </summary>
+  private void EndLoop()
+  {
+    _loop.End();
+    SetLoopButtonIcon(looping: false);
+    ApplyUiState(LevelGenUiState.For(_levelGenService.Status().Result));
+  }
+
+  /// <summary>
+  /// Shows the loop button's start or stop icon.
+  /// </summary>
+  /// <param name="looping">Whether a loop runs (button stops it).</param>
+  private void SetLoopButtonIcon(bool looping)
+  {
+    if (_btnLoop == null) return;
+    if (looping) GumUiFactory.SetIconButtonIcon(_btnLoop, GumIcons.LoopStop, ToolTipLoopStop);
+    else GumUiFactory.SetIconButtonIcon(_btnLoop, GumIcons.Loop, ToolTipLoopStart);
+  }
+
+  #endregion
+
+  #region Form and state
 
   /// <summary>
   /// Builds generation properties from the form.

@@ -21,6 +21,13 @@ public sealed record LevelGenUiState(bool Start, bool Step, bool Pause, bool Sto
   public static LevelGenUiState AllDisabled { get; } = new(false, false, false, false, false, false);
 
   /// <summary>
+  /// Loop generation in progress: only the Loop button (which stops the loop) is enabled and the
+  /// form is hidden (progress bar shown).
+  /// </summary>
+  public static LevelGenUiState Looping { get; } =
+    new(Start: false, Step: false, Pause: false, Stop: false, Loop: true, PropsVisible: false);
+
+  /// <summary>
   /// Gets the UI state for a generation result.
   /// </summary>
   /// <param name="result">Current generation result; null disables everything.</param>
@@ -28,11 +35,11 @@ public sealed record LevelGenUiState(bool Start, bool Step, bool Pause, bool Sto
   public static LevelGenUiState For(EnGenResult? result) => result switch
   {
     null => AllDisabled,
-    EnGenResult.None => new(Start: true, Step: true, Pause: false, Stop: false, Loop: false, PropsVisible: true),
+    EnGenResult.None => new(Start: true, Step: true, Pause: false, Stop: false, Loop: true, PropsVisible: true),
     EnGenResult.Running => new(Start: false, Step: false, Pause: true, Stop: true, Loop: false, PropsVisible: false),
     EnGenResult.Paused => new(Start: true, Step: true, Pause: false, Stop: true, Loop: false, PropsVisible: false),
     EnGenResult.Finished or EnGenResult.Cancelled or EnGenResult.Error or EnGenResult.ValidationError
-      => new(Start: true, Step: true, Pause: false, Stop: false, Loop: false, PropsVisible: true),
+      => new(Start: true, Step: true, Pause: false, Stop: false, Loop: true, PropsVisible: true),
     _ => AllDisabled,
   };
 }

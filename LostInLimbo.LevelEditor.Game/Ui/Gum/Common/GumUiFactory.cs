@@ -120,6 +120,38 @@ public static class GumUiFactory
   }
 
   /// <summary>
+  /// Changes the icon and tooltip of a button created by <see cref="CreateIconButton"/> or
+  /// <see cref="CreateIconToggleButton"/>. A missing icon file is logged and the icon is kept.
+  /// </summary>
+  /// <param name="button">Icon button to change.</param>
+  /// <param name="iconFile">Icon file name from <see cref="GumIcons"/>.</param>
+  /// <param name="toolTip">Tooltip text.</param>
+  /// <exception cref="ArgumentNullException"><paramref name="button"/> is null.</exception>
+  public static void SetIconButtonIcon(ButtonBase button, string iconFile, string toolTip)
+  {
+    ArgumentNullException.ThrowIfNull(button);
+    button.ToolTip = toolTip;
+
+    string iconPath = GumIcons.ResolvePath(iconFile);
+    if (!File.Exists(iconPath))
+    {
+      Log.Error($"Gum icon not found: {iconPath}");
+      return;
+    }
+
+    foreach (var child in button.Visual.Children)
+    {
+      if (child is not SpriteRuntime sprite) continue;
+      sprite.SourceFileName = iconPath;
+      return;
+    }
+
+    // Button was created without an icon (its file was missing at creation): show the tooltip text.
+    Log.Error($"Gum icon button has no icon sprite; cannot show {iconPath}");
+    SetButtonText(button, toolTip);
+  }
+
+  /// <summary>
   /// Sets the text of a push or toggle button.
   /// </summary>
   /// <param name="button">Button to change.</param>
