@@ -85,7 +85,7 @@ Before considering a task complete:
 - **Determinism stays in the library.** The editor supplies `WorldGenerationContext`-style inputs (seed, map config etc); it must not compensate for or re-order generation results.
 - **Isolate the conversion layer.** Keep code that maps level data to Stride objects (`Entity`, `Transform`, models, colliders) in a dedicated, clearly named area (e.g. a scene builder). Level-data types must not spread through UI/input code, and engine types must not leak into generation decisions.
 - **Engine-specific code is allowed and expected here** (unlike in `lil-level-gen`): scene manipulation, input, rendering, Game Studio integration and asset work are this project's purpose.
-- **Input conventions.** Gameplay scripts read keyboard input through `GameInput` (capture-gated); mouse, gamepad and touch are read from `Input` directly. UI is code-only Gum (`Ui/Gum/`). Use `GumFocus` for keyboard-capture (`IsKeyboardCaptured`: focused text box or open dropdown list) and pointer-over queries; Gum text boxes blur on outside click by themselves (`LosesFocusWhenClickedOff`); overlays release focus they hold when hidden.
+- **Input conventions.** Gameplay scripts read keyboard input through `GameInput` (capture-gated); mouse, gamepad and touch are read from `Input` directly. UI is code-only Gum (`Ui/Gum/`). Use `GumFocus` for keyboard-capture (`IsKeyboardCaptured`: focused text box, open dropdown list, or a hovered element implementing `IClaimsKeyboardWhileHovered`) and pointer-over queries; Gum text boxes blur on outside click by themselves (`LosesFocusWhenClickedOff`); overlays release focus they hold when hidden.
 
 ## LevelGen package workflow
 
@@ -164,6 +164,16 @@ Ui/Gum/
 ```
 
 If our own custom components are needed, place them in `/Ui/Gum/Components/<name>`.
+
+### Component conventions
+
+Reference implementation: `Ui/Gum/Components/GraphVisualizer/` (see `GRAPH_VISUALIZATION.md`).
+
+- Split a component into plain, engine-free logic (geometry, layout, state machines fed a per-frame input record) with tests, and a thin Gum shell (`Gum*` classes) that only reads Gum/Stride and draws.
+- Components know only their own generic model; callers translate app data with an adapter in `Ui/Gum/App/` (e.g. `LevelGraphVisAdapter`).
+- Custom drawing: a renderable deriving from `SkiaGum.Renderables.RenderableShapeBase` inside an `InteractiveGue`. The canvas arrives in window space and unclipped: translate and clip yourself. Keep Skia objects (paints, fonts) for the component's lifetime and dispose them in the component's `Dispose`; use `SKPathBuilder` + `Detach()` for paths.
+- Poll pointer input from `GumService.Default.Cursor` each frame; `Cursor.VisualOver == element` is the "pointer over" test. An element that uses keys while hovered implements `IClaimsKeyboardWhileHovered`.
+- Scroll bars: use `GumScrollBarSizing.ApplyThickness` (15 px, square arrow buttons) for standalone `ScrollBar`s and for a `ScrollViewer`'s `VerticalScrollBar`.
 
 ### Tests
 

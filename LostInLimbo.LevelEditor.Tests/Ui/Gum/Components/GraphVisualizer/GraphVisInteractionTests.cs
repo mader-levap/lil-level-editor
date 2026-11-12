@@ -259,6 +259,84 @@ public sealed class GraphVisInteractionTests
     Assert.Equal(camera, interaction.Camera);
   }
 
+  #region Window resize
+
+  /// <summary>
+  /// Verifies a fitted view is fitted again on resize.
+  /// </summary>
+  [Fact]
+  public void ResizeView_WhileFitted_FitsAgain()
+  {
+    // Arrange: Fitted to the large graph.
+    var interaction = new GraphVisInteraction(Style);
+    interaction.FitView(LargeGraph, Viewport);
+    var larger = new Vector2(1200, 900);
+
+    // Act: Viewport grows.
+    interaction.ResizeView(LargeGraph, Viewport, larger);
+
+    // Assert: Same as fitting the new size directly; still fitted.
+    GraphVisCamera expected = GraphVisCamera.Fit(LargeGraph, larger, Style.ViewPadding, Style.MinZoom, Style.MaxFitZoom);
+    Assert.Equal(expected, interaction.Camera);
+    Assert.True(interaction.IsFitted);
+  }
+
+  /// <summary>
+  /// Verifies that after the user navigated, a resize keeps the zoom and the world point at the
+  /// viewport center.
+  /// </summary>
+  [Fact]
+  public void ResizeView_AfterNavigation_KeepsZoomAndCenter()
+  {
+    // Arrange: Fitted, then zoomed in by the wheel.
+    var interaction = new GraphVisInteraction(Style);
+    interaction.FitView(LargeGraph, Viewport);
+    interaction.Update(Idle(new Vector2(300, 150)) with { WheelNotches = 5 }, LargeGraph, Viewport);
+    float zoom = interaction.Camera.Zoom;
+    Vector2 center = interaction.Camera.ScreenToWorld(Viewport / 2f);
+    var larger = new Vector2(1000, 600);
+
+    // Act: Viewport grows.
+    interaction.ResizeView(LargeGraph, Viewport, larger);
+
+    // Assert: Not fitted; same zoom; the same world point sits at the new center.
+    Assert.False(interaction.IsFitted);
+    Assert.Equal(zoom, interaction.Camera.Zoom, Tolerance);
+    AssertClose(center, interaction.Camera.ScreenToWorld(larger / 2f));
+  }
+
+  /// <summary>
+  /// Verifies panning, zooming and scrolling all end the fitted state; a drag-free click does not.
+  /// </summary>
+  [Fact]
+  public void Navigation_EndsFittedState()
+  {
+    // Arrange: Three fitted interactions.
+    GraphVisInteraction Fitted()
+    {
+      var interaction = new GraphVisInteraction(Style);
+      interaction.FitView(LargeGraph, Viewport);
+      return interaction;
+    }
+
+    GraphVisInteraction panned = Fitted();
+    GraphVisInteraction scrolled = Fitted();
+    GraphVisInteraction clicked = Fitted();
+
+    // Act: Key pan, scroll bar, click.
+    panned.Update(Idle(Viewport / 2f) with { PanAxis = new Vector2(1, 0) }, LargeGraph, Viewport);
+    scrolled.ScrollTo(EnGraphVisAxis.Vertical, 10f, LargeGraph, Viewport);
+    clicked.Update(Idle(Viewport / 2f) with { IsPrimaryDown = true }, LargeGraph, Viewport);
+    clicked.Update(Idle(Viewport / 2f), LargeGraph, Viewport);
+
+    // Assert: Only the click keeps the view fitted.
+    Assert.False(panned.IsFitted);
+    Assert.False(scrolled.IsFitted);
+    Assert.True(clicked.IsFitted);
+  }
+
+  #endregion
+
   #region Selection and dragging
 
   /// <summary>Node radius of <see cref="CreateWithGraph"/>.</summary>

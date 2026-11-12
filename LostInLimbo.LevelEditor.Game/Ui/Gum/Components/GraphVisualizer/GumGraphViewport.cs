@@ -30,7 +30,7 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 /// still; see <see cref="IClaimsKeyboardWhileHovered"/>). Scroll bars lie over the canvas edges
 /// and appear only on axes where the graph is larger than the viewport.</para>
 /// </remarks>
-public sealed class GumGraphViewport
+public sealed class GumGraphViewport : IDisposable
 {
   /// <summary>Text shown when there is no graph.</summary>
   public const string NoGraphText = "No graph data available";
@@ -74,8 +74,11 @@ public sealed class GumGraphViewport
   /// <summary>Physics moving the nodes of the current graph; null when there is no graph.</summary>
   private GraphVisSimulation? _simulation;
 
-  /// <summary>Viewport size the camera was last fitted to; null forces a fit on the next update.</summary>
+  /// <summary>Viewport size the camera was last adapted to; null forces a fit on the next update.</summary>
   private Vector2? _fittedSize;
+
+  /// <summary>Whether <see cref="Dispose"/> was called.</summary>
+  private bool _disposed;
 
   /// <summary>Graph extent at the last update; null when there is no graph.</summary>
   private GraphVisBounds? _bounds;
@@ -111,8 +114,10 @@ public sealed class GumGraphViewport
   /// <returns><see cref="Root"/>, to be added to a parent and sized by the caller.</returns>
   /// <remarks>Call only after <c>GumService.Default.Initialize</c> has returned.</remarks>
   /// <exception cref="InvalidOperationException">The viewport was already built.</exception>
+  /// <exception cref="ObjectDisposedException">The viewport was disposed.</exception>
   public ContainerRuntime Build()
   {
+    ObjectDisposedException.ThrowIf(_disposed, this);
     if (Root != null) throw new InvalidOperationException("Graph viewport was already built.");
 
     var root = new ContainerRuntime();
@@ -212,7 +217,7 @@ public sealed class GumGraphViewport
   /// <param name="data">Graph to show; null or an empty graph shows the text.</param>
   public void SetGraph(GraphVisData? data)
   {
-    if (_renderer == null || _canvasElement == null || _noGraphLabel == null) return; // not built yet
+    if (_renderer == null || _canvasElement == null || _noGraphLabel == null) return; // not built yet, or disposed
 
     bool hasGraph = data is { IsEmpty: false };
     _canvasElement.Visible = hasGraph;
@@ -264,12 +269,11 @@ public sealed class GumGraphViewport
       _simulation.Positions.Select((position, index) => (position, _renderer.Radii[index])));
     if (_bounds is not { } bounds) return;
 
-    // Fit the whole graph when it is new or the viewport size changed (window resize).
-    if (_fittedSize != viewportSize)
-    {
-      _interaction.Reset(GraphVisCamera.Fit(bounds, viewportSize, _style.ViewPadding, _style.MinZoom, _style.MaxFitZoom));
-      _fittedSize = viewportSize;
-    }
+    // A new graph is fitted; on a window resize a fitted view is fitted again, a navigated one
+    // keeps its zoom and center.
+    if (_fittedSize is not { } previousSize) _interaction.FitView(bounds, viewportSize);
+    else if (previousSize != viewportSize) _interaction.ResizeView(bounds, previousSize, viewportSize);
+    _fittedSize = viewportSize;
 
     _interaction.Update(ReadInput(_canvasElement, deltaSeconds), bounds, viewportSize);
     _highlightFade.Step(deltaSeconds, _interaction.Hover, _interaction.Selection);
@@ -400,6 +404,22 @@ public sealed class GumGraphViewport
   }
 
   #endregion
+
+  /// <summary>
+  /// Releases the renderer's Skia resources and hides the canvas, which then draws nothing. The
+  /// visuals stay in the Gum tree; remove <see cref="Root"/> separately. Safe to call twice.
+  /// </summary>
+  public void Dispose()
+  {
+    if (_disposed) return;
+    _disposed = true;
+
+    if (_canvasElement != null) _canvasElement.Visible = false;
+    _simulation = null;
+    _interaction.SetGraph(null, [], []);
+    _renderer?.Dispose();
+    _renderer = null; // Render and Update check for null
+  }
 
   /// <summary>
   /// Draws the graph. Called by Gum every frame while the canvas is visible.

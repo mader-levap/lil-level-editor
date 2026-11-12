@@ -8,10 +8,10 @@ section, the phase checklists and the logs at the end of every session so work c
 
 | Item | Value |
 |---|---|
-| Active phase | Phase 6 (awaiting verification) |
-| Last finished phase | Phase 5 |
+| Active phase | Phase 7 (awaiting verification) |
+| Last finished phase | Phase 6 |
 | Blockers | none |
-| Next action | User selects and drags nodes, selects relationships with conditions, checks the data panel; then Phase 7 |
+| Next action | User does a full pass over the feature (including window resize); then the feature is done |
 
 | Phase | Title | Status |
 |---|---|---|
@@ -21,8 +21,8 @@ section, the phase checklists and the logs at the end of every session so work c
 | 3 | LevelGen adapter and overlay integration | done |
 | 4 | Layout (stress) and live physics | done |
 | 5 | Navigation | done |
-| 6 | Selection, dragging and data panel | awaiting verification |
-| 7 | Polish and cleanup | not started |
+| 6 | Selection, dragging and data panel | done |
+| 7 | Polish and cleanup | awaiting verification |
 
 Statuses: `not started`, `in progress`, `awaiting verification`, `done`.
 
@@ -105,17 +105,19 @@ Public surface of `GumGraphVisualizer` (kept small): `Build(...)`, `SetGraph(Gra
 |---|---|---|
 | `GraphVisData.cs` | Immutable input model: `GraphVisData`, `GraphVisNode`, `GraphVisEdge`, `GraphVisMarker` | yes |
 | `GraphVisStyle.cs` | Named constants / options (stroke widths, radii, dash lengths, colours, limits) | – |
-| `GraphVisColors.cs` | Darken, highlight and "key to distinct colour" helpers | yes |
+| `GraphVisColors.cs` | Darken, brighten and "key to distinct colour" helpers | yes |
 | `GraphVisCamera.cs` | Pan/zoom state, world/screen transforms, zoom about a point, clamping, fit-to-view, scroll bar ranges | yes |
 | `GraphVisGeometry.cs` | Edge end points on circle borders, arrowheads, label anchor, marker dot placement | yes |
 | `GraphVisLayout.cs` | Starting placement (stress layout) | yes |
 | `GraphVisSimulation.cs` | Live physics: push apart, pull together, mass rule, sleeping | yes |
-| `GraphVisHitTest.cs` | Node (circle) and edge (distance to segment) picking | yes |
-| `GraphVisInteraction.cs` | State machine driven by a per-frame input record: pan, zoom, select, drag | yes |
+| `GraphVisHitTest.cs` | Node (circle) and edge (distance to the drawn curve, sampled) picking | yes |
+| `GraphVisHighlightFade.cs` | Eased hover/selection brightening level per node and edge | yes |
+| `GraphVisDataRows.cs` | Which data panel pairs share one row (aligned key column) | yes |
+| `GraphVisInteraction.cs` | State machine driven by a per-frame input record: pan, zoom, select, drag, hover, fit/resize | yes |
 | `GraphVisRenderer.cs` | Skia draw calls for nodes, edges, markers, texts, highlights | by eye |
 | `GumGraphViewport.cs`, `GumGraphDataPanel.cs`, `GumGraphVisualizer.cs` | Gum shell | by eye |
 
-Outside the component: `Ui/Gum/App/Info/LevelGraphVisAdapter.cs` (LevelGen graph to
+Outside the component: `Ui/Gum/Common/GumScrollBarSizing.cs` and `IClaimsKeyboardWhileHovered.cs` (shared), `Ui/Gum/App/Info/LevelGraphVisAdapter.cs` (LevelGen graph to
 `GraphVisData`, tested) and changes to `GumLevelInfoPanel.cs`. Tests go to
 `LostInLimbo.LevelEditor.Tests/Ui/Gum/Components/GraphVisualizer/` (same layout as the ProgressBar tests).
 
@@ -338,12 +340,12 @@ alternatives the user chose stress layout for the start plus the live physics.
 
 ### Phase 7 – Polish and cleanup
 
-- [ ] Review constants, naming, docs, regions; remove leftovers from spikes and demo data.
-- [ ] Check cleanup when the graph is replaced or the overlay hidden (no leaked elements, Skia
-      paints/paths disposed, focus/capture released).
-- [ ] Behaviour on window resize.
-- [ ] Update `AGENTS.md` (component and input conventions) and `TODO.md` if needed.
-- [ ] Final build, tests, warnings check.
+- [x] Review constants, naming, docs, regions; remove leftovers from spikes and demo data (none left).
+- [x] Check cleanup when the graph is replaced or the overlay hidden (no leaked elements, Skia
+      paints/paths disposed, focus/capture released). See decisions log.
+- [x] Behaviour on window resize (fitted view re-fits, navigated view keeps zoom and centre; tested).
+- [x] Update `AGENTS.md` (component and input conventions) and `TODO.md` if needed (`TODO.md` had nothing on the graph).
+- [x] Final build, tests, warnings check.
 
 **Verify:** full pass by the user over the whole feature.
 
@@ -393,7 +395,7 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | Scroll bars are 15 px thick (user). While both are shown, a filler in the track colour covers the bottom-right corner; it has events, so a press or the wheel there does not reach the graph. While only one is shown, it spans its whole edge. |
 | 2026-11-12 | **Parallel relationships as arcs** (user report: only one of two edges visible). Edges joining the same two nodes bend to alternating sides of the straight line (`GraphVisGeometry.ParallelEdgeBends`, `EdgeCurve`, `CurveBetweenArrows`; quadratic Bézier curves); a lone edge stays straight. Opposite directions get opposite stored signs so they still separate. Merging them into one line with a count was rejected: Phase 6 must select each relationship on its own. Layout and physics are unchanged (a doubled pair pulls a little harder). |
 | 2026-11-12 | **Marker placement** (user request; Start room of Medium seed `p8` had its outer labels jutting out). All splits of a node's markers, in order, into consecutive rows are tried (3 markers: 3, 2+1, 1+2, 1+1+1); rows are spaced by label width and height so markers cannot overlap, the block is centred, and the split whose label rectangles and dots stick out least past the node's inner edge (radius minus outline) wins, fewer rows on ties. `MarkerDotDrop` replaced by `MarkerRowGap`. Computed once per `SetGraph`. |
-| 2026-11-12 | The view still re-fits when the viewport size changes (window resize), losing the user's pan and zoom; better resize behaviour stays in Phase 7. |
+| 2026-11-12 | The view still re-fits when the viewport size changes (window resize), losing the user's pan and zoom; better resize behaviour stays in Phase 7. (Superseded in Phase 7, see below.) |
 | 2026-11-12 | The simulation sleeps at 0.05 units of movement per step (was 0.02): below that, movement is invisible but takes thousands of steps to die out. |
 | 2026-11-12 | **Selection.** `GraphVisInteraction` owns the selection (`GraphVisHit`: kind + index) next to the camera. A new graph clears it; a view reset (resize re-fit) keeps it. Dragging from an edge pans (only nodes are draggable) and keeps the selection; a node drag selects the node. The renderer exposes `EdgeShapes` (nodes + bend), which layout, physics and hit testing all use, so picking matches the drawing. |
 | 2026-11-12 | **Data panel.** `GumGraphDataPanel` shows a title ("Node", "Edge" or "Nothing selected") and the selection's `Properties` in their given order as key (muted) / value (wrapped) pairs in a Gum `ScrollViewer`, scrolled to the top for each selection. Its vertical scroll bar is 15 px like the graph's (user); the thickness and square-button code moved to `Ui/Gum/Common/GumScrollBarSizing` and is shared by both. Gum's scroll viewer narrows its content by the bar's actual width, so nothing else needed changing. `GumGraphVisualizer` keeps the shown data and refreshes the panel when the viewport's selection changes. |
@@ -402,6 +404,8 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | **Indented properties** (user). The model gained `IndentedPropertyKeys` on `GraphVisNode` and `GraphVisEdge` (additive, default empty; keys without a property are ignored), so the component stays generic. The adapter lists the `POI x` and `Condition x` keys there. The data panel indents those rows by 12 px; for the one-row decision the indent counts as part of the key's width, so the value column stays aligned. |
 | 2026-11-12 | **Hover highlight** (user). `GraphVisInteraction.Hover` is computed after each update; `GraphVisHighlightFade` keeps a level per node and edge that moves linearly towards 1 (hovered or selected) or 0 over `HoverFadeSeconds` and is read through smoothstep. The renderer draws lit elements from a copy with colours brightened by `GraphVisColors.Brighten` (mix with white), so black edges turn dark gray (RGB 50 at full level, checked by pixel sampling). |
 | 2026-11-12 | Default edge colour is dark gray (RGB 70, the same as secret edges) instead of black (user), so the hover brightening shows: a hovered edge goes to RGB 106 (checked by pixel sampling). Secret edges remain distinguishable by their dashes. |
+| 2026-11-12 | **Window resize** (Phase 7). `GraphVisInteraction.IsFitted` is true after `FitView` (new graph) until the user pans, zooms or scrolls (clicks and node drags keep it). On a viewport size change `ResizeView` fits again while fitted; otherwise it keeps the zoom and the world point at the viewport centre, then clamps. |
+| 2026-11-12 | **Cleanup** (Phase 7). Replacing the graph resets interaction (selection, hover, gesture, pin), highlight fade and data panel; Skia paths are created per draw in `using` blocks, paints and fonts live with the renderer. `GumGraphViewport`, `GumGraphVisualizer` and `GumLevelInfoPanel` are `IDisposable` (renderer disposed, canvas hidden); `UiMain.Cancel` disposes the info panel. Hiding the overlay stops updates and the hidden canvas stops claiming the keyboard; showing it again converts the graph anew, which resets all state. |
 
 ## Findings log
 
@@ -442,9 +446,10 @@ Filled during Phase 0 and later.
 | 2026-11-12 | 4 | Layout alternatives researched; stress layout + physics implemented and wired. Checked on screen with Medium and Hard levels. Build green, 267 tests pass. | User check; Phase 5. |
 | 2026-11-12 | – | Missing obstacles/solutions investigated: generator side, adapter loses nothing (Findings log). | – |
 | 2026-11-12 | 5 | Interaction, scroll range math, keyboard claim, scroll bars and input wiring. Checked on screen with Hard levels. Fixes after user review: scroll bar size and squares, corner filler, parallel arcs, marker rows. Build green, 309 tests pass. | Verified by user; Phase 6. |
-| 2026-11-12 | 6 | Hit test, selection and node dragging, highlights, data panel. Checked on screen with Medium `p8`. Build green, 324 tests pass. | User check; Phase 7. |
+| 2026-11-12 | 6 | Hit test, selection and node dragging, highlights, data panel. Checked on screen with Medium `p8`. Build green, 324 tests pass. Follow-ups after user review: panel scroll bar 15 px, single-row pairs, smaller font, indented items, hover highlight with fade, dark gray edges (341 tests). | Verified by user; Phase 7. |
+| 2026-11-12 | 7 | Review, resize behaviour, disposal chain, AGENTS.md conventions. Compiles, 344 tests pass. | User full pass. |
 
 ## Further research needed
 
-- Behaviour on window resize and on non-100 % display scaling – check in Phase 2 / Phase 7.
+- Behaviour on non-100 % display scaling – not checked (only 100 % available here).
 - Baseline frame time without the canvas, to confirm the canvas costs nothing noticeable – check in Phase 2.

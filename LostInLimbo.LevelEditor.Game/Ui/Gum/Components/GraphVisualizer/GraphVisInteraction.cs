@@ -143,14 +143,52 @@ public sealed class GraphVisInteraction
   }
 
   /// <summary>
-  /// Replaces the view (for example after fitting a new graph) and ends a gesture in progress.
-  /// The selection stays.
+  /// Whether the view still shows the whole graph as fitted by <see cref="FitView"/>: true until
+  /// the user pans, zooms or scrolls. A fitted view is fitted again when the viewport is resized.
   /// </summary>
-  /// <param name="camera">New view.</param>
+  public bool IsFitted { get; private set; }
+
+  /// <summary>
+  /// Replaces the view and ends a gesture in progress. The selection stays.
+  /// </summary>
+  /// <param name="camera">New view (not considered fitted).</param>
   public void Reset(GraphVisCamera camera)
   {
     Camera = camera;
+    IsFitted = false;
     EndGesture();
+  }
+
+  /// <summary>
+  /// Fits the whole graph into the viewport (for a new graph) and ends a gesture in progress.
+  /// </summary>
+  /// <param name="bounds">World rectangle of the graph.</param>
+  /// <param name="viewportSize">Viewport size, in pixels.</param>
+  public void FitView(GraphVisBounds bounds, Vector2 viewportSize)
+  {
+    Reset(GraphVisCamera.Fit(bounds, viewportSize, _style.ViewPadding, _style.MinZoom, _style.MaxFitZoom));
+    IsFitted = true;
+  }
+
+  /// <summary>
+  /// Adapts the view to a new viewport size: a fitted view is fitted again; otherwise the zoom
+  /// and the world point at the viewport center are kept (then clamped), so the user's place in
+  /// the graph survives a window resize.
+  /// </summary>
+  /// <param name="bounds">World rectangle of the graph.</param>
+  /// <param name="oldViewportSize">Viewport size before the resize, in pixels.</param>
+  /// <param name="newViewportSize">Viewport size after the resize, in pixels.</param>
+  public void ResizeView(GraphVisBounds bounds, Vector2 oldViewportSize, Vector2 newViewportSize)
+  {
+    if (IsFitted)
+    {
+      FitView(bounds, newViewportSize);
+      return;
+    }
+
+    Vector2 worldCenter = Camera.ScreenToWorld(oldViewportSize / 2f);
+    var camera = new GraphVisCamera(Camera.Zoom, newViewportSize / 2f - worldCenter * Camera.Zoom);
+    Camera = camera.ClampTo(bounds, newViewportSize, _style.ViewPadding);
   }
 
   /// <summary>
@@ -183,7 +221,11 @@ public sealed class GraphVisInteraction
     }
 
     bool viewChanged = camera != Camera;
-    if (viewChanged) Camera = camera.ClampTo(bounds, viewportSize, _style.ViewPadding);
+    if (viewChanged)
+    {
+      Camera = camera.ClampTo(bounds, viewportSize, _style.ViewPadding);
+      IsFitted = false; // the user moved the view
+    }
     Hover = HoverFor(input);
     return viewChanged;
   }
@@ -214,6 +256,7 @@ public sealed class GraphVisInteraction
   public void ScrollTo(EnGraphVisAxis axis, float value, GraphVisBounds bounds, Vector2 viewportSize)
   {
     Camera = Camera.ScrolledTo(axis, value, bounds, viewportSize, _style.ViewPadding);
+    IsFitted = false;
   }
 
   /// <summary>

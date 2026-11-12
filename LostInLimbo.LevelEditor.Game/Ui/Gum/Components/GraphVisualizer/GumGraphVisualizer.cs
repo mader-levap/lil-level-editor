@@ -17,7 +17,7 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 /// Knows only the generic <see cref="GraphVisData"/> model; callers translate their own data into
 /// it. Callers add <see cref="Root"/> to a parent, size it and feed it with <see cref="SetGraph"/>.
 /// </remarks>
-public sealed class GumGraphVisualizer
+public sealed class GumGraphVisualizer : IDisposable
 {
   /// <summary>Padding between the panel edges and its parts, and between the parts, in pixels.</summary>
   private const float Padding = 8f;
@@ -119,6 +119,18 @@ public sealed class GumGraphVisualizer
     if (selection == _shownSelection) return;
     _shownSelection = selection;
     ShowSelection(selection);
+  }
+
+  /// <summary>
+  /// Releases the drawing resources; the visualizer shows nothing afterwards. The visuals stay in
+  /// the Gum tree; remove <see cref="Root"/> separately. Safe to call twice.
+  /// </summary>
+  public void Dispose()
+  {
+    _viewport.Dispose();
+    _data = null;
+    _shownSelection = GraphVisHit.None;
+    _dataPanel.Clear();
   }
 
   /// <summary>

@@ -41,6 +41,13 @@ public sealed class UiMain : SyncScript
     EnsureGumUiBuilt();
   }
 
+  public override void Cancel()
+  {
+    // Panels holding unmanaged drawing resources release them with the script.
+    _gumLevelInfoPanel?.Dispose();
+    _gumLevelInfoPanel = null;
+  }
+
   public override void Update()
   {
     EnsureGumUiBuilt();

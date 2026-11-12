@@ -29,7 +29,7 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Info;
 /// copy. Runs cannot start while this card is open (overlays are exclusive), so a result
 /// change is the only way the shown data can go stale.
 /// </remarks>
-public sealed class GumLevelInfoPanel : IOverlayView
+public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
 {
   /// <summary>Logger for this class.</summary>
   private static readonly Logger Log = GlobalLogger.GetLogger(nameof(GumLevelInfoPanel));
@@ -202,6 +202,15 @@ public sealed class GumLevelInfoPanel : IOverlayView
     if (!IsVisible) return;
     if (_levelGenService.Status().Result != _shownResult) Refresh();
     _graphVisualizer.Update(deltaSeconds);
+  }
+
+  /// <summary>
+  /// Hides the overlay and releases the graph's drawing resources. Safe to call twice.
+  /// </summary>
+  public void Dispose()
+  {
+    SetVisible(false);
+    _graphVisualizer.Dispose();
   }
 
   /// <summary>
