@@ -8,15 +8,15 @@ section, the phase checklists and the logs at the end of every session so work c
 
 | Item | Value |
 |---|---|
-| Active phase | Phase 0 (awaiting verification) |
-| Last finished phase | none |
+| Active phase | Phase 1 (awaiting verification) |
+| Last finished phase | Phase 0 |
 | Blockers | none |
-| Next action | User tries the spike panel; then remove spike code (see Phase 0 checklist) and start Phase 1 |
+| Next action | User reviews the model (`GraphVisData.cs`) and helpers; then start Phase 2 |
 
 | Phase | Title | Status |
 |---|---|---|
-| 0 | Research spikes | awaiting verification |
-| 1 | Data model and pure helpers | not started |
+| 0 | Research spikes | done |
+| 1 | Data model and pure helpers | awaiting verification |
 | 2 | Component shell and static rendering | not started |
 | 3 | LevelGen adapter and overlay integration | not started |
 | 4 | Layout simulation | not started |
@@ -116,7 +116,7 @@ Public surface of `GumGraphVisualizer` (kept small): `Build(...)`, `SetGraph(Gra
 
 Outside the component: `Ui/Gum/App/Info/LevelGraphVisAdapter.cs` (LevelGen graph to
 `GraphVisData`, tested) and changes to `GumLevelInfoPanel.cs`. Tests go to
-`LostInLimbo.LevelEditor.Tests/Ui/Gum/GraphVisualizer/`.
+`LostInLimbo.LevelEditor.Tests/Ui/Gum/Components/GraphVisualizer/` (same layout as the ProgressBar tests).
 
 ### Data model (generic, no level concepts)
 
@@ -211,7 +211,7 @@ phase. Findings are written into *Findings log*. Goal: remove every unknown befo
 - [x] **S6 Fallback check (only if S1 fails).** Not needed, S1 passed. Same test with a pool of `CircleRuntime` /
       `PolygonRuntime` elements.
 - [x] Record findings and decisions; list any further research needed.
-- [ ] Remove spike code after the user has seen it. Everything is marked `SPIKE(graph-vis)`:
+- [x] Remove spike code after the user has seen it (done at the start of Phase 1). Everything is marked `SPIKE(graph-vis)`:
       folder `Ui/Gum/Components/GraphVisualizer/Spike/`, three places in `Ui/Main/UiMain.cs`
       (using, field + `Update` call, build block) and the capture predicate in
       `Main/LostInLimboEditor.cs` (restore `isKeyboardCaptured: GumFocus.IsKeyboardCaptured`).
@@ -223,12 +223,12 @@ the decisions recorded.
 
 No visuals. Test-first where practical.
 
-- [ ] `GraphVisData.cs` with validation.
-- [ ] `GraphVisStyle.cs`.
-- [ ] `GraphVisColors.cs` (darken, key-to-colour palette with collision handling).
-- [ ] `GraphVisCamera.cs` (transforms, zoom about point, zoom limits, clamp, fit-to-view).
-- [ ] `GraphVisGeometry.cs` (border-to-border edge segment, arrowheads, marker placement, collapse rule).
-- [ ] Tests for all of the above.
+- [x] `GraphVisData.cs` with validation.
+- [x] `GraphVisStyle.cs`.
+- [x] `GraphVisColors.cs` (darken, key-to-colour palette with collision handling).
+- [x] `GraphVisCamera.cs` (transforms, zoom about point, zoom limits, clamp, fit-to-view).
+- [x] `GraphVisGeometry.cs` (border-to-border edge segment, arrowheads, marker placement, collapse rule).
+- [x] Tests for all of the above (78 new tests).
 
 **Verify:** build and tests green; user reviews the model shape (it is the component's public API).
 
@@ -267,6 +267,7 @@ and the "No graph data available" state.
 ### Phase 5 – Navigation
 
 - [ ] `GraphVisInteraction.cs` pan and zoom parts with tests.
+- [ ] Scroll bar range math in `GraphVisCamera` (maximum, viewport size, value both ways) with tests.
 - [ ] Mouse-drag pan, WASD pan, wheel zoom about cursor, zoom and pan limits.
 - [ ] Scroll bars shown only when the graph exceeds the viewport, in sync with the camera both ways.
 - [ ] Keyboard capture so the 3D camera does not move while the graph is being navigated.
@@ -318,6 +319,11 @@ Defaults are applied unless the user says otherwise; confirm at the phase noted.
 | 2026-11-12 | Input is polled from `GumService.Default.Cursor` each frame (not Gum events), which fits the per-frame input record of `GraphVisInteraction`. |
 | 2026-11-12 | Scroll bars are standalone Gum Forms `ScrollBar` controls; no custom scroll bar needed. |
 | 2026-11-12 | Component model is generic (markers, dashed, labels); level meaning is applied only by the adapter. |
+| 2026-11-12 | Model details: ids are strings; self-loops, dangling edges, duplicate ids (nodes, edges, markers graph-wide) and non-positive sizes are rejected by `GraphVisData`; unknown `HighlightMarkerIds` are tolerated. |
+| 2026-11-12 | Node radius = base radius × √(relative size), clamped to a min/max, so circle area tracks size. |
+| 2026-11-12 | Palette: 24 colours (12 hues × 2 lightness tiers), neighbouring slots 150° of hue apart. |
+| 2026-11-12 | Camera is an immutable struct (`screen = world × zoom + translation`). Clamp rule: a graph smaller than the viewport stays inside it, a larger one always covers it. Scroll bar range math moved to Phase 5. |
+| 2026-11-12 | Marker dots sit in one horizontal row, spaced by measured label widths (renderer measures, `GraphVisGeometry.MarkerOffsets` places). |
 
 ## Findings log
 
@@ -343,6 +349,7 @@ Filled during Phase 0 and later.
 |---|---|---|---|
 | 2026-11-12 | – | Research of Gum drawing options; this plan written. | Start Phase 0. |
 | 2026-11-12 | 0 | Spike panel built (`Spike/GraphVisSpike.cs`), run and measured; findings and decisions recorded. Build and 146 tests green. | User verification; remove spike; Phase 1. |
+| 2026-11-12 | 1 | Spike removed. Model, style, colours, camera and geometry written with tests. Build green, 224 tests pass. | User review; Phase 2. |
 
 ## Further research needed
 
