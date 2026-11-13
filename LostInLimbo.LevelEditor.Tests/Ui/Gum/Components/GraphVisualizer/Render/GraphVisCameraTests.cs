@@ -272,6 +272,46 @@ public sealed class GraphVisCameraTests
   }
 
   /// <summary>
+  /// Verifies the list overload (centers and radii side by side) gives the same bounds as the
+  /// pair overload.
+  /// </summary>
+  [Fact]
+  public void AroundCircles_FromLists_MatchesPairs()
+  {
+    // Arrange: Two circles as parallel lists.
+    Vector2[] centers = [new Vector2(0, 0), new Vector2(100, 50)];
+    float[] radii = [10f, 20f];
+
+    // Act: Bounds from the lists.
+    GraphVisBounds? bounds = GraphVisBounds.AroundCircles(centers, radii);
+
+    // Assert: Same extent as from (center, radius) pairs.
+    Assert.NotNull(bounds);
+    AssertClose(new Vector2(-10, -10), bounds.Value.Min);
+    AssertClose(new Vector2(120, 70), bounds.Value.Max);
+  }
+
+  /// <summary>
+  /// Verifies the list overload has no bounds without circles.
+  /// </summary>
+  [Fact]
+  public void AroundCircles_FromEmptyLists_ReturnsNull()
+  {
+    // Assert: Nothing to enclose.
+    Assert.Null(GraphVisBounds.AroundCircles(Array.Empty<Vector2>(), Array.Empty<float>()));
+  }
+
+  /// <summary>
+  /// Verifies the list overload rejects lists of different lengths.
+  /// </summary>
+  [Fact]
+  public void AroundCircles_FromListsOfDifferentLength_Throws()
+  {
+    // Assert: Every center needs a radius.
+    Assert.Throws<ArgumentException>(() => GraphVisBounds.AroundCircles([Vector2.Zero], Array.Empty<float>()));
+  }
+
+  /// <summary>
   /// Verifies the scroll range of a graph wider than the viewport: the bar spans the graph plus
   /// padding, and its value is 0 at the graph's start and the maximum at its end.
   /// </summary>

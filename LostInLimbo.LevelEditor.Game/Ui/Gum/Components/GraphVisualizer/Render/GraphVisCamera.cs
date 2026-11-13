@@ -40,6 +40,34 @@ public readonly record struct GraphVisBounds(Vector2 Min, Vector2 Max)
 
     return bounds;
   }
+
+  /// <summary>
+  /// Computes the rectangle enclosing a set of circles given as parallel lists. Allocates
+  /// nothing, so it suits per-frame use.
+  /// </summary>
+  /// <param name="centers">Circle centers.</param>
+  /// <param name="radii">Circle radii, in the order of <paramref name="centers"/>.</param>
+  /// <returns>Enclosing rectangle, or null if there are no circles.</returns>
+  /// <exception cref="ArgumentNullException">An argument is null.</exception>
+  /// <exception cref="ArgumentException">The lists differ in length.</exception>
+  public static GraphVisBounds? AroundCircles(IReadOnlyList<Vector2> centers, IReadOnlyList<float> radii)
+  {
+    ArgumentNullException.ThrowIfNull(centers);
+    ArgumentNullException.ThrowIfNull(radii);
+    if (centers.Count != radii.Count) throw new ArgumentException("Centers and radii must have the same length.", nameof(radii));
+    if (centers.Count == 0) return null;
+
+    var min = new Vector2(float.PositiveInfinity);
+    var max = new Vector2(float.NegativeInfinity);
+    for (int i = 0; i < centers.Count; i++)
+    {
+      var extent = new Vector2(radii[i]);
+      min = Vector2.Min(min, centers[i] - extent);
+      max = Vector2.Max(max, centers[i] + extent);
+    }
+
+    return new GraphVisBounds(min, max);
+  }
 }
 
 /// <summary>

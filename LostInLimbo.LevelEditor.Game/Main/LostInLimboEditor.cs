@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 using Gum;
 using LostInLimbo.LevelEditor.Input;
@@ -32,25 +31,13 @@ public sealed class LostInLimboEditor : Game
   private bool _gumInitialized;
 
   /// <summary>
-  /// Begin run.
+  /// Sets up the window once the game runs: title from <see cref="ISystemInfoService"/>, resizable.
   /// </summary>
   protected override void BeginRun()
   {
     base.BeginRun();
-    Window.Title = ResolveTitle();
+    Window.Title = Services.GetService<ISystemInfoService>()?.GetName() ?? SystemInfoService.UnknownValue;
     Window.AllowUserResizing = true;
-  }
-
-  /// <summary>
-  /// Resolve title of application.
-  /// </summary>
-  /// <returns>Title of application.</returns>
-  private static string ResolveTitle()
-  {
-    Assembly assembly = typeof(LostInLimboEditor).Assembly;
-    string appTitle = assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product
-      ?? assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? "unknown";
-    return appTitle;
   }
 
   /// <summary>

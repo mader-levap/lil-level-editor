@@ -16,7 +16,7 @@ namespace LostInLimbo.LevelEditor.Input;
 /// Keyboard input is read through <see cref="GameInput"/>, which applies keyboard capture, so typing never moves the camera;
 /// gamepad, mouse and touch input are read directly from the input manager and are not affected by capture.
 /// </remarks>
-public class BasicCameraController : SyncScript
+public sealed class BasicCameraController : SyncScript
 {
   /// <summary>
   /// Maximum absolute pitch (rotation around the camera's right axis) in radians,
@@ -42,25 +42,32 @@ public class BasicCameraController : SyncScript
   /// </summary>
   private GameInput _gameInput = default!;
 
-  /// <summary>Gets a value indicating whether gamepad input is processed in addition to keyboard input.</summary>
+  /// <summary>Gets or sets a value indicating whether gamepad input is processed in addition to keyboard input.</summary>
+  [Display("Gamepad", "Input")]
   public bool Gamepad { get; set; } = false;
 
-  /// <summary>Gets the movement speed in units per second for keyboard and gamepad input, per axis.</summary>
+  /// <summary>Gets or sets the movement speed in units per second for keyboard and gamepad input, per axis.</summary>
+  [Display("Keyboard movement speed", "Movement")]
   public Vector3 KeyboardMovementSpeed { get; set; } = new Vector3(5.0f);
 
-  /// <summary>Gets the movement speed applied to touch drag/pinch gestures, per axis.</summary>
+  /// <summary>Gets or sets the movement speed applied to touch drag/pinch gestures, per axis.</summary>
+  [Display("Touch movement speed", "Movement")]
   public Vector3 TouchMovementSpeed { get; set; } = new Vector3(0.7f, 0.7f, 0.3f);
 
-  /// <summary>Gets the multiplier applied to movement speed while Shift (or the gamepad modifier buttons) is held.</summary>
+  /// <summary>Gets or sets the multiplier applied to movement speed while Shift (or the gamepad modifier buttons) is held.</summary>
+  [Display("Speed factor", "Movement")]
   public float SpeedFactor { get; set; } = 5.0f;
 
-  /// <summary>Gets the rotation speed for keyboard (Numpad) and gamepad input; X is pitch, Y is yaw.</summary>
+  /// <summary>Gets or sets the rotation speed for keyboard (Numpad) and gamepad input; X is pitch, Y is yaw.</summary>
+  [Display("Keyboard rotation speed", "Rotation")]
   public Vector2 KeyboardRotationSpeed { get; set; } = new Vector2(3.0f);
 
-  /// <summary>Gets the rotation speed for mouse-look while the right mouse button is held; X is yaw, Y is pitch.</summary>
+  /// <summary>Gets or sets the rotation speed for mouse-look while the right mouse button is held; X is yaw, Y is pitch.</summary>
+  [Display("Mouse rotation speed", "Rotation")]
   public Vector2 MouseRotationSpeed { get; set; } = new Vector2(1.0f, 1.0f);
 
-  /// <summary>Gets the rotation speed for touch drag gestures; X is yaw, Y is pitch.</summary>
+  /// <summary>Gets or sets the rotation speed for touch drag gestures; X is yaw, Y is pitch.</summary>
+  [Display("Touch rotation speed", "Rotation")]
   public Vector2 TouchRotationSpeed { get; set; } = new Vector2(1.0f, 0.7f);
 
   /// <summary>
@@ -224,16 +231,16 @@ public class BasicCameraController : SyncScript
           case GestureType.Drag:
             var drag = (GestureEventDrag)gestureEvent;
             var dragDistance = drag.DeltaTranslation;
-            _yaw = -dragDistance.X * TouchRotationSpeed.X;
-            _pitch = -dragDistance.Y * TouchRotationSpeed.Y;
+            _yaw -= dragDistance.X * TouchRotationSpeed.X;
+            _pitch -= dragDistance.Y * TouchRotationSpeed.Y;
             break;
 
           case GestureType.Composite:
             var composite = (GestureEventComposite)gestureEvent;
             // X/Y pan across the view plane; pinch is mapped to forward movement via a log curve.
-            _translation.X = -composite.DeltaTranslation.X * TouchMovementSpeed.X;
-            _translation.Y = -composite.DeltaTranslation.Y * TouchMovementSpeed.Y;
-            _translation.Z = MathF.Log(composite.DeltaScale + 1) * TouchMovementSpeed.Z;
+            _translation.X -= composite.DeltaTranslation.X * TouchMovementSpeed.X;
+            _translation.Y -= composite.DeltaTranslation.Y * TouchMovementSpeed.Y;
+            _translation.Z += MathF.Log(composite.DeltaScale + 1) * TouchMovementSpeed.Z;
             break;
         }
       }

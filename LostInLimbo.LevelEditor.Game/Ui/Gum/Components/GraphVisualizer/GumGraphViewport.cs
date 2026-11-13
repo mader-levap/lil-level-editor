@@ -89,6 +89,9 @@ public sealed class GumGraphViewport : IDisposable
   /// <summary>Graph extent at the last update; null when there is no graph.</summary>
   private GraphVisBounds? _bounds;
 
+  /// <summary>Whether nodes moved since <see cref="_bounds"/> was computed.</summary>
+  private bool _boundsStale;
+
   /// <summary>Viewport size at the last update, in pixels.</summary>
   private Vector2 _viewportSize;
 
@@ -329,14 +332,20 @@ public sealed class GumGraphViewport : IDisposable
   {
     if (_simulation == null || _renderer == null || _canvasElement == null) return;
 
+    // Nodes move only while the simulation is awake (dragging wakes it), so the bounds go stale
+    // only then; once asleep they are kept, which keeps a still graph allocation-free.
+    if (!_simulation.IsAsleep) _boundsStale = true;
     _simulation.Step(deltaSeconds);
 
     var viewportSize = new Vector2(_canvasElement.AbsoluteWidth, _canvasElement.AbsoluteHeight);
     if (viewportSize.X <= 0 || viewportSize.Y <= 0) return; // not laid out yet
     _viewportSize = viewportSize;
 
-    _bounds = GraphVisBounds.AroundCircles(
-      _simulation.Positions.Select((position, index) => (position, _renderer.Radii[index])));
+    if (_boundsStale || _bounds == null)
+    {
+      _bounds = GraphVisBounds.AroundCircles(_simulation.Positions, _renderer.Radii);
+      _boundsStale = false;
+    }
     if (_bounds is not { } bounds) return;
 
     // A new graph is fitted; on a window resize a fitted view is fitted again, a navigated one

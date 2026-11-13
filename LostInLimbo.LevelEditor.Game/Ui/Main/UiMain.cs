@@ -47,7 +47,9 @@ public sealed class UiMain : SyncScript
     // Shutdown: keep the level generation forms for the next start.
     _gumLevelGenPanel?.SaveSettings();
 
-    // Panels holding unmanaged drawing resources release them with the script.
+    // Panels release their resources (drawing resources, log subscriptions) with the script.
+    _gumLevelGenPanel?.Dispose();
+    _gumLevelGenPanel = null;
     _gumLevelInfoPanel?.Dispose();
     _gumLevelInfoPanel = null;
   }

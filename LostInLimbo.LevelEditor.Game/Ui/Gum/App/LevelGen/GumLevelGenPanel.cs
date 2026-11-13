@@ -31,7 +31,7 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 /// <see cref="GumConfigPanel"/>, and the reusable <see cref="GumStatusLogView"/>; this class only
 /// builds visuals and wires them to the service.
 /// </remarks>
-public sealed class GumLevelGenPanel : IOverlayView
+public sealed class GumLevelGenPanel : IOverlayView, IDisposable
 {
   /// <summary>Distance between panels and the window edge, in pixels.</summary>
   private const float Margin = 5;
@@ -246,6 +246,16 @@ public sealed class GumLevelGenPanel : IOverlayView
       world?.Graph.Edges.Count ?? 0,
       world?.Stats.Steps ?? 0,
       status.Error?.ToString()));
+  }
+
+  /// <summary>
+  /// Hides the overlay and stops the status log view from following the log. Visuals stay in
+  /// the Gum tree. Safe to call twice.
+  /// </summary>
+  public void Dispose()
+  {
+    SetVisible(false);
+    _statusLogView?.Dispose();
   }
 
   #region Building

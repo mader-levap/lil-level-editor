@@ -1,8 +1,8 @@
-using System.Reflection;
+using System;
 using System.Linq;
+using System.Reflection;
 using LostInLimbo.LevelEditor.Main;
 using LostInLimbo.LevelEditor.Services.SystemInfo.Data;
-using System;
 
 namespace LostInLimbo.LevelEditor.Services.SystemInfo;
 
@@ -41,6 +41,12 @@ public interface ISystemInfoService
 /// </summary>
 public sealed class SystemInfoService : GameServiceBase, ISystemInfoService
 {
+  /// <summary>Value shown for assembly information that is missing.</summary>
+  public const string UnknownValue = "unknown";
+
+  /// <summary>Key of the assembly metadata that holds the build configuration (set in the Game project file).</summary>
+  private const string BuildTypeMetadataKey = "BuildType";
+
   /// <summary>System info.</summary>
   private readonly DatSystemInfo _systemInfo;
 
@@ -67,7 +73,7 @@ public sealed class SystemInfoService : GameServiceBase, ISystemInfoService
   private static string ResolveName(Assembly assembly)
   {
     return assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product
-      ?? assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? "unknown";
+      ?? assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? UnknownValue;
   }
 
   /// <summary>
@@ -77,7 +83,7 @@ public sealed class SystemInfoService : GameServiceBase, ISystemInfoService
   /// <returns>Author of application.</returns>
   private static string ResolveAuthor(Assembly assembly)
   {
-    return assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company ?? "unknown";
+    return assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company ?? UnknownValue;
   }
 
   /// <summary>
@@ -87,21 +93,35 @@ public sealed class SystemInfoService : GameServiceBase, ISystemInfoService
   /// <returns>Version of application.</returns>
   private static string ResolveVersion(Assembly assembly)
   {
-    return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
+    return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? UnknownValue;
   }
 
   /// <summary>
-  /// Resolves build type enum.
+  /// Resolves build type from the assembly's build configuration metadata.
   /// </summary>
   /// <param name="assembly">Game assembly.</param>
   /// <returns>Build type.</returns>
   private static EnBuildType ResolveBuildType(Assembly assembly)
   {
-    string buildTypeStr = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-            .FirstOrDefault(x => x.Key == "BuildType")?.Value ?? "unknown";
-    EnBuildType foundBuildType = Enum.TryParse<EnBuildType>(buildTypeStr, ignoreCase: true, out var buildType) ? buildType : EnBuildType.Development;
-    if (Enum.IsDefined(buildType)) return foundBuildType;
-    return EnBuildType.Development;
+    string? value = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+      .FirstOrDefault(attribute => attribute.Key == BuildTypeMetadataKey)?.Value;
+    return ParseBuildType(value);
+  }
+
+  /// <summary>
+  /// Converts a build configuration name into a build type.
+  /// </summary>
+  /// <param name="value">Configuration name (for example <c>Debug</c>), case ignored; may be null.</param>
+  /// <returns>
+  /// Matching build type; <see cref="EnBuildType.Development"/> for a missing, unknown or numeric value.
+  /// </returns>
+  public static EnBuildType ParseBuildType(string? value)
+  {
+    // Names only: Enum.TryParse would also accept numbers ("1"), which are not configuration names.
+    if (string.IsNullOrWhiteSpace(value) || !char.IsLetter(value[0])) return EnBuildType.Development;
+    return Enum.TryParse(value, ignoreCase: true, out EnBuildType buildType) && Enum.IsDefined(buildType)
+      ? buildType
+      : EnBuildType.Development;
   }
 
   // ///////////////////////////////////////////////////////////////////////////
