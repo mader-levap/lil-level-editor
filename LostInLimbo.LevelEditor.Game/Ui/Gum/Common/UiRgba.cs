@@ -15,4 +15,16 @@ public readonly record struct UiRgba(byte Red, byte Green, byte Blue, byte Alpha
 
   /// <summary>Opaque black.</summary>
   public static UiRgba Black { get; } = new(0, 0, 0);
+
+  /// <summary>
+  /// Returns this color with its alpha multiplied by <paramref name="factor"/> (more translucent
+  /// for a factor below 1).
+  /// </summary>
+  /// <param name="factor">Alpha multiplier, clamped to 0..1.</param>
+  /// <returns>Same color with the scaled alpha, rounded to the nearest whole value.</returns>
+  public UiRgba WithAlphaScaled(float factor)
+  {
+    float clamped = float.IsNaN(factor) ? 0f : System.Math.Clamp(factor, 0f, 1f);
+    return this with { Alpha = (byte)System.MathF.Round(Alpha * clamped) };
+  }
 }

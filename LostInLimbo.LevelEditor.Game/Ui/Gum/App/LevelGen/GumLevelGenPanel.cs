@@ -52,8 +52,8 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <summary>Spacing between the progress caption and the bar, in pixels.</summary>
   private const float ProgressSpacing = 6;
 
-  /// <summary>Horizontal gap between forms in the forms panel, in pixels.</summary>
-  private const float FormSpacing = 24;
+  /// <summary>Horizontal gap on each side of the separator between forms, in pixels.</summary>
+  private const float FormGap = 12;
 
   /// <summary>Progress caption while generation runs.</summary>
   private const string CaptionRunning = "Generating...";
@@ -272,11 +272,12 @@ public sealed class GumLevelGenPanel : IOverlayView
     var forms = new StackPanel
     {
       Orientation = Orientation.Horizontal,
-      Spacing = FormSpacing,
+      Spacing = FormGap,
       X = PanelPadding,
       Y = PanelPadding,
     };
     forms.AddChild(_propertiesPanel.Build());
+    forms.AddChild(CreateFormSeparator());
     forms.AddChild(_configPanel.Build());
     panel.AddChild(forms.Visual);
 
@@ -305,13 +306,23 @@ public sealed class GumLevelGenPanel : IOverlayView
     view.AddChild(_progressCaption);
 
     // As wide as the forms row, less the padding on each side (the panel adds its own padding).
-    float formsWidth = GumPropertiesPanel.ContentWidth + FormSpacing + GumConfigPanel.ContentWidth;
+    float formsWidth = GumPropertiesPanel.ContentWidth
+      + FormGap + GumUiFactory.SeparatorThickness + FormGap
+      + GumConfigPanel.ContentWidth;
     ContainerRuntime bar = _progressBar.Build(formsWidth - 2 * PanelPadding, ProgressBarHeight);
     view.AddChild(bar);
 
     _progressView = view;
     return view;
   }
+
+  /// <summary>
+  /// Creates the thin vertical line between two forms: as tall as the forms row, centered in
+  /// it, with faded ends.
+  /// </summary>
+  /// <returns>Separator container.</returns>
+  private static ContainerRuntime CreateFormSeparator() =>
+    GumUiFactory.CreateVerticalSeparator(EditorTheme.Palette.Separator, GumUiFactory.SeparatorThickness, fadeEnds: true);
 
   /// <summary>
   /// Fixes the forms panel at its current size (measured while the forms are shown), so it does

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Gum.Converters;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
@@ -45,9 +44,6 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
 
   /// <summary>Horizontal gap on each side of a column separator, in pixels.</summary>
   private const float ColumnGap = 16;
-
-  /// <summary>Thickness of the lines between the card's columns, in pixels.</summary>
-  private const float SeparatorThickness = 1;
 
   /// <summary>
   /// How much shorter a column separator is at each end than the columns row, in pixels. The
@@ -228,23 +224,14 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
 
   /// <summary>
   /// Creates a thin vertical line between two columns: as tall as the columns row (less
-  /// <see cref="SeparatorInset"/> at each end) and centered in it.
+  /// <see cref="SeparatorInset"/> at each end) and centered in it, with faded ends.
   /// </summary>
-  /// <returns>Separator rectangle.</returns>
-  private static RectangleRuntime CreateColumnSeparator()
+  /// <returns>Separator container.</returns>
+  private static ContainerRuntime CreateColumnSeparator()
   {
-    var separator = new RectangleRuntime
-    {
-      Width = SeparatorThickness,
-      WidthUnits = DimensionUnitType.Absolute,
-      Height = -2 * SeparatorInset,
-      HeightUnits = DimensionUnitType.RelativeToParent,
-      YOrigin = RenderingLibrary.Graphics.VerticalAlignment.Center,
-      YUnits = GeneralUnitType.PixelsFromMiddle,
-    };
-    // No IgnoredByParentSize: the row still counts the separator's width (and its stack gaps).
-    // Its height depends on the row, so Gum leaves it out of the row's height (the columns size it).
-    GumUiFactory.ApplyColor(separator, EditorTheme.Palette.Separator);
+    ContainerRuntime separator = GumUiFactory.CreateVerticalSeparator(
+      EditorTheme.Palette.Separator, GumUiFactory.SeparatorThickness, fadeEnds: true);
+    separator.Height = -2 * SeparatorInset; // the factory makes it as tall as the row, centered
     return separator;
   }
 

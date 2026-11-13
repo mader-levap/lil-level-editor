@@ -1,9 +1,11 @@
 using System;
 using System.IO;
+using Gum.Converters;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.Forms.Controls.Primitives;
 using Gum.GueDeriving;
+using Gum.Managers;
 using Gum.Wireframe;
 using Stride.Core.Diagnostics;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
@@ -30,6 +32,18 @@ public static class GumUiFactory
 
   /// <summary>Title font size relative to the default font size.</summary>
   public const float TitleFontSizeFactor = 1.25f;
+
+  /// <summary>Length of each faded end of a separator, in percent of the separator's length.</summary>
+  public const float SeparatorFadePercent = 20f;
+
+  /// <summary>Separator alpha at its very tips, relative to its color's alpha (faded ends only).</summary>
+  public const float SeparatorTipAlphaFactor = 0.2f;
+
+  /// <summary>Usual thickness of separator lines, in pixels.</summary>
+  public const float SeparatorThickness = 1f;
+
+  /// <summary>Whole parent, in percent.</summary>
+  private const float FullPercent = 100f;
 
   /// <summary>
   /// Creates a container with a translucent background that fills it.
@@ -323,4 +337,98 @@ public static class GumUiFactory
     rectangle.FillAlpha = color.Alpha;
     rectangle.StrokeWidth = 0; // no outline (default stroke is a white 1px line)
   }
+
+  /// <summary>
+  /// Fills a rectangle with a top-to-bottom linear gradient over its whole height.
+  /// </summary>
+  /// <param name="rectangle">Rectangle to change.</param>
+  /// <param name="top">Color at the top edge.</param>
+  /// <param name="bottom">Color at the bottom edge.</param>
+  public static void ApplyVerticalGradient(RectangleRuntime rectangle, UiRgba top, UiRgba bottom)
+  {
+    ApplyColor(rectangle, top); // filled, no outline; the fill color is the gradient's start color
+    rectangle.UseGradient = true;
+    rectangle.Red2 = bottom.Red;
+    rectangle.Green2 = bottom.Green;
+    rectangle.Blue2 = bottom.Blue;
+    rectangle.Alpha2 = bottom.Alpha;
+
+    // From the top edge straight down to the bottom edge.
+    rectangle.GradientX1 = 0;
+    rectangle.GradientX1Units = GeneralUnitType.PixelsFromSmall;
+    rectangle.GradientX2 = 0;
+    rectangle.GradientX2Units = GeneralUnitType.PixelsFromSmall;
+    rectangle.GradientY1 = 0;
+    rectangle.GradientY1Units = GeneralUnitType.PixelsFromSmall;
+    rectangle.GradientY2 = 0;
+    rectangle.GradientY2Units = GeneralUnitType.PixelsFromLarge;
+  }
+
+  /// <summary>
+  /// Creates a thin vertical separator line. With <paramref name="fadeEnds"/>, both ends get
+  /// more translucent towards the tips (<see cref="SeparatorFadePercent"/> of the length each,
+  /// down to <see cref="SeparatorTipAlphaFactor"/> of the alpha).
+  /// </summary>
+  /// <param name="color">Line color (at full strength, in the middle).</param>
+  /// <param name="thickness">Line width, in pixels.</param>
+  /// <param name="fadeEnds">Whether the ends fade out.</param>
+  /// <returns>
+  /// Container of the given width, as tall as its parent and centered in it vertically; set a
+  /// negative <c>Height</c> to shorten it at both ends (its pieces follow its height).
+  /// </returns>
+  /// <remarks>
+  /// In a left-to-right stack whose height comes from its children, the separator still counts
+  /// for the stack's width, while Gum leaves it out of the stack's height (it depends on that
+  /// height), so the other children decide how tall it is.
+  /// </remarks>
+  public static ContainerRuntime CreateVerticalSeparator(UiRgba color, float thickness, bool fadeEnds)
+  {
+    var separator = new ContainerRuntime
+    {
+      Width = thickness,
+      WidthUnits = DimensionUnitType.Absolute,
+      Height = 0,
+      HeightUnits = DimensionUnitType.RelativeToParent,
+      YOrigin = RenderingLibrary.Graphics.VerticalAlignment.Center,
+      YUnits = GeneralUnitType.PixelsFromMiddle,
+      ChildrenLayout = ChildrenLayout.TopToBottomStack,
+    };
+
+    if (!fadeEnds)
+    {
+      RectangleRuntime line = CreateSeparatorPiece(FullPercent);
+      ApplyColor(line, color);
+      separator.AddChild(line);
+      return separator;
+    }
+
+    UiRgba tip = color.WithAlphaScaled(SeparatorTipAlphaFactor);
+
+    RectangleRuntime top = CreateSeparatorPiece(SeparatorFadePercent);
+    ApplyVerticalGradient(top, tip, color);
+    separator.AddChild(top);
+
+    RectangleRuntime middle = CreateSeparatorPiece(FullPercent - 2 * SeparatorFadePercent);
+    ApplyColor(middle, color);
+    separator.AddChild(middle);
+
+    RectangleRuntime bottom = CreateSeparatorPiece(SeparatorFadePercent);
+    ApplyVerticalGradient(bottom, color, tip);
+    separator.AddChild(bottom);
+
+    return separator;
+  }
+
+  /// <summary>
+  /// Creates one piece of a separator: full width, a share of the separator's height.
+  /// </summary>
+  /// <param name="heightPercent">Height, in percent of the separator's height.</param>
+  /// <returns>Rectangle (no color yet).</returns>
+  private static RectangleRuntime CreateSeparatorPiece(float heightPercent) => new()
+  {
+    Width = 0,
+    WidthUnits = DimensionUnitType.RelativeToParent,
+    Height = heightPercent,
+    HeightUnits = DimensionUnitType.PercentageOfParent,
+  };
 }
