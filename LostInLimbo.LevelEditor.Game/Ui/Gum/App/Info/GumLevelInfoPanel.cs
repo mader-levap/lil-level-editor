@@ -227,8 +227,6 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
           world.Phase,
           _levelGenService.RunInputs(),
           status.Seed,
-          world.Graph.Nodes.Count,
-          world.Graph.Edges.Count,
           world.Stats.Steps);
 
     _shownResult = status.Result;

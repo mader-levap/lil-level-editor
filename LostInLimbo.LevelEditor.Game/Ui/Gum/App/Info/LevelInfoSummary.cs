@@ -24,10 +24,8 @@ public sealed record LevelInfoRow(string Label, string Value);
 /// the card shows (for now the text seed); null if unknown (for example after a clear).
 /// </param>
 /// <param name="NumericSeed">Numeric seed the library actually used (reproduces the run).</param>
-/// <param name="Nodes">Graph node count.</param>
-/// <param name="Edges">Graph edge count.</param>
 /// <param name="Steps">Map generation steps.</param>
-public sealed record LevelWorldFacts(EnPhase Phase, LevelGenRunInputs? RunInputs, long NumericSeed, int Nodes, int Edges, long Steps);
+public sealed record LevelWorldFacts(EnPhase Phase, LevelGenRunInputs? RunInputs, long NumericSeed, long Steps);
 
 /// <summary>
 /// Builds the rows of the level information card.
@@ -71,8 +69,6 @@ public static class LevelInfoSummary
     rows.Add(new("Phase:", world.Phase.ToString()));
     rows.Add(new("Text seed:", LevelGenSeedFormat.TextSeed(world.RunInputs?.Props.TextSeed)));
     rows.Add(new("Numeric seed:", world.NumericSeed.ToString(CultureInfo.InvariantCulture)));
-    rows.Add(new("Graph nodes:", world.Nodes.ToString()));
-    rows.Add(new("Graph edges:", world.Edges.ToString()));
     rows.Add(new("Map steps:", world.Steps.ToString()));
     return rows;
   }

@@ -21,7 +21,11 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 /// part are placed by their distance from the root, like any other node.</item>
 /// <item>Layers: breadth-first distance from the root. Every edge therefore joins adjacent
 /// rows or stays inside one row; no edge skips a row.</item>
-/// <item>Order inside rows: barycenter sweeps (each node goes to the average position of its
+/// <item>Side rooms: a node with a single neighbour (other than the root) leaves its row and goes
+/// to a side row halfway between its neighbour's row and the next one, so it does not sit on the
+/// edges that run along rows. It keeps clear of the edges crossing that gap and of other side
+/// rooms, as near below its neighbour as that allows.</item>
+/// <item>Order inside rows (side rooms aside): barycenter sweeps (each node goes to the average position of its
 /// neighbours in the row before or after), keeping the order with the fewest crossings.</item>
 /// <item>Coordinates: rows as far apart as their largest nodes need, nodes lined up in order
 /// and pulled sideways towards their neighbours without ever coming closer than the link gap.</item>
@@ -43,6 +47,12 @@ public sealed class LayeredLayoutBuilder : GraphLayoutBuilder
 
   /// <summary>Rounds of moving nodes towards their neighbours (one round is a down pass and an up pass).</summary>
   private const int AlignmentRounds = 4;
+
+  /// <summary>Free space kept between a side room and an edge crossing its side row, as a share of the link gap.</summary>
+  private const float EdgeClearanceShare = 0.5f;
+
+  /// <summary>Tolerance when telling whether a place lies inside a forbidden stretch, in pixels.</summary>
+  private const float PlaceTolerance = 0.001f;
 
   /// <summary>
   /// Default physics without edge pull: rows would otherwise bend and long edges inside a
@@ -93,8 +103,9 @@ public sealed class LayeredLayoutBuilder : GraphLayoutBuilder
     {
       int root = ChooseRoot(part, isRoot, neighbours);
       List<List<int>> layers = BuildLayers(root, neighbours, count);
+      List<List<int>> sideRows = SplitOffSideRooms(layers, neighbours, root);
       ReduceCrossings(layers, neighbours, count);
-      Dictionary<int, Vector2> local = AssignCoordinates(layers, neighbours, radii, linkGap);
+      Dictionary<int, Vector2> local = AssignCoordinates(layers, sideRows, neighbours, radii, linkGap);
 
       // Root at the origin (its row is at Y = 0; alignment may have moved it sideways), so roots
       // line up whether the part is turned or not.
@@ -232,6 +243,40 @@ public sealed class LayeredLayoutBuilder : GraphLayoutBuilder
     }
 
     return layers;
+  }
+
+  /// <summary>
+  /// Takes the side rooms (nodes with a single neighbour, other than the root) out of the rows.
+  /// Rows left empty at the end (rows of side rooms only) are dropped.
+  /// </summary>
+  /// <param name="layers">Rows; side rooms are removed in place.</param>
+  /// <param name="neighbours">Neighbours of each node.</param>
+  /// <param name="root">Root node (stays in the first row whatever its neighbour count).</param>
+  /// <returns>Side rooms per row, in walk order: entry k holds those whose neighbour is in row k; as many entries as rows remain.</returns>
+  private static List<List<int>> SplitOffSideRooms(List<List<int>> layers, int[][] neighbours, int root)
+  {
+    var sideRows = new List<List<int>>();
+    foreach (List<int> _ in layers) sideRows.Add([]);
+
+    // A side room's only neighbour is the node it was reached from, one row before.
+    for (int k = 1; k < layers.Count; k++)
+    {
+      foreach (int node in layers[k])
+      {
+        if (node != root && neighbours[node].Length == 1) sideRows[k - 1].Add(node);
+      }
+
+      layers[k].RemoveAll(node => node != root && neighbours[node].Length == 1);
+    }
+
+    // A row of side rooms only has no successors (they would need a non-side-room before them).
+    while (layers.Count > 1 && layers[^1].Count == 0)
+    {
+      layers.RemoveAt(layers.Count - 1);
+      sideRows.RemoveAt(sideRows.Count - 1);
+    }
+
+    return sideRows;
   }
 
   #endregion
@@ -379,21 +424,32 @@ public sealed class LayeredLayoutBuilder : GraphLayoutBuilder
 
   /// <summary>
   /// Computes node centers for ordered rows: rows top to bottom, nodes lined up left to right in
-  /// order and pulled sideways towards their neighbours.
+  /// order and pulled sideways towards their neighbours; side rooms in side rows between them.
   /// </summary>
   /// <param name="layers">Ordered rows, root row first.</param>
+  /// <param name="sideRows">Side rooms per row (see <see cref="SplitOffSideRooms"/>).</param>
   /// <param name="neighbours">Neighbours of each node.</param>
   /// <param name="radii">Node radii.</param>
   /// <param name="linkGap">Free space kept between nodes and between rows.</param>
   /// <returns>Center of each node of the part.</returns>
   private static Dictionary<int, Vector2> AssignCoordinates(
-    List<List<int>> layers, int[][] neighbours, IReadOnlyList<float> radii, float linkGap)
+    List<List<int>> layers, List<List<int>> sideRows, int[][] neighbours, IReadOnlyList<float> radii, float linkGap)
   {
-    // Rows: far enough apart that the largest nodes of two neighbouring rows keep the gap.
+    // Rows: far enough apart that the largest nodes of two neighbouring rows keep the gap; a side
+    // row in between adds its largest node and another gap.
     var rowY = new float[layers.Count];
-    for (int k = 1; k < layers.Count; k++)
+    var sideY = new float[layers.Count];
+    for (int k = 0; k < layers.Count; k++)
     {
-      rowY[k] = rowY[k - 1] + layers[k - 1].Max(node => radii[node]) + layers[k].Max(node => radii[node]) + linkGap;
+      float bottom = rowY[k] + layers[k].Max(node => radii[node]);
+      if (sideRows[k].Count > 0)
+      {
+        float sideRadius = sideRows[k].Max(node => radii[node]);
+        sideY[k] = bottom + linkGap + sideRadius;
+        bottom = sideY[k] + sideRadius;
+      }
+
+      if (k + 1 < layers.Count) rowY[k + 1] = bottom + linkGap + layers[k + 1].Max(node => radii[node]);
     }
 
     // Places along the rows: packed in order and centered, then moved towards the neighbours.
@@ -424,9 +480,89 @@ public sealed class LayeredLayoutBuilder : GraphLayoutBuilder
     for (int k = 0; k < layers.Count; k++)
     {
       foreach (int node in layers[k]) centers[node] = new Vector2(x[node], rowY[k]);
+      if (sideRows[k].Count == 0) continue;
+
+      List<int> next = k + 1 < layers.Count ? layers[k + 1] : [];
+      float share = next.Count == 0 ? 0 : (sideY[k] - rowY[k]) / (rowY[k + 1] - rowY[k]);
+      foreach ((int node, float place) in PlaceSideRow(sideRows[k], layers[k], next, share, neighbours, radii, linkGap, x))
+      {
+        centers[node] = new Vector2(place, sideY[k]);
+      }
     }
 
     return centers;
+  }
+
+  /// <summary>
+  /// Places the side rooms of one side row: each as near below its neighbour as possible, without
+  /// touching the edges that cross the side row or the side rooms placed before it.
+  /// </summary>
+  /// <param name="sideRooms">Side rooms whose neighbour is in <paramref name="row"/>.</param>
+  /// <param name="row">Row above the side row (placed).</param>
+  /// <param name="next">Row below the side row (placed); empty when there is none.</param>
+  /// <param name="share">Where the side row lies between the two rows: 0 at the upper row, 1 at the lower.</param>
+  /// <param name="neighbours">Neighbours of each node.</param>
+  /// <param name="radii">Node radii.</param>
+  /// <param name="linkGap">Free space kept between nodes.</param>
+  /// <param name="x">Places of the rows' nodes along their rows.</param>
+  /// <returns>Place of each side room along the side row.</returns>
+  private static Dictionary<int, float> PlaceSideRow(
+    List<int> sideRooms, List<int> row, List<int> next, float share, int[][] neighbours, IReadOnlyList<float> radii,
+    float linkGap, Dictionary<int, float> x)
+  {
+    // Where the edges between the two rows cross the side row.
+    var inNext = new HashSet<int>(next);
+    var crossings = new List<float>();
+    foreach (int upper in row)
+    {
+      foreach (int lower in neighbours[upper].Where(inNext.Contains)) crossings.Add(x[upper] + (x[lower] - x[upper]) * share);
+    }
+
+    // Side rooms in the order of their neighbours' places, ties by node index; each takes the free
+    // place nearest below its neighbour, preferring the right on a tie.
+    float edgeClearance = linkGap * EdgeClearanceShare;
+    var placed = new Dictionary<int, float>();
+    foreach (int room in sideRooms.OrderBy(room => x[neighbours[room][0]]).ThenBy(room => room))
+    {
+      float radius = radii[room];
+      var forbidden = new List<(float Low, float High)>();
+      foreach (float crossing in crossings) forbidden.Add((crossing - radius - edgeClearance, crossing + radius + edgeClearance));
+      foreach ((int other, float place) in placed)
+      {
+        float separation = Separation(other, room, radii, linkGap);
+        forbidden.Add((place - separation, place + separation));
+      }
+
+      placed[room] = NearestFreePlace(x[neighbours[room][0]], forbidden);
+    }
+
+    return placed;
+  }
+
+  /// <summary>
+  /// Finds the place nearest to a wanted one that lies inside none of the forbidden stretches
+  /// (their ends are allowed).
+  /// </summary>
+  /// <param name="wanted">Wanted place.</param>
+  /// <param name="forbidden">Forbidden stretches.</param>
+  /// <returns>Nearest free place; on a tie the larger one.</returns>
+  private static float NearestFreePlace(float wanted, List<(float Low, float High)> forbidden)
+  {
+    bool IsFree(float place) => forbidden.All(stretch => place <= stretch.Low + PlaceTolerance || place >= stretch.High - PlaceTolerance);
+
+    if (IsFree(wanted)) return wanted;
+
+    // The nearest free place is an end of some stretch.
+    float best = float.NaN;
+    foreach (float candidate in forbidden.SelectMany(stretch => new[] { stretch.Low, stretch.High }))
+    {
+      if (!IsFree(candidate)) continue;
+      float distance = MathF.Abs(candidate - wanted);
+      float bestDistance = float.IsNaN(best) ? float.PositiveInfinity : MathF.Abs(best - wanted);
+      if (distance < bestDistance - PlaceTolerance || (MathF.Abs(distance - bestDistance) <= PlaceTolerance && candidate > best)) best = candidate;
+    }
+
+    return best; // the highest end of all stretches is always free, so a place is found
   }
 
   /// <summary>

@@ -24,7 +24,7 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 /// </remarks>
 public sealed class GumGraphDataPanel
 {
-  /// <summary>Title shown while nothing is selected.</summary>
+  /// <summary>Title shown when cleared (no graph to describe).</summary>
   public const string NothingSelectedTitle = "Nothing selected";
 
   /// <summary>Height reserved for the title above the property list, in pixels.</summary>

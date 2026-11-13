@@ -47,6 +47,20 @@ public sealed class LayeredLayoutBuilderTests
   }
 
   /// <summary>
+  /// Computes the distance from a point to a line segment.
+  /// </summary>
+  /// <param name="point">Point.</param>
+  /// <param name="a">Start of the segment.</param>
+  /// <param name="b">End of the segment.</param>
+  /// <returns>Shortest distance.</returns>
+  private static float DistanceToSegment(Vector2 point, Vector2 a, Vector2 b)
+  {
+    Vector2 ab = b - a;
+    float t = Math.Clamp(Vector2.Dot(point - a, ab) / ab.LengthSquared(), 0f, 1f);
+    return Vector2.Distance(point, a + ab * t);
+  }
+
+  /// <summary>
   /// Groups nodes into rows by their Y coordinate.
   /// </summary>
   /// <param name="positions">Node centers.</param>
@@ -129,14 +143,14 @@ public sealed class LayeredLayoutBuilderTests
   [Fact]
   public void Place_SeveralRootsInOnePart_LowestIsUsed()
   {
-    // Arrange: Chain 0-1-2-3-4 with roots 3 and 1.
-    (int From, int To)[] edges = [(0, 1), (1, 2), (2, 3), (3, 4)];
+    // Arrange: Loop 0-1-2-3-4-0 (no side rooms) with roots 3 and 1.
+    (int From, int To)[] edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)];
 
     // Act: Place it.
     int[] rows = Rows(Builder.Place(Radii(5), edges, Gap, [3, 1]));
 
     // Assert: 1 on top; 3 is two steps away like any other node.
-    Assert.Equal([1, 0, 1, 2, 3], rows);
+    Assert.Equal([1, 0, 1, 2, 2], rows);
   }
 
   /// <summary>
@@ -372,5 +386,54 @@ public sealed class LayeredLayoutBuilderTests
   {
     // Act + Assert: A value outside the enum.
     Assert.Throws<ArgumentOutOfRangeException>(() => new LayeredLayoutBuilder((EnLayeredDirection)99));
+  }
+
+  /// <summary>
+  /// Verifies a node with a single neighbour (a side room) is placed between its neighbour's row
+  /// and the next row, not on the next row where an edge runs along the row.
+  /// </summary>
+  [Fact]
+  public void Place_SideRoom_IsBetweenRows()
+  {
+    // Arrange: Root 0 joins 1 and 2, which are joined to each other (an edge along row 1); 4 joins
+    // 1 and 2 (row 2); 3 hangs off 1 only.
+    (int From, int To)[] edges = [(0, 1), (0, 2), (1, 2), (1, 3), (1, 4), (2, 4)];
+
+    // Act: Place it in rows.
+    Vector2[] positions = Builder.Place(Radii(5), edges, Gap, [0]);
+
+    // Assert: The side room is below its neighbour's row and above the next row.
+    Assert.True(positions[3].Y > positions[1].Y + Radius, "Side room is not below row 1.");
+    Assert.True(positions[3].Y < positions[4].Y - Radius, "Side room is not above row 2.");
+  }
+
+  /// <summary>
+  /// Verifies side rooms between rows keep clear of the edges that cross between those rows, also
+  /// along a straight main path.
+  /// </summary>
+  [Fact]
+  public void Place_SideRooms_KeepClearOfEdges()
+  {
+    // Arrange: Spine 0-1-2-3-4-5; every spine node after the root has one side room (6..10).
+    const int spineLength = 6;
+    var edges = new List<(int From, int To)>();
+    for (int i = 1; i < spineLength; i++)
+    {
+      edges.Add((i - 1, i));
+      edges.Add((i, spineLength + i - 1));
+    }
+
+    // Act: Place it in rows.
+    Vector2[] positions = Builder.Place(Radii(spineLength * 2 - 1), edges, Gap, [0]);
+
+    // Assert: No side room touches a spine edge.
+    for (int leaf = spineLength; leaf < positions.Length; leaf++)
+    {
+      for (int i = 1; i < spineLength; i++)
+      {
+        float distance = DistanceToSegment(positions[leaf], positions[i - 1], positions[i]);
+        Assert.True(distance > Radius, $"Side room {leaf} lies on spine edge {i - 1}-{i} ({distance} from it).");
+      }
+    }
   }
 }

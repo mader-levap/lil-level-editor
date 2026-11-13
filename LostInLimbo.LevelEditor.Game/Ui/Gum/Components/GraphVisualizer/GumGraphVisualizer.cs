@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Gum.DataTypes;
 using Gum.GueDeriving;
 using Gum.Wireframe;
@@ -37,6 +38,12 @@ public sealed class GumGraphVisualizer : IDisposable
 
   /// <summary>Data panel title while an edge is selected.</summary>
   private const string EdgeTitle = "Edge";
+
+  /// <summary>Data panel title while nothing is selected (the whole graph's statistics are shown).</summary>
+  private const string GraphTitle = "Graph";
+
+  /// <summary>No indented keys (the graph statistics are flat).</summary>
+  private static readonly IReadOnlySet<string> NoIndentedKeys = new HashSet<string>();
 
   /// <summary>Drawing area.</summary>
   private readonly GumGraphViewport _viewport;
@@ -197,7 +204,7 @@ public sealed class GumGraphVisualizer : IDisposable
     _viewport.SetLayoutBuilder(builder);
     _controlPanel.ShowEdgePull(_viewport.Physics.AttractStrength);
     _shownSelection = GraphVisHit.None;
-    _dataPanel.Clear();
+    ShowSelection(GraphVisHit.None);
   }
 
   /// <summary>
@@ -209,7 +216,7 @@ public sealed class GumGraphVisualizer : IDisposable
     _viewport.ResetLayout();
     _controlPanel.ShowEdgePull(_viewport.Physics.AttractStrength);
     _shownSelection = GraphVisHit.None;
-    _dataPanel.Clear();
+    ShowSelection(GraphVisHit.None);
   }
 
   /// <summary>
@@ -229,7 +236,7 @@ public sealed class GumGraphVisualizer : IDisposable
     _data = data is { IsEmpty: false } ? data : null;
     _viewport.SetGraph(data);
     _shownSelection = GraphVisHit.None;
-    _dataPanel.Clear();
+    ShowSelection(GraphVisHit.None);
   }
 
   /// <summary>
@@ -262,7 +269,8 @@ public sealed class GumGraphVisualizer : IDisposable
   }
 
   /// <summary>
-  /// Fills the data panel with the properties of the selected node or edge.
+  /// Fills the data panel with the properties of the selected node or edge, or with the graph's
+  /// statistics when nothing is selected.
   /// </summary>
   /// <param name="selection">Selection.</param>
   private void ShowSelection(GraphVisHit selection)
@@ -280,7 +288,8 @@ public sealed class GumGraphVisualizer : IDisposable
         break;
 
       default:
-        _dataPanel.Clear();
+        if (_data != null) _dataPanel.Show(GraphTitle, GraphVisSummary.Properties(_data), NoIndentedKeys);
+        else _dataPanel.Clear(); // no graph: nothing to describe
         break;
     }
   }

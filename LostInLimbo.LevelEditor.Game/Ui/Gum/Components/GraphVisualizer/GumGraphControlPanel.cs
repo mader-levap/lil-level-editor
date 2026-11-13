@@ -34,6 +34,12 @@ public sealed class GumGraphControlPanel
   /// <summary>Largest edge pull strength the slider offers (share of a "too far" distance corrected per step).</summary>
   public const float MaxEdgePullStrength = 0.3f;
 
+  /// <summary>Step of the edge pull slider for keyboard or gamepad input (Gum's small change).</summary>
+  private const float EdgePullStep = 0.01f;
+
+  /// <summary>Large change of the edge pull slider, in <see cref="EdgePullStep"/>s.</summary>
+  private const int EdgePullLargeStepFactor = 5;
+
   /// <summary>Number format of the edge pull value shown beside the slider.</summary>
   private const string EdgePullFormat = "0.00";
 
@@ -220,6 +226,11 @@ public sealed class GumGraphControlPanel
     {
       Minimum = 0,
       Maximum = MaxEdgePullStrength,
+      // A click on the track sets the value where the mouse is; Gum's default steps by
+      // LargeChange instead, which is far beyond this small range and flips to min or max.
+      IsMoveToPointEnabled = true,
+      SmallChange = EdgePullStep,
+      LargeChange = EdgePullStep * EdgePullLargeStepFactor,
     };
     slider.Anchor(Anchor.CenterVertically);
     slider.Width = -ValueLabelWidth;

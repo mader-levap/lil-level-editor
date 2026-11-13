@@ -362,4 +362,52 @@ public sealed class GraphVisCameraTests
     Assert.Equal(1f, scrolled.Zoom, Tolerance);
     Assert.Equal(77f, scrolled.Translation.Y, Tolerance);
   }
+
+  /// <summary>
+  /// Verifies a fitted view needs no scroll bar on either axis, also when float rounding leaves
+  /// the filled axis a hair longer than the viewport (the cases come from a float32 search for
+  /// exactly that).
+  /// </summary>
+  /// <param name="viewportWidth">Viewport width; the height is ample, so the width limits the zoom.</param>
+  /// <param name="minX">Left edge of the graph.</param>
+  /// <param name="maxX">Right edge of the graph.</param>
+  [Theory]
+  [InlineData(691.4f, -2472f, 3735.5f)]
+  [InlineData(465.2f, -1124.4f, 2801.1f)]
+  [InlineData(452.2f, -1224f, 76f)]
+  [InlineData(441.9f, 4.6f, 3321.5f)]
+  public void ScrollRange_AfterFit_IsNotNeededOnEitherAxis(float viewportWidth, float minX, float maxX)
+  {
+    // Arrange: A wide graph fitted into the viewport with padding.
+    const float padding = 24f;
+    var bounds = new GraphVisBounds(new Vector2(minX, -50), new Vector2(maxX, 50));
+    var viewport = new Vector2(viewportWidth, 2000);
+    GraphVisCamera camera = GraphVisCamera.Fit(bounds, viewport, padding, 0.05f, 1f);
+
+    // Act: Scroll ranges of both axes.
+    GraphVisScrollRange horizontal = camera.ScrollRange(EnGraphVisAxis.Horizontal, bounds, viewport, padding);
+    GraphVisScrollRange vertical = camera.ScrollRange(EnGraphVisAxis.Vertical, bounds, viewport, padding);
+
+    // Assert: Neither needs a scroll bar.
+    Assert.False(horizontal.IsNeeded, $"Horizontal scroll bar needed (maximum {horizontal.Maximum}).");
+    Assert.False(vertical.IsNeeded, $"Vertical scroll bar needed (maximum {vertical.Maximum}).");
+  }
+
+  /// <summary>
+  /// Verifies a graph a few pixels longer than the viewport still gets a scroll bar.
+  /// </summary>
+  [Fact]
+  public void ScrollRange_FewPixelsTooLong_IsNeeded()
+  {
+    // Arrange: A 104 px graph at zoom 1 in a 100 px viewport without padding.
+    var camera = new GraphVisCamera(1f, Vector2.Zero);
+    var bounds = new GraphVisBounds(Vector2.Zero, new Vector2(104, 10));
+
+    // Act: Horizontal scroll range.
+    GraphVisScrollRange range = camera.ScrollRange(EnGraphVisAxis.Horizontal, bounds, new Vector2(100, 100), 0f);
+
+    // Assert: Needed, over the 4 px overflow.
+    Assert.True(range.IsNeeded);
+    Assert.Equal(4f, range.Maximum, Tolerance);
+  }
 }

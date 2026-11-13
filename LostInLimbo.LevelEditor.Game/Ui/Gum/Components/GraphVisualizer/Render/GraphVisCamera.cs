@@ -62,7 +62,13 @@ public enum EnGraphVisAxis
 /// <param name="Value">Current value: 0 when the graph's start (plus padding) is at the near edge.</param>
 public readonly record struct GraphVisScrollRange(float Maximum, float ViewportSize, float Value)
 {
-  /// <summary>Whether the graph is longer than the viewport on this axis, so a scroll bar is useful.</summary>
+  /// <summary>
+  /// Smallest overflow worth scrolling, in pixels. Less is invisible, and float rounding leaves a
+  /// fitted graph that much "too long" on the axis it fills, which would show a needless scroll bar.
+  /// </summary>
+  public const float MinScrollableLength = 0.5f;
+
+  /// <summary>Whether the graph is longer than the viewport on this axis (by at least <see cref="MinScrollableLength"/>), so a scroll bar is useful.</summary>
   public bool IsNeeded => Maximum > 0;
 }
 
@@ -179,14 +185,15 @@ public readonly record struct GraphVisCamera(float Zoom, Vector2 Translation)
   /// <param name="bounds">World rectangle of the graph.</param>
   /// <param name="viewportSize">Viewport size, in pixels.</param>
   /// <param name="padding">Free space kept at every viewport edge, in pixels.</param>
-  /// <returns>Scroll values; <see cref="GraphVisScrollRange.IsNeeded"/> is false when the graph fits.</returns>
+  /// <returns>Scroll values; <see cref="GraphVisScrollRange.IsNeeded"/> is false when the graph fits (within <see cref="GraphVisScrollRange.MinScrollableLength"/>).</returns>
   public GraphVisScrollRange ScrollRange(EnGraphVisAxis axis, GraphVisBounds bounds, Vector2 viewportSize, float padding)
   {
     (float translation, float worldMin, float worldMax, float viewport) = AxisValues(axis, bounds, viewportSize);
     float startAligned = padding - worldMin * Zoom;
     float endAligned = viewport - padding - worldMax * Zoom;
 
-    float maximum = Math.Max(0f, startAligned - endAligned);
+    float maximum = startAligned - endAligned;
+    if (maximum < GraphVisScrollRange.MinScrollableLength) maximum = 0f; // fits, within rounding
     float value = Math.Clamp(startAligned - translation, 0f, maximum);
     return new GraphVisScrollRange(maximum, viewport, value);
   }

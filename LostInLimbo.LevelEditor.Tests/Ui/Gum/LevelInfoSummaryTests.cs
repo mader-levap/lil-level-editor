@@ -19,14 +19,12 @@ public sealed class LevelInfoSummaryTests
   /// <param name="phase">Generation phase.</param>
   /// <param name="textSeed">Text seed in the run's props.</param>
   /// <param name="numericSeed">Numeric seed.</param>
-  /// <param name="nodes">Graph node count.</param>
-  /// <param name="edges">Graph edge count.</param>
   /// <param name="steps">Map generation steps.</param>
   /// <returns>Facts.</returns>
-  private static LevelWorldFacts Facts(EnPhase phase, string? textSeed, long numericSeed, int nodes, int edges, long steps)
+  private static LevelWorldFacts Facts(EnPhase phase, string? textSeed, long numericSeed, long steps)
   {
     var runInputs = new LevelGenRunInputs(PropMain.Default with { TextSeed = textSeed }, CnfLevelGeneration.Default);
-    return new LevelWorldFacts(phase, runInputs, numericSeed, nodes, edges, steps);
+    return new LevelWorldFacts(phase, runInputs, numericSeed, steps);
   }
 
   /// <summary>
@@ -37,7 +35,7 @@ public sealed class LevelInfoSummaryTests
   public void Build_WithoutRunInputs_ShowsTimeBasedTextSeed()
   {
     // Arrange: Facts without run inputs.
-    var facts = new LevelWorldFacts(EnPhase.Completed, null, 42L, 1, 0, 1L);
+    var facts = new LevelWorldFacts(EnPhase.Completed, null, 42L, 1L);
 
     // Act: Build rows.
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(EnGenResult.Finished, null, facts);
@@ -72,20 +70,18 @@ public sealed class LevelInfoSummaryTests
   public void Build_WithWorld_ShowsFacts()
   {
     // Arrange: Facts of a completed world.
-    var facts = Facts(EnPhase.Completed, "mordor", -8341167147440548823L, 12, 15, 1234L);
+    var facts = Facts(EnPhase.Completed, "mordor", -8341167147440548823L, 1234L);
 
     // Act: Build rows.
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(EnGenResult.Finished, null, facts);
 
-    // Assert: Status, phase, seeds and counts in display order.
+    // Assert: Status, phase, seeds and steps in display order.
     Assert.Equal(
       [
         new LevelInfoRow("Status:", "Finished"),
         new LevelInfoRow("Phase:", "Completed"),
         new LevelInfoRow("Text seed:", "\"mordor\""),
         new LevelInfoRow("Numeric seed:", "-8341167147440548823"),
-        new LevelInfoRow("Graph nodes:", "12"),
-        new LevelInfoRow("Graph edges:", "15"),
         new LevelInfoRow("Map steps:", "1234"),
       ],
       rows);
@@ -98,14 +94,14 @@ public sealed class LevelInfoSummaryTests
   public void Build_WithFailureReason_AddsReasonRow()
   {
     // Arrange: Facts of a world that failed validation.
-    var facts = Facts(EnPhase.Map, "007", 7L, 3, 2, 10L);
+    var facts = Facts(EnPhase.Map, "007", 7L, 10L);
 
     // Act: Build rows with a reason.
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(EnGenResult.ValidationError, "Too few rooms.", facts);
 
     // Assert: Reason row follows the status row.
     Assert.Equal(new LevelInfoRow("Reason:", "Too few rooms."), rows[1]);
-    Assert.Equal(8, rows.Count);
+    Assert.Equal(6, rows.Count);
   }
 
   /// <summary>
@@ -118,7 +114,7 @@ public sealed class LevelInfoSummaryTests
   public void Build_WithWorld_FormatsTextSeed(string? textSeed, string expected)
   {
     // Arrange: Facts with the given text seed.
-    var facts = Facts(EnPhase.Completed, textSeed, 42L, 1, 0, 1L);
+    var facts = Facts(EnPhase.Completed, textSeed, 42L, 1L);
 
     // Act: Build rows.
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(EnGenResult.Finished, null, facts);
