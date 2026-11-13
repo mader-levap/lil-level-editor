@@ -8,12 +8,14 @@ namespace LostInLimbo.LevelEditor.Services.SystemInfo.Data;
 /// </remarks>
 public sealed record DatSystemInfo
 {
-  // Defaults.
+  #region Defaults
 
   /// <summary>Default instance.</summary>
   public static DatSystemInfo Default { get; } = new();
 
-  // Fields.
+  #endregion
+
+  #region Fields
 
   /// <summary>
   /// Name of application.
@@ -34,4 +36,6 @@ public sealed record DatSystemInfo
   /// Build of application.
   /// </summary>
   public EnBuildType Build { get; init; } = EnBuildType.Development;
+
+  #endregion
 }

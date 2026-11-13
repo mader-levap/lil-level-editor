@@ -59,7 +59,7 @@ public interface ILevelGenService
   /// Get generated world.
   /// </summary>
   /// <returns>Generated world or null if world is not available.</returns>
-  public LilWorld? World();
+  LilWorld? World();
 
   /// <summary>
   /// Get the properties and generated configuration of the current or last run, as they were
@@ -81,7 +81,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   /// <summary>Properties and configuration of the run last started from scratch; null before the first run and after <see cref="Clear"/>.</summary>
   private LevelGenRunInputs? _runInputs;
 
-  #region Main methods
+  #region Commands
 
   /// <inheritdoc />
   public bool Start(PropMain props, LevelGenConfigOverrides? overrides = null)
@@ -135,31 +135,21 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
 
   #endregion
 
-  #region Helpers
+  #region Queries
 
-  /// <summary>
-  /// Get status of generation.
-  /// </summary>
-  /// <returns>Status of generation.</returns>
+  /// <inheritdoc />
   public GenerationStatus Status()
   {
     return _levelGenSession.Status();
   }
 
-  /// <summary>
-  /// Get generated world.
-  /// </summary>
-  /// <returns>Generated world or null if world is not available.</returns>
+  /// <inheritdoc />
   public LilWorld? World()
   {
     return _levelGenSession.World();
   }
 
-  /// <summary>
-  /// Get the properties and generated configuration of the current or last run, as they were
-  /// when the run was started from scratch (a resumed run keeps them).
-  /// </summary>
-  /// <returns>Run inputs, or null if no run was started (or the session was cleared).</returns>
+  /// <inheritdoc />
   public LevelGenRunInputs? RunInputs()
   {
     return _runInputs;

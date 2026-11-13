@@ -11,12 +11,14 @@ public sealed record DatEditorSettings
   /// <summary>Settings file format version written by this editor.</summary>
   public const int CurrentVersion = 1;
 
-  // Defaults.
+  #region Defaults
 
   /// <summary>Default instance (used when no file exists or it cannot be read).</summary>
   public static DatEditorSettings Default { get; } = new();
 
-  // Fields.
+  #endregion
+
+  #region Fields
 
   /// <summary>
   /// Format version of the file. Increment when the format changes incompatibly, so older
@@ -26,4 +28,6 @@ public sealed record DatEditorSettings
 
   /// <summary>Level generation overlay settings.</summary>
   public DatLevelGenSettings LevelGen { get; init; } = DatLevelGenSettings.Default;
+
+  #endregion
 }

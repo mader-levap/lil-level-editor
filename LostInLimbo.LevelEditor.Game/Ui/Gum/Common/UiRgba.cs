@@ -1,3 +1,5 @@
+using System;
+
 namespace LostInLimbo.LevelEditor.Ui.Gum.Common;
 
 /// <summary>
@@ -24,7 +26,7 @@ public readonly record struct UiRgba(byte Red, byte Green, byte Blue, byte Alpha
   /// <returns>Same color with the scaled alpha, rounded to the nearest whole value.</returns>
   public UiRgba WithAlphaScaled(float factor)
   {
-    float clamped = float.IsNaN(factor) ? 0f : System.Math.Clamp(factor, 0f, 1f);
-    return this with { Alpha = (byte)System.MathF.Round(Alpha * clamped) };
+    float clamped = float.IsNaN(factor) ? 0f : Math.Clamp(factor, 0f, 1f);
+    return this with { Alpha = (byte)MathF.Round(Alpha * clamped) };
   }
 }

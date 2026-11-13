@@ -11,12 +11,14 @@ namespace LostInLimbo.LevelEditor.Services.Settings.Data;
 /// </remarks>
 public sealed record DatConfigFormSettings
 {
-  // Defaults.
+  #region Defaults
 
   /// <summary>Default instance (inactive, first builder).</summary>
   public static DatConfigFormSettings Default { get; } = new();
 
-  // Fields.
+  #endregion
+
+  #region Fields
 
   /// <summary>Whether the overrides are applied.</summary>
   public bool Active { get; init; } = false;
@@ -24,7 +26,9 @@ public sealed record DatConfigFormSettings
   /// <summary>Graph builder picked in the form.</summary>
   public EnGraphBuilder GraphBuilder { get; init; } = EnGraphBuilder.OneNode;
 
-  // Helpers.
+  #endregion
+
+  #region Helpers
 
   /// <summary>
   /// Overrides these settings stand for.
@@ -32,4 +36,6 @@ public sealed record DatConfigFormSettings
   /// <returns>The picked values while active; <see cref="LevelGenConfigOverrides.None"/> otherwise.</returns>
   public LevelGenConfigOverrides ToOverrides() =>
     Active ? new LevelGenConfigOverrides(GraphBuilder: GraphBuilder) : LevelGenConfigOverrides.None;
+
+  #endregion
 }

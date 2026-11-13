@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Gum.Forms.Controls;
 using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Services.Settings.Data;
@@ -35,7 +34,7 @@ public sealed class GumConfigPanel
   public const float ContentWidth = LabelWidth + InputWidth;
 
   /// <summary>Graph builders in combo box order.</summary>
-  private static readonly IReadOnlyList<EnGraphBuilder> GraphBuilders = Enum.GetValues<EnGraphBuilder>();
+  private static readonly EnGraphBuilder[] GraphBuilders = Enum.GetValues<EnGraphBuilder>();
 
   /// <summary>Form rows; null until built.</summary>
   private StackPanel? _rows;
@@ -116,7 +115,7 @@ public sealed class GumConfigPanel
       return new DatConfigFormSettings
       {
         Active = _activeBox?.IsChecked == true,
-        GraphBuilder = index >= 0 && index < GraphBuilders.Count ? GraphBuilders[index] : DatConfigFormSettings.Default.GraphBuilder,
+        GraphBuilder = index >= 0 && index < GraphBuilders.Length ? GraphBuilders[index] : DatConfigFormSettings.Default.GraphBuilder,
       };
     }
   }
@@ -131,7 +130,7 @@ public sealed class GumConfigPanel
     ArgumentNullException.ThrowIfNull(state);
     if (_builderBox != null)
     {
-      int index = IndexOf(state.GraphBuilder);
+      int index = Array.IndexOf(GraphBuilders, state.GraphBuilder);
       _builderBox.SelectedIndex = index >= 0 ? index : 0;
     }
     if (_activeBox != null) _activeBox.IsChecked = state.Active;
@@ -146,20 +145,6 @@ public sealed class GumConfigPanel
   /// built).
   /// </returns>
   public LevelGenConfigOverrides BuildOverrides() => State.ToOverrides();
-
-  /// <summary>
-  /// Position of a builder in the combo box.
-  /// </summary>
-  /// <param name="builder">Builder.</param>
-  /// <returns>Index, or -1 if the builder is not listed.</returns>
-  private static int IndexOf(EnGraphBuilder builder)
-  {
-    for (int i = 0; i < GraphBuilders.Count; i++)
-    {
-      if (GraphBuilders[i] == builder) return i;
-    }
-    return -1;
-  }
 
   /// <summary>
   /// Enables the override fields only while the form is active.

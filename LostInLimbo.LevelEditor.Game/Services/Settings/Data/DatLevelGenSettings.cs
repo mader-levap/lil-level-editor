@@ -7,16 +7,20 @@ namespace LostInLimbo.LevelEditor.Services.Settings.Data;
 /// </summary>
 public sealed record DatLevelGenSettings
 {
-  // Defaults.
+  #region Defaults
 
   /// <summary>Default instance (forms at their defaults).</summary>
   public static DatLevelGenSettings Default { get; } = new();
 
-  // Fields.
+  #endregion
+
+  #region Fields
 
   /// <summary>State of the Properties form (it edits exactly the library's properties).</summary>
   public PropMain Properties { get; init; } = PropMain.Default;
 
   /// <summary>State of the Configuration form.</summary>
   public DatConfigFormSettings Configuration { get; init; } = DatConfigFormSettings.Default;
+
+  #endregion
 }

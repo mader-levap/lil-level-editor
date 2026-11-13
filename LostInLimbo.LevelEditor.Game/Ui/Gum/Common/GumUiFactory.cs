@@ -7,8 +7,8 @@ using Gum.Forms.Controls.Primitives;
 using Gum.GueDeriving;
 using Gum.Managers;
 using Gum.Wireframe;
-using Stride.Core.Diagnostics;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
+using Stride.Core.Diagnostics;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Common;
 
@@ -229,9 +229,9 @@ public static class GumUiFactory
   /// <param name="e">Event data.</param>
   private static void OnComboBoxDropDownOpened(object? sender, EventArgs e)
   {
-    if (sender is not ComboBox { ListBox: { } listBox }) return;
+    if (sender is not ComboBox { ListBox: { } listBox } comboBox) return;
     listBox.DoListItemsHaveFocus = false;
-    FitDropDownHeight(listBox, ((ComboBox)sender).Visual.AbsoluteTop);
+    FitDropDownHeight(listBox, comboBox.Visual.AbsoluteTop);
   }
 
   /// <summary>

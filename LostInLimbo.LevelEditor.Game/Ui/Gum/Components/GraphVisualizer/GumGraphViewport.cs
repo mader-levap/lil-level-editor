@@ -228,13 +228,13 @@ public sealed class GumGraphViewport : IDisposable
   {
     if (_renderer == null || _canvasElement == null || _noGraphLabel == null) return; // not built yet, or disposed
 
-    bool hasGraph = data is { IsEmpty: false };
-    _canvasElement.Visible = hasGraph;
-    _noGraphLabel.IsVisible = !hasGraph;
+    GraphVisData? graph = data is { IsEmpty: false } ? data : null;
+    _canvasElement.Visible = graph != null;
+    _noGraphLabel.IsVisible = graph == null;
     _bounds = null;
     HideScrollBars();
 
-    if (data == null || !hasGraph)
+    if (graph == null)
     {
       _simulation = null;
       _layoutRoots = [];
@@ -242,8 +242,8 @@ public sealed class GumGraphViewport : IDisposable
       return;
     }
 
-    _renderer.SetGraph(data);
-    _layoutRoots = Enumerable.Range(0, data.Nodes.Count).Where(index => data.Nodes[index].IsLayoutRoot).ToArray();
+    _renderer.SetGraph(graph);
+    _layoutRoots = Enumerable.Range(0, graph.Nodes.Count).Where(index => graph.Nodes[index].IsLayoutRoot).ToArray();
     RebuildLayout(_renderer);
   }
 

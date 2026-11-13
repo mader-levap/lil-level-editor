@@ -21,19 +21,19 @@ public interface ISystemInfoService
   /// Retrieve author of application.
   /// </summary>
   /// <returns>Author of application.</returns>
-  public string GetAuthor();
+  string GetAuthor();
 
   /// <summary>
   /// Retrieve version of application.
   /// </summary>
   /// <returns>Version of application.</returns>
-  public string GetVersion();
+  string GetVersion();
 
   /// <summary>
   /// Retrieve build type of application.
   /// </summary>
   /// <returns>Build type of application.</returns>
-  public EnBuildType GetBuild();
+  EnBuildType GetBuild();
 }
 
 /// <summary>
@@ -124,8 +124,7 @@ public sealed class SystemInfoService : GameServiceBase, ISystemInfoService
       : EnBuildType.Development;
   }
 
-  // ///////////////////////////////////////////////////////////////////////////
-  // Getters.
+  #region Getters
 
   /// <inheritdoc />
   public string GetName()
@@ -150,4 +149,6 @@ public sealed class SystemInfoService : GameServiceBase, ISystemInfoService
   {
     return _systemInfo.Build;
   }
+
+  #endregion
 }
