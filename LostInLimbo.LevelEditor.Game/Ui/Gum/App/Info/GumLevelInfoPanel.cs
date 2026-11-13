@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gum.Converters;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
@@ -20,9 +21,10 @@ using Stride.Input;
 namespace LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 
 /// <summary>
-/// Gum level information overlay: a translucent card with the generation status and, when a
-/// world is available, its phase, seeds, graph size and map steps; below it, a large panel
-/// visualizing the level graph.
+/// Gum level information overlay: a translucent card with three columns side by side (the
+/// generation status with, when a world is available, its phase, numeric seed and map steps;
+/// the properties the run was started with; selected fields of the configuration it used);
+/// below it, a large panel visualizing the level graph.
 /// </summary>
 /// <remarks>
 /// Refreshes when shown, and while visible when the generation result changes. It does not
@@ -41,8 +43,27 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
   /// <summary>Spacing between rows, in pixels.</summary>
   private const float RowSpacing = 4;
 
-  /// <summary>Width of the label column, in pixels.</summary>
-  private const float LabelWidth = 130;
+  /// <summary>Horizontal gap on each side of a column separator, in pixels.</summary>
+  private const float ColumnGap = 16;
+
+  /// <summary>Thickness of the lines between the card's columns, in pixels.</summary>
+  private const float SeparatorThickness = 1;
+
+  /// <summary>
+  /// How much shorter a column separator is at each end than the columns row, in pixels. The
+  /// row already sits inside the card's padding, so 0 leaves the line one padding short of the
+  /// card's top and bottom edges.
+  /// </summary>
+  private const float SeparatorInset = 0;
+
+  /// <summary>Width of the status column's labels, in pixels.</summary>
+  private const float StatusLabelWidth = 130;
+
+  /// <summary>Width of the properties column's labels, in pixels.</summary>
+  private const float PropertiesLabelWidth = 140;
+
+  /// <summary>Width of the configuration column's labels, in pixels.</summary>
+  private const float ConfigurationLabelWidth = 80;
 
   /// <summary>Height of the lower area holding the graph panel, in percent of the window.</summary>
   private const float GraphAreaHeightPercent = 55f;
@@ -53,9 +74,6 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
   /// <summary>Free space left, right and below the graph panel, in pixels.</summary>
   private const float GraphMargin = 12f;
 
-  /// <summary>Card title.</summary>
-  private const string Title = "Level information";
-
   /// <summary>Level generation service.</summary>
   private readonly ILevelGenService _levelGenService;
 
@@ -65,14 +83,14 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
   /// <summary>Overlay root (full window, no events of its own).</summary>
   private ContainerRuntime? _root;
 
-  /// <summary>Container holding the row visuals.</summary>
-  private ContainerRuntime? _rowsContainer;
+  /// <summary>Status column (result, phase, seed, steps); null until built.</summary>
+  private InfoColumn? _statusColumn;
 
-  /// <summary>Row visuals currently shown.</summary>
-  private readonly List<StackPanel> _rowPanels = [];
+  /// <summary>Properties column (run properties); null until built.</summary>
+  private InfoColumn? _propertiesColumn;
 
-  /// <summary>Rows currently shown (to skip rebuilding when nothing changed).</summary>
-  private IReadOnlyList<LevelInfoRow> _shownRows = [];
+  /// <summary>Configuration column (selected configuration fields); null until built.</summary>
+  private InfoColumn? _configurationColumn;
 
   /// <summary>Generation result at the last refresh; null forces a refresh.</summary>
   private EnGenResult? _shownResult;
@@ -130,30 +148,24 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
     card.Height = PanelPadding; // bottom padding added to the children's extent
     card.HeightUnits = DimensionUnitType.RelativeToChildren;
 
+    // Columns side by side, top-aligned, inside the card's padding.
     var content = new ContainerRuntime
     {
       X = PanelPadding,
       Y = PanelPadding,
-      ChildrenLayout = ChildrenLayout.TopToBottomStack,
-      StackSpacing = RowSpacing * 2,
+      ChildrenLayout = ChildrenLayout.LeftToRightStack,
+      StackSpacing = ColumnGap,
       Width = 0,
       WidthUnits = DimensionUnitType.RelativeToChildren,
       Height = 0,
       HeightUnits = DimensionUnitType.RelativeToChildren,
     };
 
-    content.AddChild(GumUiFactory.CreateTitleLabel(Title));
-
-    _rowsContainer = new ContainerRuntime
-    {
-      ChildrenLayout = ChildrenLayout.TopToBottomStack,
-      StackSpacing = RowSpacing,
-      Width = 0,
-      WidthUnits = DimensionUnitType.RelativeToChildren,
-      Height = 0,
-      HeightUnits = DimensionUnitType.RelativeToChildren,
-    };
-    content.AddChild(_rowsContainer);
+    _statusColumn = new InfoColumn(content, LevelInfoSummary.StatusTitle, StatusLabelWidth);
+    content.AddChild(CreateColumnSeparator());
+    _propertiesColumn = new InfoColumn(content, LevelInfoSummary.PropertiesTitle, PropertiesLabelWidth);
+    content.AddChild(CreateColumnSeparator());
+    _configurationColumn = new InfoColumn(content, LevelInfoSummary.ConfigurationTitle, ConfigurationLabelWidth);
 
     card.AddChild(content);
     upperArea.AddChild(card);
@@ -215,27 +227,46 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
   }
 
   /// <summary>
-  /// Reads status and world and updates the rows if they changed.
+  /// Creates a thin vertical line between two columns: as tall as the columns row (less
+  /// <see cref="SeparatorInset"/> at each end) and centered in it.
+  /// </summary>
+  /// <returns>Separator rectangle.</returns>
+  private static RectangleRuntime CreateColumnSeparator()
+  {
+    var separator = new RectangleRuntime
+    {
+      Width = SeparatorThickness,
+      WidthUnits = DimensionUnitType.Absolute,
+      Height = -2 * SeparatorInset,
+      HeightUnits = DimensionUnitType.RelativeToParent,
+      YOrigin = RenderingLibrary.Graphics.VerticalAlignment.Center,
+      YUnits = GeneralUnitType.PixelsFromMiddle,
+    };
+    // No IgnoredByParentSize: the row still counts the separator's width (and its stack gaps).
+    // Its height depends on the row, so Gum leaves it out of the row's height (the columns size it).
+    GumUiFactory.ApplyColor(separator, EditorTheme.Palette.Separator);
+    return separator;
+  }
+
+  /// <summary>
+  /// Reads status, world and run inputs and updates the columns that changed.
   /// </summary>
   private void Refresh()
   {
     GenerationStatus status = _levelGenService.Status();
     LilWorld? world = _levelGenService.World();
+    LevelGenRunInputs? runInputs = _levelGenService.RunInputs(); // shown even without a world: what was attempted
     LevelWorldFacts? facts = world == null
       ? null
-      : new LevelWorldFacts(
-          world.Phase,
-          _levelGenService.RunInputs(),
-          status.Seed,
-          world.Stats.Steps);
+      : new LevelWorldFacts(world.Phase, status.Seed, world.Stats.Steps);
 
     _shownResult = status.Result;
 
     _graphVisualizer.SetGraph(ConvertGraph(world));
 
-    IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(status.Result, status.FailureReason, facts);
-    if (rows.SequenceEqual(_shownRows)) return; // nothing to redraw
-    ShowRows(rows);
+    _statusColumn?.Show(LevelInfoSummary.Build(status.Result, status.FailureReason, facts));
+    _propertiesColumn?.Show(LevelInfoSummary.Properties(runInputs?.Props));
+    _configurationColumn?.Show(LevelInfoSummary.Configuration(runInputs?.Config));
   }
 
   /// <summary>
@@ -264,24 +295,87 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
   }
 
   /// <summary>
-  /// Replaces the shown rows.
+  /// One titled column of label/value rows in the card.
   /// </summary>
-  /// <param name="rows">Rows to show.</param>
-  private void ShowRows(IReadOnlyList<LevelInfoRow> rows)
+  private sealed class InfoColumn
   {
-    if (_rowsContainer == null) return;
+    /// <summary>Container holding the row visuals.</summary>
+    private readonly ContainerRuntime _rowsContainer;
 
-    foreach (StackPanel rowPanel in _rowPanels) _rowsContainer.RemoveChild(rowPanel);
-    _rowPanels.Clear();
+    /// <summary>Width of the rows' label column, in pixels.</summary>
+    private readonly float _labelWidth;
 
-    foreach (LevelInfoRow row in rows)
+    /// <summary>Row visuals currently shown.</summary>
+    private readonly List<StackPanel> _rowPanels = [];
+
+    /// <summary>Centered "not available" text, shown instead of the rows while there are none.</summary>
+    private readonly Label _notAvailable;
+
+    /// <summary>Rows currently shown (to skip rebuilding when nothing changed).</summary>
+    private IReadOnlyList<LevelInfoRow> _shownRows = [];
+
+    /// <summary>
+    /// Builds the column (a centered title above the rows) and adds it to <paramref name="parent"/>.
+    /// </summary>
+    /// <param name="parent">Container the column is added to.</param>
+    /// <param name="title">Column title.</param>
+    /// <param name="labelWidth">Width of the rows' label column, in pixels.</param>
+    public InfoColumn(ContainerRuntime parent, string title, float labelWidth)
     {
-      Label value = GumUiFactory.CreateLabel(row.Value, EditorTheme.Palette.TextPrimary);
-      StackPanel rowPanel = GumUiFactory.CreateFormRow(row.Label, value, LabelWidth);
-      _rowsContainer.AddChild(rowPanel);
-      _rowPanels.Add(rowPanel);
+      _labelWidth = labelWidth;
+
+      var column = new ContainerRuntime
+      {
+        ChildrenLayout = ChildrenLayout.TopToBottomStack,
+        StackSpacing = RowSpacing * 2,
+        Width = 0,
+        WidthUnits = DimensionUnitType.RelativeToChildren,
+        Height = 0,
+        HeightUnits = DimensionUnitType.RelativeToChildren,
+      };
+      column.AddChild(GumUiFactory.CreateTitleLabel(title));
+
+      _rowsContainer = new ContainerRuntime
+      {
+        ChildrenLayout = ChildrenLayout.TopToBottomStack,
+        StackSpacing = RowSpacing,
+        Width = 0,
+        WidthUnits = DimensionUnitType.RelativeToChildren,
+        Height = 0,
+        HeightUnits = DimensionUnitType.RelativeToChildren,
+      };
+      column.AddChild(_rowsContainer);
+
+      _notAvailable = GumUiFactory.CreateLabel(LevelInfoSummary.NotAvailable, EditorTheme.Palette.TextPrimary);
+      _notAvailable.Anchor(Anchor.Top); // centers horizontally; the stack still controls the vertical position
+      _notAvailable.IsVisible = true; // no rows yet (matches the initially empty _shownRows)
+      column.AddChild(_notAvailable);
+
+      parent.AddChild(column);
     }
 
-    _shownRows = rows;
+    /// <summary>
+    /// Replaces the shown rows; does nothing if they did not change. Without rows, a centered
+    /// "not available" text is shown instead.
+    /// </summary>
+    /// <param name="rows">Rows to show.</param>
+    public void Show(IReadOnlyList<LevelInfoRow> rows)
+    {
+      if (rows.SequenceEqual(_shownRows)) return; // nothing to redraw
+
+      foreach (StackPanel rowPanel in _rowPanels) _rowsContainer.RemoveChild(rowPanel);
+      _rowPanels.Clear();
+
+      foreach (LevelInfoRow row in rows)
+      {
+        Label value = GumUiFactory.CreateLabel(row.Value, EditorTheme.Palette.TextPrimary);
+        StackPanel rowPanel = GumUiFactory.CreateFormRow(row.Label, value, _labelWidth);
+        _rowsContainer.AddChild(rowPanel);
+        _rowPanels.Add(rowPanel);
+      }
+
+      _notAvailable.IsVisible = rows.Count == 0;
+      _shownRows = rows;
+    }
   }
 }

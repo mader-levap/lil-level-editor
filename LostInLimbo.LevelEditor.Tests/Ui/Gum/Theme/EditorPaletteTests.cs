@@ -27,6 +27,19 @@ public sealed class EditorPaletteTests
   }
 
   /// <summary>
+  /// Verifies that the separator color is half-translucent: visible, but see-through.
+  /// </summary>
+  [Fact]
+  public void Default_Separator_IsHalfTranslucent()
+  {
+    // Arrange: Default palette.
+    EditorPalette palette = EditorPalette.Default;
+
+    // Assert: Alpha strictly between transparent and opaque.
+    Assert.InRange(palette.Separator.Alpha, byte.MinValue + 1, byte.MaxValue - 1);
+  }
+
+  /// <summary>
   /// Verifies that each log severity maps to its semantic palette color.
   /// </summary>
   [Fact]

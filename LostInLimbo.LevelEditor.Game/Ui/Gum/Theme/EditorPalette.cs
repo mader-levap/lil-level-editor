@@ -62,6 +62,13 @@ public sealed record EditorPalette
 
   #endregion
 
+  #region Separators
+
+  /// <summary>Thin lines that separate parts of a panel; half-translucent.</summary>
+  public required UiRgba Separator { get; init; }
+
+  #endregion
+
   #region Semantic colors
 
   /// <summary>Color for debug log lines.</summary>
@@ -111,6 +118,8 @@ public sealed record EditorPalette
     ProgressTrack = new UiRgba(0x16, 0x17, 0x19),
     ProgressFill = new UiRgba(0x2B, 0x8A, 0x63),
     ProgressBand = new UiRgba(0x3D, 0xB0, 0x82, 0x60),
+
+    Separator = new UiRgba(0xE6, 0xE6, 0xE6, 0x80),
 
     LogDebug = new UiRgba(0x99, 0x99, 0x99),
     LogInfo = new UiRgba(0xE6, 0xE6, 0xE6),
