@@ -55,8 +55,8 @@ public sealed record GraphVisNode
   /// <summary>Markers shown inside the node, in display order.</summary>
   public IReadOnlyList<GraphVisMarker> Markers { get; init; } = [];
 
-  /// <summary>Arbitrary key/value data shown in the data panel when the node is selected.</summary>
-  public IReadOnlyDictionary<string, string> Properties { get; init; } = new Dictionary<string, string>();
+  /// <summary>Arbitrary key/value data shown in the data panel when the node is selected, in display order.</summary>
+  public GraphVisProperties Properties { get; init; } = GraphVisProperties.Empty;
 
   /// <summary>
   /// Keys of <see cref="Properties"/> shown indented in the data panel (for example the items of
@@ -100,8 +100,8 @@ public sealed record GraphVisEdge
   /// </summary>
   public IReadOnlyList<string> HighlightMarkerIds { get; init; } = [];
 
-  /// <summary>Arbitrary key/value data shown in the data panel when the edge is selected.</summary>
-  public IReadOnlyDictionary<string, string> Properties { get; init; } = new Dictionary<string, string>();
+  /// <summary>Arbitrary key/value data shown in the data panel when the edge is selected, in display order.</summary>
+  public GraphVisProperties Properties { get; init; } = GraphVisProperties.Empty;
 
   /// <summary>
   /// Keys of <see cref="Properties"/> shown indented in the data panel (for example the items of

@@ -25,17 +25,17 @@ public static class GraphVisSummary
   /// <param name="data">Graph.</param>
   /// <returns>Node, edge and marker counts, in display order.</returns>
   /// <exception cref="ArgumentNullException"><paramref name="data"/> is null.</exception>
-  public static IReadOnlyDictionary<string, string> Properties(GraphVisData data)
+  public static GraphVisProperties Properties(GraphVisData data)
   {
     ArgumentNullException.ThrowIfNull(data);
 
-    // Properties are added in display order.
-    return new Dictionary<string, string>
-    {
-      [NodesKey] = Count(data.Nodes.Count),
-      [EdgesKey] = Count(data.Edges.Count),
-      [MarkersKey] = Count(data.Nodes.Sum(node => node.Markers.Count)),
-    };
+    // Properties are listed in display order.
+    return new GraphVisProperties(
+    [
+      new(NodesKey, Count(data.Nodes.Count)),
+      new(EdgesKey, Count(data.Edges.Count)),
+      new(MarkersKey, Count(data.Nodes.Sum(node => node.Markers.Count))),
+    ]);
   }
 
   /// <summary>

@@ -92,10 +92,10 @@ public sealed class GumGraphDataPanel
   /// Shows the properties of a selected element.
   /// </summary>
   /// <param name="title">What is selected (for example "Node").</param>
-  /// <param name="properties">Key/value data, shown in the dictionary's enumeration order.</param>
+  /// <param name="properties">Key/value data, shown in its order.</param>
   /// <param name="indentedKeys">Keys whose rows are indented by <see cref="Indent"/>.</param>
   /// <exception cref="ArgumentNullException">An argument is null.</exception>
-  public void Show(string title, IReadOnlyDictionary<string, string> properties, IReadOnlySet<string> indentedKeys)
+  public void Show(string title, GraphVisProperties properties, IReadOnlySet<string> indentedKeys)
   {
     ArgumentNullException.ThrowIfNull(title);
     ArgumentNullException.ThrowIfNull(properties);

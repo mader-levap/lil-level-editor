@@ -91,7 +91,7 @@ public static class LevelGraphVisAdapter
     string? group = string.IsNullOrEmpty(node.Style.Group) ? null : node.Style.Group;
 
     // Properties are added in display order.
-    var properties = new Dictionary<string, string>
+    var properties = new OrderedDictionary<string, string>
     {
       ["Id"] = Id(node.Id),
       ["Relative size"] = node.RelSize.ToString(CultureInfo.InvariantCulture),
@@ -126,7 +126,7 @@ public static class LevelGraphVisAdapter
       IsLayoutRoot = node.Pois.Any(poi => poi.Type == EnPoiType.Start), // layered layout starts at the start room
       IsEmphasized = node.Pois.Any(poi => poi.Type is EnPoiType.Start or EnPoiType.Exit), // where the level begins and ends
       Markers = node.Pois.Select(poi => new GraphVisMarker(Id(poi.Id), PoiText(poi.Id, poiTexts))).ToArray(),
-      Properties = properties,
+      Properties = new GraphVisProperties(properties),
       IndentedPropertyKeys = indentedKeys,
     };
   }
@@ -217,7 +217,7 @@ public static class LevelGraphVisAdapter
   private static GraphVisEdge ConvertEdge(LilEdge edge, IReadOnlyDictionary<Guid, string> poiTexts)
   {
     // Properties are added in display order.
-    var properties = new Dictionary<string, string>
+    var properties = new OrderedDictionary<string, string>
     {
       ["Id"] = Id(edge.Id),
       ["From"] = Id(edge.From),
@@ -250,7 +250,7 @@ public static class LevelGraphVisAdapter
       Color = edge.Secret ? SecretEdgeColor : null,
       Label = edge.Conditions.Count == 0 ? null : edge.Conditions.Count.ToString(CultureInfo.InvariantCulture),
       HighlightMarkerIds = edge.Conditions.Select(condition => Id(condition.RequiresPoi)).Distinct().ToArray(),
-      Properties = properties,
+      Properties = new GraphVisProperties(properties),
       IndentedPropertyKeys = indentedKeys,
     };
   }
