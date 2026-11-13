@@ -5,9 +5,15 @@ This is a level generator front-end, editor and viewer for a future game codenam
 ## Stack
 
 - **Language**: C#
-- **Game engine**: Stride
+- **Game engine**: Stride 4.4.1
 - **Other**:
   - **UI library**: Gum
+
+### How to update engine
+
+First download new version in Stride Launcher.
+
+In `LostInLimbo.LevelEditor.Game.csproj` updat all `<PackageReference>` that have `Include="'Stride.*"` to new version. Then rebuild from scratch, run tests, run application.
 
 ## Commands
 

@@ -9,6 +9,6 @@ public enum EnGraphLayoutBuilder
   /// <summary>Stress layout (<see cref="StressLayoutBuilder"/>): screen distances follow graph distances.</summary>
   Stress = 0,
 
-  /// <summary>Ring layout (<see cref="RingLayoutBuilder"/>): nodes on a circle in node order.</summary>
+  /// <summary>Ring layout (<see cref="RingLayoutBuilder"/>): nodes on a circle, connected nodes next to each other.</summary>
   Ring,
 }
