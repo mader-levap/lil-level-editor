@@ -18,6 +18,12 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 public abstract class GraphLayoutBuilder
 {
   /// <summary>
+  /// Physics this layout is meant to be shown with. The visualizer starts the simulation with a
+  /// copy of it whenever this layout is chosen; the user may override parts of it afterwards.
+  /// </summary>
+  public virtual GraphVisPhysics DefaultPhysics => GraphVisPhysics.Default;
+
+  /// <summary>
   /// Places the nodes of a graph.
   /// </summary>
   /// <param name="radii">Node radii, in node order.</param>

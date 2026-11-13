@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
@@ -42,11 +43,23 @@ public sealed class GumGraphVisualizer : IDisposable
   /// <summary>Caption of the layout picker.</summary>
   private const string LayoutPickerCaption = "Layout:";
 
-  /// <summary>Height of the layout picker row below the data panel, in pixels.</summary>
-  private const float LayoutPickerRowHeight = 32f;
+  /// <summary>Caption of the edge pull slider.</summary>
+  private const string EdgePullCaption = "Edge pull:";
 
-  /// <summary>Width of the layout picker caption, in pixels.</summary>
-  private const float LayoutPickerCaptionWidth = 64f;
+  /// <summary>Largest edge pull strength the slider offers (share of a "too far" distance corrected per step).</summary>
+  public const float MaxEdgePullStrength = 0.3f;
+
+  /// <summary>Number format of the edge pull value shown beside the slider.</summary>
+  private const string EdgePullFormat = "0.00";
+
+  /// <summary>Height of one control row below the data panel, in pixels.</summary>
+  private const float PickerRowHeight = 32f;
+
+  /// <summary>Width of a control row's caption, in pixels.</summary>
+  private const float PickerCaptionWidth = 96f;
+
+  /// <summary>Width of the value shown right of the edge pull slider, in pixels.</summary>
+  private const float ValueLabelWidth = 40f;
 
   /// <summary>Drawing area.</summary>
   private readonly GumGraphViewport _viewport;
@@ -66,11 +79,20 @@ public sealed class GumGraphVisualizer : IDisposable
   /// <summary>Data panel container; null until built.</summary>
   private ContainerRuntime? _dataPanelContainer;
 
-  /// <summary>Layout picker row container; null until built, or when <see cref="ShowLayoutPicker"/> is off.</summary>
-  private ContainerRuntime? _layoutPickerRow;
+  /// <summary>Control rows below the data panel (layout, edge pull); empty until built, or when <see cref="ShowLayoutPicker"/> is off.</summary>
+  private readonly List<ContainerRuntime> _controlRows = [];
 
   /// <summary>Layout picker; null until built, or when <see cref="ShowLayoutPicker"/> is off.</summary>
   private ComboBox? _layoutPicker;
+
+  /// <summary>Edge pull slider; null until built, or when <see cref="ShowLayoutPicker"/> is off.</summary>
+  private Slider? _edgePullSlider;
+
+  /// <summary>Edge pull value shown beside the slider; null until built, or when <see cref="ShowLayoutPicker"/> is off.</summary>
+  private Label? _edgePullValue;
+
+  /// <summary>Whether code is writing to the controls (their change events are then ignored).</summary>
+  private bool _isSyncingControls;
 
   /// <summary>Data panel width currently applied, in pixels.</summary>
   private float _appliedDataPanelWidth = DataPanelMinWidth;
@@ -96,8 +118,8 @@ public sealed class GumGraphVisualizer : IDisposable
   public EnGraphLayoutBuilder DefaultLayoutBuilder { get; set; }
 
   /// <summary>
-  /// Whether a layout picker is shown below the data panel. Read by <see cref="Build"/>; setting
-  /// it afterwards has no effect.
+  /// Whether the layout picker and the edge pull slider are shown below the data panel. Read by
+  /// <see cref="Build"/>; setting it afterwards has no effect.
   /// </summary>
   public bool ShowLayoutPicker { get; set; } = true;
 
@@ -137,11 +159,11 @@ public sealed class GumGraphVisualizer : IDisposable
     _viewport.SetLayoutBuilder(DefaultLayoutBuilder);
     if (ShowLayoutPicker)
     {
-      // Picker row at the bottom of the right column; the data panel gives up the room.
-      ContainerRuntime pickerRow = CreateLayoutPickerRow();
-      root.AddChild(pickerRow);
-      _layoutPickerRow = pickerRow;
-      dataPanel.Height -= LayoutPickerRowHeight + Padding;
+      // Control rows at the bottom of the right column, layout above edge pull; the data panel
+      // gives up the room.
+      AddControlRow(root, CreatePickerRow(LayoutPickerCaption, CreateLayoutPicker()));
+      AddControlRow(root, CreatePickerRow(EdgePullCaption, CreateEdgePullControl()));
+      dataPanel.Height -= _controlRows.Count * (PickerRowHeight + Padding);
     }
 
     ApplyDataPanelWidth(DataPanelMinWidth);
@@ -183,46 +205,186 @@ public sealed class GumGraphVisualizer : IDisposable
   {
     _appliedDataPanelWidth = width;
     if (_dataPanelContainer != null) _dataPanelContainer.Width = width;
-    if (_layoutPickerRow != null) _layoutPickerRow.Width = width;
+    foreach (ContainerRuntime row in _controlRows) row.Width = width;
     if (_viewportContainer != null) _viewportContainer.Width = -(width + 3 * Padding);
   }
 
+  #region Layout and physics controls
+
   /// <summary>
-  /// Creates the layout picker row: a caption and a combo box listing every
-  /// <see cref="EnGraphLayoutBuilder"/>, with <see cref="DefaultLayoutBuilder"/> selected.
+  /// Adds a control row below the data panel, under the rows added before. Rows grow upwards
+  /// from the bottom edge, so the existing rows move up by one row.
   /// </summary>
+  /// <param name="root">Visualizer root.</param>
+  /// <param name="row">Row from <see cref="CreatePickerRow"/>.</param>
+  private void AddControlRow(ContainerRuntime root, ContainerRuntime row)
+  {
+    foreach (ContainerRuntime above in _controlRows) above.Y -= PickerRowHeight + Padding;
+    root.AddChild(row);
+    _controlRows.Add(row);
+  }
+
+  /// <summary>
+  /// Creates a control row: a caption on the left and a control filling the rest.
+  /// </summary>
+  /// <param name="caption">Caption text.</param>
+  /// <param name="control">Control; its width and horizontal position are set here.</param>
   /// <returns>Row container, anchored to the bottom right; its width follows the data panel's.</returns>
-  private ContainerRuntime CreateLayoutPickerRow()
+  private static ContainerRuntime CreatePickerRow(string caption, GraphicalUiElement control)
   {
     var row = new ContainerRuntime
     {
       WidthUnits = DimensionUnitType.Absolute,
-      Height = LayoutPickerRowHeight,
+      Height = PickerRowHeight,
       HeightUnits = DimensionUnitType.Absolute,
     };
     row.Anchor(Anchor.BottomRight); // resets X and Y, so the offsets come after
     row.X = -Padding;
     row.Y = -Padding;
 
-    Label caption = GumUiFactory.CreateLabel(LayoutPickerCaption, EditorTheme.Palette.TextPrimary);
-    caption.Width = LayoutPickerCaptionWidth;
-    caption.WidthUnits = DimensionUnitType.Absolute;
-    caption.Anchor(Anchor.CenterVertically);
-    row.AddChild(caption);
+    Label captionLabel = GumUiFactory.CreateLabel(caption, EditorTheme.Palette.TextPrimary);
+    captionLabel.Width = PickerCaptionWidth;
+    captionLabel.WidthUnits = DimensionUnitType.Absolute;
+    captionLabel.Anchor(Anchor.CenterVertically);
+    row.AddChild(captionLabel);
 
+    control.Anchor(Anchor.CenterVertically); // resets X and Y, so the offset comes after
+    control.X = PickerCaptionWidth;
+    control.Width = -PickerCaptionWidth;
+    control.WidthUnits = DimensionUnitType.RelativeToParent;
+    row.AddChild(control);
+    return row;
+  }
+
+  /// <summary>
+  /// Creates the layout picker: a combo box listing every <see cref="EnGraphLayoutBuilder"/>,
+  /// with <see cref="DefaultLayoutBuilder"/> selected. Picking another layout switches to it;
+  /// picking the current one again (with the mouse) resets it.
+  /// </summary>
+  /// <returns>The combo box's visual.</returns>
+  private GraphicalUiElement CreateLayoutPicker()
+  {
     ComboBox picker = GumUiFactory.CreateComboBox(0);
     var items = picker.Items ?? throw new InvalidOperationException("Gum ComboBox has no item list.");
     foreach (EnGraphLayoutBuilder builder in GraphLayoutBuilderPicker.All) items.Add(GraphLayoutBuilderPicker.DisplayName(builder));
     picker.SelectedIndex = IndexOf(DefaultLayoutBuilder);
-    picker.Anchor(Anchor.CenterVertically);
-    picker.X = LayoutPickerCaptionWidth;
-    picker.Width = -LayoutPickerCaptionWidth;
-    picker.WidthUnits = DimensionUnitType.RelativeToParent;
     picker.SelectionChanged += (_, _) => OnLayoutPicked(picker.SelectedIndex);
-    row.AddChild(picker);
-    _layoutPicker = picker;
 
-    return row;
+    // Gum raises no selection change when the selected item is picked again; detect it from the
+    // dropdown's own events instead. The list box may be created on first open, so its item
+    // events are subscribed there (once per list box). Both push and click are watched: Gum may
+    // close the list on either, and its own handler can run before ours.
+    var repick = new ComboBoxRepickDetector();
+    ListBox? subscribedListBox = null;
+    picker.DropDownOpened += (_, _) =>
+    {
+      repick.Opened(picker.SelectedIndex);
+      if (picker.ListBox is not { } listBox || ReferenceEquals(listBox, subscribedListBox)) return;
+      listBox.ItemPushed += (_, _) => OnLayoutItemActivated(repick);
+      listBox.ItemClicked += (_, _) => OnLayoutItemActivated(repick);
+      subscribedListBox = listBox;
+    };
+    picker.DropDownClosed += (_, _) =>
+    {
+      if (repick.Closed(picker.SelectedIndex)) OnLayoutRepicked();
+    };
+
+    _layoutPicker = picker;
+    return picker.Visual;
+  }
+
+  /// <summary>
+  /// Feeds a push or click on a layout list item to the re-pick detector and resets the layout
+  /// if that completes a re-pick.
+  /// </summary>
+  /// <param name="repick">Detector of the layout picker.</param>
+  private void OnLayoutItemActivated(ComboBoxRepickDetector repick)
+  {
+    if (repick.ItemActivated()) OnLayoutRepicked();
+  }
+
+  /// <summary>
+  /// Starts the current layout afresh (default physics, new layout, fitted view, no selection),
+  /// as if another layout had been picked and then this one again.
+  /// </summary>
+  private void OnLayoutRepicked()
+  {
+    _viewport.ResetLayout();
+    ShowEdgePull(_viewport.Physics.AttractStrength);
+    _shownSelection = GraphVisHit.None;
+    _dataPanel.Clear();
+  }
+
+  /// <summary>
+  /// Creates the edge pull control: a slider from 0 to <see cref="MaxEdgePullStrength"/> with the
+  /// current value shown on its right, starting at the viewport's physics.
+  /// </summary>
+  /// <returns>Container holding slider and value.</returns>
+  private ContainerRuntime CreateEdgePullControl()
+  {
+    var container = new ContainerRuntime
+    {
+      Height = PickerRowHeight,
+      HeightUnits = DimensionUnitType.Absolute,
+    };
+
+    var slider = new Slider
+    {
+      Minimum = 0,
+      Maximum = MaxEdgePullStrength,
+    };
+    slider.Anchor(Anchor.CenterVertically);
+    slider.Width = -ValueLabelWidth;
+    slider.WidthUnits = DimensionUnitType.RelativeToParent;
+    slider.ValueChanged += (_, _) => OnEdgePullChanged(slider.Value);
+    container.AddChild(slider);
+    _edgePullSlider = slider;
+
+    Label value = GumUiFactory.CreateLabel(string.Empty, EditorTheme.Palette.TextPrimary);
+    value.Anchor(Anchor.Right);
+    container.AddChild(value);
+    _edgePullValue = value;
+
+    ShowEdgePull(_viewport.Physics.AttractStrength);
+    return container;
+  }
+
+  /// <summary>
+  /// Writes an edge pull strength to the slider and its value label without applying it.
+  /// </summary>
+  /// <param name="strength">Strength to show.</param>
+  private void ShowEdgePull(float strength)
+  {
+    _isSyncingControls = true;
+    try
+    {
+      if (_edgePullSlider != null) _edgePullSlider.Value = strength;
+      if (_edgePullValue != null) _edgePullValue.Text = FormatEdgePull(strength);
+    }
+    finally
+    {
+      _isSyncingControls = false;
+    }
+  }
+
+  /// <summary>
+  /// Formats an edge pull strength for the value label.
+  /// </summary>
+  /// <param name="strength">Strength.</param>
+  /// <returns>Text such as "0.10".</returns>
+  private static string FormatEdgePull(float strength) => strength.ToString(EdgePullFormat, CultureInfo.InvariantCulture);
+
+  /// <summary>
+  /// Applies a slider move live: the nodes adapt at once; layout, view and selection stay.
+  /// </summary>
+  /// <param name="value">Slider value.</param>
+  private void OnEdgePullChanged(double value)
+  {
+    if (_isSyncingControls) return; // our own write, not the user
+
+    float strength = Math.Clamp((float)value, 0f, MaxEdgePullStrength);
+    _viewport.SetEdgePullStrength(strength);
+    if (_edgePullValue != null) _edgePullValue.Text = FormatEdgePull(strength);
   }
 
   /// <summary>
@@ -242,7 +404,8 @@ public sealed class GumGraphVisualizer : IDisposable
   }
 
   /// <summary>
-  /// Lays the graph out again with the picked layout; this resets the view and the selection.
+  /// Lays the graph out again with the picked layout and its default physics (the edge pull
+  /// slider follows); this resets the view and the selection.
   /// </summary>
   /// <param name="index">Picked index in <see cref="GraphLayoutBuilderPicker.All"/>; ignored when out of range.</param>
   private void OnLayoutPicked(int index)
@@ -251,6 +414,7 @@ public sealed class GumGraphVisualizer : IDisposable
     if (index < 0 || index >= all.Count) return;
 
     _viewport.SetLayoutBuilder(all[index]);
+    ShowEdgePull(_viewport.Physics.AttractStrength);
     _shownSelection = GraphVisHit.None;
     _dataPanel.Clear();
   }
@@ -263,6 +427,8 @@ public sealed class GumGraphVisualizer : IDisposable
   {
     if (_layoutPicker != null) _layoutPicker.IsDropDownOpen = false;
   }
+
+  #endregion
 
   /// <summary>
   /// Shows a graph. Clears the selection.

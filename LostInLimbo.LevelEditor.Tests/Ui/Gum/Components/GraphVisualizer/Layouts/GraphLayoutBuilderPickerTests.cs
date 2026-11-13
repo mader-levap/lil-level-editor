@@ -1,3 +1,4 @@
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 using Stride.Core.Mathematics;
 
@@ -100,5 +101,36 @@ public sealed class GraphLayoutBuilderPickerTests
     Assert.Throws<ArgumentOutOfRangeException>(() => layout.Place(radii, [], 0f));
     Assert.Throws<ArgumentNullException>(() => layout.Place(null!, [], Gap));
     Assert.Throws<ArgumentNullException>(() => layout.Place(radii, null!, Gap));
+  }
+
+  /// <summary>
+  /// Verifies every builder offers default physics that can drive a simulation.
+  /// </summary>
+  /// <param name="builder">Layout.</param>
+  [Theory]
+  [MemberData(nameof(AllBuilders))]
+  public void DefaultPhysics_EveryLayout_IsValid(EnGraphLayoutBuilder builder)
+  {
+    // Act: Get the default physics.
+    GraphVisPhysics physics = GraphLayoutBuilderPicker.For(builder).DefaultPhysics;
+
+    // Assert: Present and valid.
+    Assert.NotNull(physics);
+    physics.Validate();
+  }
+
+  /// <summary>
+  /// Verifies stress uses the standard physics and ring the same without edge pull.
+  /// </summary>
+  [Fact]
+  public void DefaultPhysics_StressIsStandard_RingHasNoEdgePull()
+  {
+    // Act: Get both defaults.
+    GraphVisPhysics stress = GraphLayoutBuilderPicker.For(EnGraphLayoutBuilder.Stress).DefaultPhysics;
+    GraphVisPhysics ring = GraphLayoutBuilderPicker.For(EnGraphLayoutBuilder.Ring).DefaultPhysics;
+
+    // Assert: Stress is the default; ring differs only in edge pull, which is off.
+    Assert.Equal(GraphVisPhysics.Default, stress);
+    Assert.Equal(GraphVisPhysics.Default with { AttractStrength = 0f }, ring);
   }
 }

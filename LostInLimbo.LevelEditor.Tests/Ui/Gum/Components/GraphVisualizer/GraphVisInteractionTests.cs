@@ -352,7 +352,7 @@ public sealed class GraphVisInteractionTests
   private static GraphVisInteraction CreateWithGraph(out GraphVisSimulation simulation)
   {
     float[] radii = [NodeRadius, NodeRadius];
-    simulation = new GraphVisSimulation([new Vector2(0, 0), new Vector2(400, 0)], radii, [(0, 1)], Style);
+    simulation = new GraphVisSimulation([new Vector2(0, 0), new Vector2(400, 0)], radii, [(0, 1)], GraphVisPhysics.Default);
     var interaction = new GraphVisInteraction(Style);
     interaction.SetGraph(simulation, radii, [new GraphVisEdgeShape(0, 1, 0f)]);
     interaction.Reset(new GraphVisCamera(1f, new Vector2(100, 100)));

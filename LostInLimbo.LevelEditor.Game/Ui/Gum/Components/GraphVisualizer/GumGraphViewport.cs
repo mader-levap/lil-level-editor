@@ -241,20 +241,55 @@ public sealed class GumGraphViewport : IDisposable
   public EnGraphLayoutBuilder LayoutBuilder { get; private set; }
 
   /// <summary>
-  /// Changes the layout algorithm. A shown graph is laid out again, which clears the selection
-  /// and fits the view anew.
+  /// Physics in use: the <see cref="LayoutBuilder"/>'s default, with any overrides applied (see
+  /// <see cref="SetEdgePullStrength"/>).
+  /// </summary>
+  public GraphVisPhysics Physics { get; private set; } = GraphLayoutBuilderPicker.For(default).DefaultPhysics;
+
+  /// <summary>
+  /// Changes the layout algorithm and resets <see cref="Physics"/> to its default. A shown graph
+  /// is laid out again, which clears the selection and fits the view anew.
   /// </summary>
   /// <param name="builder">Layout algorithm.</param>
+  /// <exception cref="ArgumentOutOfRangeException"><paramref name="builder"/> is not a known layout.</exception>
   public void SetLayoutBuilder(EnGraphLayoutBuilder builder)
   {
     if (builder == LayoutBuilder) return;
+    Physics = GraphLayoutBuilderPicker.For(builder).DefaultPhysics;
     LayoutBuilder = builder;
     if (_simulation != null && _renderer != null) RebuildLayout(_renderer);
   }
 
   /// <summary>
+  /// Starts the current layout afresh, as if another layout had been picked and then this one
+  /// again: <see cref="Physics"/> goes back to the layout's default and a shown graph is laid out
+  /// again, which clears the selection and fits the view anew.
+  /// </summary>
+  public void ResetLayout()
+  {
+    Physics = GraphLayoutBuilderPicker.For(LayoutBuilder).DefaultPhysics;
+    if (_simulation != null && _renderer != null) RebuildLayout(_renderer);
+  }
+
+  /// <summary>
+  /// Overrides the edge pull strength (<see cref="GraphVisPhysics.AttractStrength"/>) of
+  /// <see cref="Physics"/>. Applies live: the nodes move at once, the layout is not rebuilt and the
+  /// view is kept. Choosing a layout resets the override.
+  /// </summary>
+  /// <param name="strength">Share of a "too far" distance corrected per step (0..1; 0 turns edge pull off).</param>
+  /// <exception cref="ArgumentOutOfRangeException"><paramref name="strength"/> is outside 0..1.</exception>
+  public void SetEdgePullStrength(float strength)
+  {
+    GraphVisPhysics physics = Physics with { AttractStrength = strength };
+    physics.Validate();
+    Physics = physics;
+    if (_simulation != null) _simulation.Physics = physics;
+  }
+
+  /// <summary>
   /// Lays out the renderer's current graph from scratch: starting positions by
-  /// <see cref="LayoutBuilder"/>, fresh physics, no selection, view fitted on the next update.
+  /// <see cref="LayoutBuilder"/>, a fresh simulation with <see cref="Physics"/>, no selection,
+  /// view fitted on the next update.
   /// </summary>
   /// <param name="renderer">Renderer holding the graph.</param>
   private void RebuildLayout(GraphVisRenderer renderer)
@@ -267,9 +302,9 @@ public sealed class GumGraphViewport : IDisposable
 
     // Starting layout, then let the physics settle before the graph is first shown, so the
     // view is fitted to the final arrangement and nothing jumps on screen.
-    Vector2[] positions = GraphVisLayout.Place(LayoutBuilder, renderer.Radii, edges, _style.NodeGap * _style.LinkIdealGapFactor);
-    _simulation = new GraphVisSimulation(positions, renderer.Radii, edges, _style);
-    _simulation.Settle(_style.SimulationSettleSteps);
+    Vector2[] positions = GraphVisLayout.Place(LayoutBuilder, renderer.Radii, edges, Physics.LinkIdealGap);
+    _simulation = new GraphVisSimulation(positions, renderer.Radii, edges, Physics);
+    _simulation.Settle(Physics.SettleSteps);
     _interaction.SetGraph(_simulation, renderer.Radii, renderer.EdgeShapes);
     _highlightFade.Reset(renderer.Radii.Count, renderer.EdgeShapes.Count);
     _fittedSize = null; // new layout: fit it on the next update

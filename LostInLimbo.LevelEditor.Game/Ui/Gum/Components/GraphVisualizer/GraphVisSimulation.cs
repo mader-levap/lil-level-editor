@@ -15,12 +15,17 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 /// Between "too close" and "too far" there is no force, so a good starting layout keeps its
 /// shape and the simulation falls asleep quickly; it costs nothing while asleep.
 /// </para>
+/// <para>
+/// All parameters come from <see cref="Physics"/>, which can be swapped while running (for
+/// example to weaken edge pull from the UI); edge pull can be turned off entirely, push-apart
+/// and overlap removal always work.
+/// </para>
 /// <para>Pure and deterministic: no randomness, fixed time steps.</para>
 /// </remarks>
 public sealed class GraphVisSimulation
 {
-  /// <summary>Look and physics constants.</summary>
-  private readonly GraphVisStyle _style;
+  /// <summary>Physics parameters in use.</summary>
+  private GraphVisPhysics _physics;
 
   /// <summary>Node centers.</summary>
   private readonly Vector2[] _positions;
@@ -46,17 +51,19 @@ public sealed class GraphVisSimulation
   /// <param name="positions">Starting node centers, in node order (copied).</param>
   /// <param name="radii">Node radii, in node order.</param>
   /// <param name="edges">Edges as pairs of node indices.</param>
-  /// <param name="style">Physics constants.</param>
+  /// <param name="physics">Physics parameters.</param>
   /// <exception cref="ArgumentNullException">An argument is null.</exception>
   /// <exception cref="ArgumentException"><paramref name="positions"/> and <paramref name="radii"/> differ in length.</exception>
-  /// <exception cref="ArgumentOutOfRangeException">An edge refers to a node index that does not exist.</exception>
+  /// <exception cref="ArgumentOutOfRangeException">An edge refers to a node index that does not exist, or a physics value is invalid (see <see cref="GraphVisPhysics.Validate"/>).</exception>
   public GraphVisSimulation(
-    IReadOnlyList<Vector2> positions, IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, GraphVisStyle style)
+    IReadOnlyList<Vector2> positions, IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, GraphVisPhysics physics)
   {
     ArgumentNullException.ThrowIfNull(positions);
     ArgumentNullException.ThrowIfNull(radii);
     ArgumentNullException.ThrowIfNull(edges);
-    _style = style ?? throw new ArgumentNullException(nameof(style));
+    ArgumentNullException.ThrowIfNull(physics);
+    physics.Validate();
+    _physics = physics;
     if (positions.Count != radii.Count)
       throw new ArgumentException("Positions and radii must have the same length.", nameof(radii));
 
@@ -72,6 +79,25 @@ public sealed class GraphVisSimulation
     }
 
     _edges = [.. edges.Where(edge => edge.From != edge.To)];
+  }
+
+  /// <summary>
+  /// Physics parameters in use. Setting different ones wakes the simulation, so the nodes adapt
+  /// at once.
+  /// </summary>
+  /// <exception cref="ArgumentNullException">The value is null.</exception>
+  /// <exception cref="ArgumentOutOfRangeException">A value is invalid (see <see cref="GraphVisPhysics.Validate"/>).</exception>
+  public GraphVisPhysics Physics
+  {
+    get => _physics;
+    set
+    {
+      ArgumentNullException.ThrowIfNull(value);
+      value.Validate();
+      if (value == _physics) return;
+      _physics = value;
+      Wake();
+    }
   }
 
   /// <summary>Current node centers, in node order.</summary>
@@ -117,15 +143,15 @@ public sealed class GraphVisSimulation
     if (IsAsleep || !(deltaSeconds > 0)) return;
 
     _pendingSeconds += deltaSeconds;
-    for (int step = 0; step < _style.SimulationMaxStepsPerUpdate && _pendingSeconds >= _style.SimulationStepSeconds; step++)
+    for (int step = 0; step < _physics.MaxStepsPerUpdate && _pendingSeconds >= _physics.StepSeconds; step++)
     {
-      _pendingSeconds -= _style.SimulationStepSeconds;
+      _pendingSeconds -= _physics.StepSeconds;
       StepOnce();
       if (IsAsleep) break;
     }
 
     // After a long pause (or when asleep) do not try to catch up later.
-    if (IsAsleep || _pendingSeconds > _style.SimulationStepSeconds) _pendingSeconds = 0;
+    if (IsAsleep || _pendingSeconds > _physics.StepSeconds) _pendingSeconds = 0;
   }
 
   /// <summary>
@@ -147,11 +173,11 @@ public sealed class GraphVisSimulation
   {
     Array.Copy(_positions, _previous, _positions.Length);
 
-    PushApart(_style.NodeGap, _style.SimulationRepelStrength);
+    PushApart(_physics.NodeGap, _physics.RepelStrength);
     PullTogether();
 
     // Hard rule: whatever the forces did, circles must not overlap.
-    for (int pass = 0; pass < _style.SimulationOverlapPasses; pass++)
+    for (int pass = 0; pass < _physics.OverlapPasses; pass++)
     {
       if (!PushApart(0f, 1f)) break;
     }
@@ -162,7 +188,7 @@ public sealed class GraphVisSimulation
       largestMove = Math.Max(largestMove, Vector2.Distance(_positions[i], _previous[i]));
     }
 
-    if (largestMove < _style.SimulationSleepDistance) IsAsleep = true;
+    if (largestMove < _physics.SleepDistance) IsAsleep = true;
   }
 
   /// <summary>
@@ -194,19 +220,22 @@ public sealed class GraphVisSimulation
   }
 
   /// <summary>
-  /// Pulls together connected nodes that are farther apart than the rest length.
+  /// Pulls together connected nodes that are farther apart than the rest length. Does nothing
+  /// while <see cref="GraphVisPhysics.AttractStrength"/> is 0.
   /// </summary>
   private void PullTogether()
   {
+    if (_physics.AttractStrength <= 0) return; // edge pull turned off
+
     foreach ((int from, int to) in _edges)
     {
-      float rest = _radii[from] + _radii[to] + _style.NodeGap * _style.LinkRestGapFactor;
+      float rest = _radii[from] + _radii[to] + _physics.NodeGap * _physics.LinkRestGapFactor;
       Vector2 offset = _positions[to] - _positions[from];
       float distance = offset.Length();
       if (distance <= rest) continue;
 
       // Negative separation: the two nodes approach each other.
-      Separate(from, to, offset / distance * (-(distance - rest) * _style.SimulationAttractStrength));
+      Separate(from, to, offset / distance * (-(distance - rest) * _physics.AttractStrength));
     }
   }
 

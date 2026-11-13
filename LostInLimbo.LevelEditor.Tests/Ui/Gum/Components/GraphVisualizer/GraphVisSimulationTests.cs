@@ -9,8 +9,8 @@ namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer;
 /// </summary>
 public sealed class GraphVisSimulationTests
 {
-  /// <summary>Physics constants used by the tests (the defaults).</summary>
-  private static readonly GraphVisStyle Style = GraphVisStyle.Default;
+  /// <summary>Physics used by the tests (the defaults).</summary>
+  private static readonly GraphVisPhysics Physics = GraphVisPhysics.Default;
 
   /// <summary>
   /// Tolerance for distances after settling, in world units. The simulation falls asleep once
@@ -35,7 +35,7 @@ public sealed class GraphVisSimulationTests
   public void Settle_NodesTooClose_ArePushedApartToTheGap(float startDistance)
   {
     // Arrange: Two unconnected radius-20 nodes.
-    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(startDistance, 0)], [20f, 20f], [], Style);
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(startDistance, 0)], [20f, 20f], [], Physics);
 
     // Act: Let it settle.
     bool asleep = simulation.Settle(ManySteps);
@@ -43,7 +43,7 @@ public sealed class GraphVisSimulationTests
     // Assert: Asleep, and the borders are the node gap apart.
     Assert.True(asleep);
     float distance = Vector2.Distance(simulation.Positions[0], simulation.Positions[1]);
-    Assert.Equal(40f + Style.NodeGap, distance, SettledTolerance);
+    Assert.Equal(40f + Physics.NodeGap, distance, SettledTolerance);
   }
 
   /// <summary>
@@ -53,14 +53,14 @@ public sealed class GraphVisSimulationTests
   public void Settle_ConnectedNodesTooFar_ArePulledToRestLength()
   {
     // Arrange: Two connected radius-20 nodes far apart.
-    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(800, 0)], [20f, 20f], [(0, 1)], Style);
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(800, 0)], [20f, 20f], [(0, 1)], Physics);
 
     // Act: Let it settle.
     bool asleep = simulation.Settle(ManySteps);
 
     // Assert: Asleep at the rest length (both radii plus the rest gap).
     Assert.True(asleep);
-    float rest = 40f + Style.NodeGap * Style.LinkRestGapFactor;
+    float rest = 40f + Physics.NodeGap * Physics.LinkRestGapFactor;
     Assert.Equal(rest, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), SettledTolerance);
   }
 
@@ -78,7 +78,7 @@ public sealed class GraphVisSimulationTests
     // Arrange: Two radius-20 nodes that break no rule.
     Vector2[] start = [Vector2.Zero, new Vector2(distance, 0)];
     (int, int)[] edges = connected ? [(0, 1)] : [];
-    var simulation = new GraphVisSimulation(start, [20f, 20f], edges, Style);
+    var simulation = new GraphVisSimulation(start, [20f, 20f], edges, Physics);
 
     // Act: Run a single step.
     bool asleep = simulation.Settle(1);
@@ -97,7 +97,7 @@ public sealed class GraphVisSimulationTests
   {
     // Arrange: Radius 10 (mass 100) and radius 30 (mass 900), too close.
     Vector2[] start = [Vector2.Zero, new Vector2(50, 0)];
-    var simulation = new GraphVisSimulation(start, [10f, 30f], [], Style);
+    var simulation = new GraphVisSimulation(start, [10f, 30f], [], Physics);
 
     // Act: Run a single step.
     simulation.Settle(1);
@@ -118,7 +118,7 @@ public sealed class GraphVisSimulationTests
   {
     // Arrange: Small and large node, connected, far apart.
     Vector2[] start = [Vector2.Zero, new Vector2(1000, 0)];
-    var simulation = new GraphVisSimulation(start, [10f, 30f], [(0, 1)], Style);
+    var simulation = new GraphVisSimulation(start, [10f, 30f], [(0, 1)], Physics);
 
     // Act: Let it settle.
     simulation.Settle(ManySteps);
@@ -137,14 +137,14 @@ public sealed class GraphVisSimulationTests
   {
     // Arrange: Two overlapping nodes, the lighter one pinned.
     Vector2[] start = [Vector2.Zero, new Vector2(20, 0)];
-    var simulation = new GraphVisSimulation(start, [10f, 30f], [], Style) { PinnedNode = 0 };
+    var simulation = new GraphVisSimulation(start, [10f, 30f], [], Physics) { PinnedNode = 0 };
 
     // Act: Let it settle.
     simulation.Settle(ManySteps);
 
     // Assert: The pinned node is where it was; the heavy one made all the room.
     Assert.Equal(start[0], simulation.Positions[0]);
-    Assert.Equal(40f + Style.NodeGap, simulation.Positions[1].X, SettledTolerance);
+    Assert.Equal(40f + Physics.NodeGap, simulation.Positions[1].X, SettledTolerance);
   }
 
   /// <summary>
@@ -155,7 +155,7 @@ public sealed class GraphVisSimulationTests
   public void Settle_SingleStep_RemovesOverlapCompletely()
   {
     // Arrange: Two radius-20 nodes almost on top of each other.
-    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(1, 0)], [20f, 20f], [], Style);
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(1, 0)], [20f, 20f], [], Physics);
 
     // Act: Run a single step.
     simulation.Settle(1);
@@ -171,7 +171,7 @@ public sealed class GraphVisSimulationTests
   public void MoveNode_WakesSimulationAndNeighboursFollow()
   {
     // Arrange: Two connected nodes at rest.
-    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(100, 0)], [20f, 20f], [(0, 1)], Style);
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(100, 0)], [20f, 20f], [(0, 1)], Physics);
     simulation.Settle(1);
     Assert.True(simulation.IsAsleep);
 
@@ -184,7 +184,7 @@ public sealed class GraphVisSimulationTests
     // Assert: It woke up, the dragged node stayed where it was put, and the neighbour followed to the rest length.
     Assert.True(awakeAfterMove);
     Assert.Equal(new Vector2(-600, 0), simulation.Positions[0]);
-    float rest = 40f + Style.NodeGap * Style.LinkRestGapFactor;
+    float rest = 40f + Physics.NodeGap * Physics.LinkRestGapFactor;
     Assert.Equal(rest, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), SettledTolerance);
   }
 
@@ -197,8 +197,8 @@ public sealed class GraphVisSimulationTests
   {
     // Arrange: Two overlapping nodes.
     Vector2[] start = [Vector2.Zero, new Vector2(10, 0)];
-    var simulation = new GraphVisSimulation(start, [20f, 20f], [], Style);
-    float halfStep = Style.SimulationStepSeconds / 2f;
+    var simulation = new GraphVisSimulation(start, [20f, 20f], [], Physics);
+    float halfStep = Physics.StepSeconds / 2f;
 
     // Act + Assert: Half a step of time does nothing yet.
     simulation.Step(halfStep);
@@ -238,11 +238,11 @@ public sealed class GraphVisSimulationTests
       }
     }
 
-    Vector2[] start = GraphVisLayout.Place(EnGraphLayoutBuilder.Stress, radii, edges, Style.NodeGap * Style.LinkIdealGapFactor);
-    var simulation = new GraphVisSimulation(start, radii, edges, Style);
+    Vector2[] start = GraphVisLayout.Place(EnGraphLayoutBuilder.Stress, radii, edges, Physics.LinkIdealGap);
+    var simulation = new GraphVisSimulation(start, radii, edges, Physics);
 
     // Act: Settle with the budget used before a graph is first shown.
-    bool asleep = simulation.Settle(Style.SimulationSettleSteps);
+    bool asleep = simulation.Settle(Physics.SettleSteps);
 
     // Assert: At rest, and no two circles overlap.
     Assert.True(asleep);
@@ -262,10 +262,113 @@ public sealed class GraphVisSimulationTests
   [Fact]
   public void Constructor_WithInvalidArguments_Throws()
   {
-    // Act + Assert: Mismatched lengths, edge to a missing node, null style, bad node index.
-    Assert.Throws<ArgumentException>(() => new GraphVisSimulation([Vector2.Zero], [20f, 20f], [], Style));
-    Assert.Throws<ArgumentOutOfRangeException>(() => new GraphVisSimulation([Vector2.Zero], [20f], [(0, 1)], Style));
+    // Act + Assert: Mismatched lengths, edge to a missing node, null physics, bad node index.
+    Assert.Throws<ArgumentException>(() => new GraphVisSimulation([Vector2.Zero], [20f, 20f], [], Physics));
+    Assert.Throws<ArgumentOutOfRangeException>(() => new GraphVisSimulation([Vector2.Zero], [20f], [(0, 1)], Physics));
     Assert.Throws<ArgumentNullException>(() => new GraphVisSimulation([Vector2.Zero], [20f], [], null!));
-    Assert.Throws<ArgumentOutOfRangeException>(() => new GraphVisSimulation([Vector2.Zero], [20f], [], Style).MoveNode(1, Vector2.Zero));
+    Assert.Throws<ArgumentOutOfRangeException>(() => new GraphVisSimulation([Vector2.Zero], [20f], [], Physics).MoveNode(1, Vector2.Zero));
+  }
+
+  /// <summary>
+  /// Verifies that with edge pull off, connected nodes far beyond the rest length stay where
+  /// they are.
+  /// </summary>
+  [Fact]
+  public void Settle_WithoutEdgePull_ConnectedNodesKeepTheirDistance()
+  {
+    // Arrange: Two connected radius-20 nodes far apart, edge pull off.
+    var physics = Physics with { AttractStrength = 0f };
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(800, 0)], [20f, 20f], [(0, 1)], physics);
+
+    // Act: Let it settle.
+    bool asleep = simulation.Settle(ManySteps);
+
+    // Assert: Asleep without having moved.
+    Assert.True(asleep);
+    Assert.Equal(800f, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies that with edge pull off, nodes that are too close are still pushed apart.
+  /// </summary>
+  [Fact]
+  public void Settle_WithoutEdgePull_NodesTooCloseArePushedApart()
+  {
+    // Arrange: Two overlapping connected radius-20 nodes, edge pull off.
+    var physics = Physics with { AttractStrength = 0f };
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(10, 0)], [20f, 20f], [(0, 1)], physics);
+
+    // Act: Let it settle.
+    simulation.Settle(ManySteps);
+
+    // Assert: The borders keep the node gap.
+    Assert.Equal(40f + physics.NodeGap, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), SettledTolerance);
+  }
+
+  /// <summary>
+  /// Verifies that new physics wake a sleeping simulation and take effect: turning edge pull on
+  /// pulls far-apart connected nodes together.
+  /// </summary>
+  [Fact]
+  public void Physics_Set_WakesAndApplies()
+  {
+    // Arrange: Connected nodes far apart, settled with edge pull off.
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(800, 0)], [20f, 20f], [(0, 1)], Physics with { AttractStrength = 0f });
+    simulation.Settle(ManySteps);
+    Assert.True(simulation.IsAsleep);
+
+    // Act: Turn edge pull on.
+    simulation.Physics = Physics;
+
+    // Assert: Awake, and settling now pulls the nodes to the rest length.
+    Assert.False(simulation.IsAsleep);
+    simulation.Settle(ManySteps);
+    float rest = 40f + Physics.NodeGap * Physics.LinkRestGapFactor;
+    Assert.Equal(rest, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), SettledTolerance);
+  }
+
+  /// <summary>
+  /// Verifies setting equal physics leaves a sleeping simulation asleep.
+  /// </summary>
+  [Fact]
+  public void Physics_SetEqual_StaysAsleep()
+  {
+    // Arrange: A settled simulation.
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(800, 0)], [20f, 20f], [], Physics);
+    simulation.Settle(ManySteps);
+
+    // Act: Set an equal copy.
+    simulation.Physics = Physics with { };
+
+    // Assert: Still asleep.
+    Assert.True(simulation.IsAsleep);
+  }
+
+  /// <summary>
+  /// Verifies invalid physics values are rejected, both at construction and when set later.
+  /// </summary>
+  [Fact]
+  public void Physics_InvalidValues_Throw()
+  {
+    // Arrange: A valid simulation and invalid physics.
+    var simulation = new GraphVisSimulation([Vector2.Zero], [20f], [], Physics);
+    GraphVisPhysics[] invalid =
+    [
+      Physics with { AttractStrength = -0.1f },
+      Physics with { AttractStrength = 1.5f },
+      Physics with { RepelStrength = -1f },
+      Physics with { StepSeconds = 0f },
+      Physics with { NodeGap = -1f },
+      Physics with { SettleSteps = -1 },
+    ];
+
+    // Act + Assert: Each is rejected; null too.
+    foreach (GraphVisPhysics physics in invalid)
+    {
+      Assert.Throws<ArgumentOutOfRangeException>(() => simulation.Physics = physics);
+      Assert.Throws<ArgumentOutOfRangeException>(() => new GraphVisSimulation([Vector2.Zero], [20f], [], physics));
+    }
+
+    Assert.Throws<ArgumentNullException>(() => simulation.Physics = null!);
   }
 }

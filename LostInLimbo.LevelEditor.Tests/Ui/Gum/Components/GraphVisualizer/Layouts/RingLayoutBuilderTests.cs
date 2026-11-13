@@ -1,3 +1,4 @@
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 using Stride.Core.Mathematics;
 
@@ -263,5 +264,34 @@ public sealed class RingLayoutBuilderTests
 
     // Act + Assert: Two runs agree exactly.
     Assert.Equal(Builder.Place(radii, edges, Gap), Builder.Place(radii, edges, Gap));
+  }
+
+  /// <summary>
+  /// Verifies the ring keeps its shape under its own default physics, even when many edges
+  /// cross it (with standard edge pull such a graph clumps).
+  /// </summary>
+  [Fact]
+  public void Place_WithDefaultPhysics_RingKeepsItsShape()
+  {
+    // Arrange: Ten equal nodes; a loop around the ring plus chords across it.
+    const int count = 10;
+    float[] radii = Enumerable.Repeat(22f, count).ToArray();
+    (int From, int To)[] edges =
+    [
+      .. Enumerable.Range(0, count).Select(i => (i, (i + 1) % count)),
+      (0, 5), (1, 6), (2, 7), (3, 8), (4, 9),
+    ];
+    GraphVisPhysics physics = Builder.DefaultPhysics;
+    Vector2[] start = Builder.Place(radii, edges, physics.LinkIdealGap);
+
+    // Act: Simulate until settled.
+    var simulation = new GraphVisSimulation(start, radii, edges, physics);
+    simulation.Settle(physics.SettleSteps);
+
+    // Assert: Every node is still where the ring put it.
+    for (int i = 0; i < count; i++)
+    {
+      Assert.True(Vector2.Distance(start[i], simulation.Positions[i]) < 1f, $"Node {i} moved away from the ring.");
+    }
   }
 }

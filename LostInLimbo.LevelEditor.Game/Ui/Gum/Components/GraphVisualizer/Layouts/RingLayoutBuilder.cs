@@ -28,6 +28,15 @@ public sealed class RingLayoutBuilder : GraphLayoutBuilder
   private const int MaxRingGrowthSteps = 64;
 
   /// <summary>
+  /// Default physics without edge pull: edges crossing the ring are long and would pull it into a
+  /// clump. Nodes still push each other apart and never overlap.
+  /// </summary>
+  private static readonly GraphVisPhysics RingPhysics = GraphVisPhysics.Default with { AttractStrength = 0f };
+
+  /// <summary>Physics without edge pull, so the ring keeps its shape (see <see cref="RingPhysics"/>).</summary>
+  public override GraphVisPhysics DefaultPhysics => RingPhysics;
+
+  /// <summary>
   /// Places the nodes on the ring.
   /// </summary>
   /// <param name="radii">Node radii, in node order (validated).</param>
