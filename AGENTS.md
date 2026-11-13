@@ -197,6 +197,25 @@ Notes and quirks:
 - After starting app wait for 5 seconds. App starts quickly.
 - Window resize is janky (and sometimes outright buggy). Wait second or so after resize before taking screenshot.
 
+## Debugging
+
+### Crashes
+
+Environment is set up for crashes. See `DOTNET_DbgMiniDumpName` to know where full dumps are.
+
+When you run the app yourself and it may crash, start it like this (PowerShell) so the dump gets written completely:
+
+```powershell
+$p = Start-Process dotnet -ArgumentList 'run','--project','LostInLimbo.LevelEditor.Windows' -PassThru -RedirectStandardError <scratchpad>\stderr.txt
+$p.WaitForExit()
+```
+
+- Do **not** pipe the app's output (for example `dotnet run ... | Select-Object -Last 15`). Doing that once produced a truncated dump (about 1 GB instead of about 1.5 GB) that `dotnet-dump` could not open.
+- Wait for the process to exit before you touch the dump: the runtime writes it before the process exits.
+- `stderr.txt` contains the managed stack trace of an unhandled exception. A native crash has details only in the dump.
+- Check the dump with `dotnet-dump analyze <dump> -c "pe" -c "exit"`. If it fails with "did not contain a system info stream", the dump is truncated.
+- Analyze a dump before rebuilding, so the `.pdb` files in `Bin/Windows/<Configuration>/` still match it.
+
 ## Other
 
 - **Never commit or push.** The user reviews and commits manually. Human has last word.

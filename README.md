@@ -53,6 +53,15 @@ For development we use Visual Studio Code with the C# Dev Kit extension.
 - Start the game (from terminal or Game Studio).
 - Attach in VS Code: `Ctrl+Shift+D` → select "Attach to running game" → press `F5` → in the process picker find `LostInLimbo.LevelEditor.Windows`.
 
+### Crash
+
+To record crashes, you need to set these environment variables:
+```powershell
+[Environment]::SetEnvironmentVariable('DOTNET_DbgEnableMiniDump', '1', 'User')
+[Environment]::SetEnvironmentVariable('DOTNET_DbgMiniDumpType', '4', 'User')   # 4 = full dump
+[Environment]::SetEnvironmentVariable('DOTNET_DbgMiniDumpName', '<your_path>\dumps\lil-%p.dmp', 'User')
+```
+
 ## Resources
 
 ### Our libraries
