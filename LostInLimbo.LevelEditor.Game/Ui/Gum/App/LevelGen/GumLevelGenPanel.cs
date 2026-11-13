@@ -4,6 +4,8 @@ using Gum.Forms.Controls;
 using Gum.GueDeriving;
 using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Services.LevelGen;
+using LostInLimbo.LevelEditor.Services.Settings;
+using LostInLimbo.LevelEditor.Services.Settings.Data;
 using LostInLimbo.LevelEditor.Ui.Gum.App.AppBar;
 using LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
 using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Data;
@@ -70,6 +72,12 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <summary>Level generation service.</summary>
   private readonly ILevelGenService _levelGenService;
 
+  /// <summary>Editor settings service (form state is loaded on build and saved on request).</summary>
+  private readonly ISettingsService _settingsService;
+
+  /// <summary>Settings loaded on build; sections this panel does not own are saved back unchanged.</summary>
+  private DatEditorSettings _loadedSettings = DatEditorSettings.Default;
+
   /// <summary>Status log model.</summary>
   private readonly StatusLog _statusLog = new();
 
@@ -130,10 +138,12 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// Creates the panel. Call <see cref="Build"/> to create its visuals.
   /// </summary>
   /// <param name="levelGenService">Level generation service.</param>
-  /// <exception cref="ArgumentNullException"><paramref name="levelGenService"/> is null.</exception>
-  public GumLevelGenPanel(ILevelGenService levelGenService)
+  /// <param name="settingsService">Editor settings service.</param>
+  /// <exception cref="ArgumentNullException">An argument is null.</exception>
+  public GumLevelGenPanel(ILevelGenService levelGenService, ISettingsService settingsService)
   {
     _levelGenService = levelGenService ?? throw new ArgumentNullException(nameof(levelGenService));
+    _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
   }
 
   /// <summary>
@@ -164,7 +174,31 @@ public sealed class GumLevelGenPanel : IOverlayView
     root.AddToRoot();
     _root = root;
 
+    // Restore the forms as they were when the editor was last closed.
+    _loadedSettings = _settingsService.Load();
+    _propertiesPanel.Apply(_loadedSettings.LevelGen.Properties);
+    _configPanel.Apply(_loadedSettings.LevelGen.Configuration);
+
     ApplyUiState(LevelGenUiState.For(_levelGenService.Status().Result));
+  }
+
+  /// <summary>
+  /// Saves the forms' state to the editor settings (call on shutdown). Does nothing before
+  /// <see cref="Build"/>.
+  /// </summary>
+  public void SaveSettings()
+  {
+    if (_root == null) return; // forms never built: nothing to save
+
+    DatEditorSettings settings = _loadedSettings with
+    {
+      LevelGen = _loadedSettings.LevelGen with
+      {
+        Properties = _propertiesPanel.BuildProps(),
+        Configuration = _configPanel.State,
+      },
+    };
+    if (_settingsService.Save(settings)) _loadedSettings = settings;
   }
 
   /// <inheritdoc />

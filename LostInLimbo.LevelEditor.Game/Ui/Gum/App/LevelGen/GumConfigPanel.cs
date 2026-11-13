@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Gum.Forms.Controls;
 using LostInLimbo.LevelEditor.Services.LevelGen;
+using LostInLimbo.LevelEditor.Services.Settings.Data;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelGen.Data.Config.Graph;
 
@@ -105,19 +106,59 @@ public sealed class GumConfigPanel
   }
 
   /// <summary>
+  /// Current state of the form (also its values while inactive); defaults before <see cref="Build"/>.
+  /// </summary>
+  public DatConfigFormSettings State
+  {
+    get
+    {
+      int index = _builderBox?.SelectedIndex ?? -1;
+      return new DatConfigFormSettings
+      {
+        Active = _activeBox?.IsChecked == true,
+        GraphBuilder = index >= 0 && index < GraphBuilders.Count ? GraphBuilders[index] : DatConfigFormSettings.Default.GraphBuilder,
+      };
+    }
+  }
+
+  /// <summary>
+  /// Shows the given state in the form. Does nothing before <see cref="Build"/>.
+  /// </summary>
+  /// <param name="state">State to show.</param>
+  /// <exception cref="ArgumentNullException"><paramref name="state"/> is null.</exception>
+  public void Apply(DatConfigFormSettings state)
+  {
+    ArgumentNullException.ThrowIfNull(state);
+    if (_builderBox != null)
+    {
+      int index = IndexOf(state.GraphBuilder);
+      _builderBox.SelectedIndex = index >= 0 ? index : 0;
+    }
+    if (_activeBox != null) _activeBox.IsChecked = state.Active;
+    ApplyActive(); // also when the check box value did not change
+  }
+
+  /// <summary>
   /// Builds the configuration overrides from the form.
   /// </summary>
   /// <returns>
   /// Overrides; <see cref="LevelGenConfigOverrides.None"/> while the form is not active (or not
   /// built).
   /// </returns>
-  public LevelGenConfigOverrides BuildOverrides()
-  {
-    if (_activeBox?.IsChecked != true || _builderBox == null) return LevelGenConfigOverrides.None;
+  public LevelGenConfigOverrides BuildOverrides() => State.ToOverrides();
 
-    int index = _builderBox.SelectedIndex;
-    EnGraphBuilder? builder = index >= 0 && index < GraphBuilders.Count ? GraphBuilders[index] : null;
-    return new LevelGenConfigOverrides(GraphBuilder: builder);
+  /// <summary>
+  /// Position of a builder in the combo box.
+  /// </summary>
+  /// <param name="builder">Builder.</param>
+  /// <returns>Index, or -1 if the builder is not listed.</returns>
+  private static int IndexOf(EnGraphBuilder builder)
+  {
+    for (int i = 0; i < GraphBuilders.Count; i++)
+    {
+      if (GraphBuilders[i] == builder) return i;
+    }
+    return -1;
   }
 
   /// <summary>

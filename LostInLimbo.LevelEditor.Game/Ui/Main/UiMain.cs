@@ -1,6 +1,7 @@
 using System;
 using Gum;
 using LostInLimbo.LevelEditor.Services.LevelGen;
+using LostInLimbo.LevelEditor.Services.Settings;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui.Gum.App.AppBar;
 using LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
@@ -43,6 +44,9 @@ public sealed class UiMain : SyncScript
 
   public override void Cancel()
   {
+    // Shutdown: keep the level generation forms for the next start.
+    _gumLevelGenPanel?.SaveSettings();
+
     // Panels holding unmanaged drawing resources release them with the script.
     _gumLevelInfoPanel?.Dispose();
     _gumLevelInfoPanel = null;
@@ -70,12 +74,14 @@ public sealed class UiMain : SyncScript
       ?? throw new InvalidOperationException("ISystemInfoService was not registered.");
     ILevelGenService levelGenService = Game.Services.GetService<ILevelGenService>()
       ?? throw new InvalidOperationException("ILevelGenService was not registered.");
+    ISettingsService settingsService = Game.Services.GetService<ISettingsService>()
+      ?? throw new InvalidOperationException("ISettingsService was not registered.");
 
     var appBar = new GumAppBar(systemInfo);
     appBar.Build();
     _gumAppBar = appBar;
 
-    var levelGenPanel = new GumLevelGenPanel(levelGenService);
+    var levelGenPanel = new GumLevelGenPanel(levelGenService, settingsService);
     levelGenPanel.Build();
     _gumLevelGenPanel = levelGenPanel;
     _overlaySwitcher.Register(EnOverlay.LevelGen, levelGenPanel);

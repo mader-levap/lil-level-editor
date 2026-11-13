@@ -83,12 +83,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
 
   #region Main methods
 
-  /// <summary>
-  /// Try to start level generation.
-  /// </summary>
-  /// <param name="props">Properties used in config generation.</param>
-  /// <param name="overrides">Configuration fields forced over the generated configuration; null for none.</param>
-  /// <returns>True if start succeeded, otherwise false.</returns>
+  /// <inheritdoc />
   public bool Start(PropMain props, LevelGenConfigOverrides? overrides = null)
   {
     var status = _levelGenSession.Status();
@@ -98,12 +93,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     return StartGen(EnRunKind.All, props, overrides ?? LevelGenConfigOverrides.None);
   }
 
-  /// <summary>
-  /// Try to advance one step in level generation.
-  /// </summary>
-  /// <param name="props">Properties used in config generation.</param>
-  /// <param name="overrides">Configuration fields forced over the generated configuration; null for none.</param>
-  /// <returns>True if step succeeded, otherwise false.</returns>
+  /// <inheritdoc />
   public bool Step(PropMain props, LevelGenConfigOverrides? overrides = null)
   {
     var status = _levelGenSession.Status();
@@ -113,10 +103,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     return StartGen(EnRunKind.Step, props, overrides ?? LevelGenConfigOverrides.None);
   }
 
-  /// <summary>
-  /// Try to pause level generation.
-  /// </summary>
-  /// <returns>True if pause succeeded, otherwise false.</returns>
+  /// <inheritdoc />
   public bool Pause()
   {
     var status = _levelGenSession.Status();
@@ -125,10 +112,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     return _levelGenSession.Pause();
   }
 
-  /// <summary>
-  /// Try to cancel level generation.
-  /// </summary>
-  /// <returns>True if cancel succeeded, otherwise false.</returns>
+  /// <inheritdoc />
   public bool Cancel()
   {
     var status = _levelGenSession.Status();
@@ -137,11 +121,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     return _levelGenSession.Cancel();
   }
 
-  /// <summary>
-  /// Try to discard a non-running session (typically a paused one, which can't be cancelled),
-  /// returning to the never-ran state. Never blocks.
-  /// </summary>
-  /// <returns>True if the session was cleared, otherwise false (for example, while running).</returns>
+  /// <inheritdoc />
   public bool Clear()
   {
     var status = _levelGenSession.Status();

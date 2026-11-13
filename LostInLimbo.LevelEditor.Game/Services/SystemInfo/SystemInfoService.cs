@@ -107,37 +107,25 @@ public sealed class SystemInfoService : GameServiceBase, ISystemInfoService
   // ///////////////////////////////////////////////////////////////////////////
   // Getters.
 
-  /// <summary>
-  /// Retrieve name of application.
-  /// </summary>
-  /// <returns>Name of application.</returns>
+  /// <inheritdoc />
   public string GetName()
   {
     return _systemInfo.Name;
   }
 
-  /// <summary>
-  /// Retrieve author of application.
-  /// </summary>
-  /// <returns>Author of application.</returns>
+  /// <inheritdoc />
   public string GetAuthor()
   {
     return _systemInfo.Author;
   }
 
-  /// <summary>
-  /// Retrieve version of application.
-  /// </summary>
-  /// <returns>Version of application.</returns>
+  /// <inheritdoc />
   public string GetVersion()
   {
     return _systemInfo.Version;
   }
 
-  /// <summary>
-  /// Retrieve build type of application.
-  /// </summary>
-  /// <returns>Build type of application.</returns>
+  /// <inheritdoc />
   public EnBuildType GetBuild()
   {
     return _systemInfo.Build;

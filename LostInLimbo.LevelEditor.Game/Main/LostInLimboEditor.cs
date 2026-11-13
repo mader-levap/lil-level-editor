@@ -1,8 +1,11 @@
+using System;
+using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using Gum;
 using LostInLimbo.LevelEditor.Input;
 using LostInLimbo.LevelEditor.Services.LevelGen;
+using LostInLimbo.LevelEditor.Services.Settings;
 using LostInLimbo.LevelEditor.Services.SystemInfo;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
@@ -14,6 +17,12 @@ namespace LostInLimbo.LevelEditor.Main;
 
 public sealed class LostInLimboEditor : Game
 {
+  /// <summary>Folder of the editor's per-user data, under the user's local application data.</summary>
+  private static readonly string[] UserDataFolders = ["LostInLimbo", "LevelEditor"];
+
+  /// <summary>File name of the editor settings.</summary>
+  private const string SettingsFileName = "editor-settings.json";
+
   /// <summary>Whether Gum has been initialized against the live compositor.</summary>
   private bool _gumInitialized;
 
@@ -40,6 +49,16 @@ public sealed class LostInLimboEditor : Game
   }
 
   /// <summary>
+  /// Resolves the settings file path: the only place that knows the machine location.
+  /// </summary>
+  /// <returns>Full path of the settings file in the user's local application data.</returns>
+  private static string ResolveSettingsPath()
+  {
+    string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    return Path.Combine([localAppData, .. UserDataFolders, SettingsFileName]);
+  }
+
+  /// <summary>
   /// Prepares context.
   /// </summary>
   protected override void PrepareContext()
@@ -54,6 +73,7 @@ public sealed class LostInLimboEditor : Game
     // Register global services here.
     Services.AddService<ISystemInfoService>(new SystemInfoService());
     Services.AddService<ILevelGenService>(new LevelGenService());
+    Services.AddService<ISettingsService>(new SettingsService(ResolveSettingsPath()));
 
     // Gameplay keyboard input. InputManager does not exist yet during PrepareContext
     // (Game.Initialize creates it later), so it is resolved lazily on every query.

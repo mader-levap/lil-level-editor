@@ -122,6 +122,20 @@ public sealed class GumPropertiesPanel
   }
 
   /// <summary>
+  /// Shows the given properties in the form. A difficulty without a preset selects the first
+  /// preset. Does nothing before <see cref="Build"/>.
+  /// </summary>
+  /// <param name="props">Properties to show.</param>
+  /// <exception cref="ArgumentNullException"><paramref name="props"/> is null.</exception>
+  public void Apply(PropMain props)
+  {
+    ArgumentNullException.ThrowIfNull(props);
+    if (_seedBox != null) _seedBox.Text = props.TextSeed ?? string.Empty;
+    if (_difficultyBox != null) _difficultyBox.SelectedIndex = DifficultyPresets.FindIndex(props.Difficulty);
+    if (_manyThemesBox != null) _manyThemesBox.IsChecked = props.ManyThemes;
+  }
+
+  /// <summary>
   /// Builds generation properties from the form.
   /// </summary>
   /// <returns>Properties.</returns>
