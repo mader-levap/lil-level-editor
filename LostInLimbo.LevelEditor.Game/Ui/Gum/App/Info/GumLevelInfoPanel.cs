@@ -10,6 +10,7 @@ using LostInLimbo.LevelEditor.Services.LevelGen;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 using LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;

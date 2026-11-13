@@ -1,6 +1,6 @@
-using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer.Data;
 
 /// <summary>
 /// Headless tests for <see cref="GraphVisData"/> (validation of the visualizer's input model).

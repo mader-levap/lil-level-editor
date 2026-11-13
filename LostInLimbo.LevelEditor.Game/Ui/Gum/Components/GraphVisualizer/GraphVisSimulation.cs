@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 using Stride.Core.Mathematics;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;

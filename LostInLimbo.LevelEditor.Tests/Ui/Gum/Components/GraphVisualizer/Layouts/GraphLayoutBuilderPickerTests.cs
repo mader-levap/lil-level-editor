@@ -1,4 +1,4 @@
-using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 using Stride.Core.Mathematics;
 

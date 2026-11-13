@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using SkiaGum.Renderables;
 using SkiaSharp;

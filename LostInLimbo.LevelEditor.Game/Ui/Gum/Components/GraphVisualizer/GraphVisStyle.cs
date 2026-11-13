@@ -1,4 +1,5 @@
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 

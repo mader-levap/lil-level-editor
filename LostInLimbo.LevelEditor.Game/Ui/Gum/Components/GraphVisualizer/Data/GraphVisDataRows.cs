@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 
 /// <summary>
 /// Measured widths of one key/value pair of the data panel.

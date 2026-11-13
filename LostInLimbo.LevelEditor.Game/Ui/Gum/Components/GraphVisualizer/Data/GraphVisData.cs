@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 
 /// <summary>
 /// Small labelled dot shown inside a node (for example a point of interest).

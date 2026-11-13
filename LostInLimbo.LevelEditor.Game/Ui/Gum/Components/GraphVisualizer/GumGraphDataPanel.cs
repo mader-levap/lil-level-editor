@@ -7,6 +7,7 @@ using Gum.GueDeriving;
 using Gum.Managers;
 using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;

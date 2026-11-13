@@ -1,6 +1,6 @@
 using System;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 
 /// <summary>
 /// Parameters of the node physics (<see cref="GraphVisSimulation"/>) and the spacing layouts aim
