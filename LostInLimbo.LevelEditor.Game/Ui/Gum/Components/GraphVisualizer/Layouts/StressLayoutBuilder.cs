@@ -43,8 +43,10 @@ public sealed class StressLayoutBuilder : GraphLayoutBuilder
   /// <param name="radii">Node radii, in node order (validated).</param>
   /// <param name="edges">Edges as pairs of node indices (validated).</param>
   /// <param name="linkGap">Free space aimed for between connected nodes (validated).</param>
+  /// <param name="roots">Ignored by this layout.</param>
   /// <returns>Node centers, in node order.</returns>
-  protected override Vector2[] PlaceCore(IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap)
+  protected override Vector2[] PlaceCore(
+    IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap, IReadOnlyList<int> roots)
   {
     int count = radii.Count;
     var neighbours = new List<int>[count];

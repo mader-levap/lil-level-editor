@@ -35,6 +35,17 @@ public sealed record GraphVisNode
   /// <summary>Whether the outline is dashed.</summary>
   public bool IsDashed { get; init; }
 
+  /// <summary>
+  /// Whether layouts that need a starting point (such as the layered layout) begin from this node,
+  /// for example the start room. Optional.
+  /// </summary>
+  /// <remarks>
+  /// Several nodes may be marked; one per connected part is the intended use. If one part has
+  /// several, layouts use the lowest-index one and place the others like ordinary nodes. Layouts
+  /// that need no starting point (Stress, Ring) ignore this flag.
+  /// </remarks>
+  public bool IsLayoutRoot { get; init; }
+
   /// <summary>Markers shown inside the node, in display order.</summary>
   public IReadOnlyList<GraphVisMarker> Markers { get; init; } = [];
 

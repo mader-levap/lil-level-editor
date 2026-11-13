@@ -72,6 +72,9 @@ public sealed class GumGraphViewport : IDisposable
   /// <summary>Filler covering the corner where both scroll bars meet; null until built.</summary>
   private ContainerRuntime? _scrollBarCorner;
 
+  /// <summary>Indices of the nodes marked <see cref="GraphVisNode.IsLayoutRoot"/> in the current graph.</summary>
+  private int[] _layoutRoots = [];
+
   /// <summary>Physics moving the nodes of the current graph; null when there is no graph.</summary>
   private GraphVisSimulation? _simulation;
 
@@ -229,11 +232,13 @@ public sealed class GumGraphViewport : IDisposable
     if (data == null || !hasGraph)
     {
       _simulation = null;
+      _layoutRoots = [];
       _interaction.SetGraph(null, [], []);
       return;
     }
 
     _renderer.SetGraph(data);
+    _layoutRoots = Enumerable.Range(0, data.Nodes.Count).Where(index => data.Nodes[index].IsLayoutRoot).ToArray();
     RebuildLayout(_renderer);
   }
 
@@ -302,7 +307,7 @@ public sealed class GumGraphViewport : IDisposable
 
     // Starting layout, then let the physics settle before the graph is first shown, so the
     // view is fitted to the final arrangement and nothing jumps on screen.
-    Vector2[] positions = GraphVisLayout.Place(LayoutBuilder, renderer.Radii, edges, Physics.LinkIdealGap);
+    Vector2[] positions = GraphVisLayout.Place(LayoutBuilder, renderer.Radii, edges, Physics.LinkIdealGap, _layoutRoots);
     _simulation = new GraphVisSimulation(positions, renderer.Radii, edges, Physics);
     _simulation.Settle(Physics.SettleSteps);
     _interaction.SetGraph(_simulation, renderer.Radii, renderer.EdgeShapes);

@@ -14,6 +14,9 @@ public static class GraphLayoutBuilderPicker
   /// <summary>Shared ring builder (builders are stateless).</summary>
   private static readonly RingLayoutBuilder RingBuilder = new();
 
+  /// <summary>Shared layered builder (builders are stateless).</summary>
+  private static readonly LayeredLayoutBuilder LayeredBuilder = new();
+
   /// <summary>All known layout builders, in declaration order (the default first).</summary>
   public static IReadOnlyList<EnGraphLayoutBuilder> All { get; } = Enum.GetValues<EnGraphLayoutBuilder>();
 
@@ -26,6 +29,7 @@ public static class GraphLayoutBuilderPicker
   public static GraphLayoutBuilder For(EnGraphLayoutBuilder builder) => builder switch
   {
     EnGraphLayoutBuilder.Stress => StressBuilder,
+    EnGraphLayoutBuilder.Layered => LayeredBuilder,
     EnGraphLayoutBuilder.Ring => RingBuilder,
     _ => throw new ArgumentOutOfRangeException(nameof(builder), builder, "Unknown graph layout builder."),
   };

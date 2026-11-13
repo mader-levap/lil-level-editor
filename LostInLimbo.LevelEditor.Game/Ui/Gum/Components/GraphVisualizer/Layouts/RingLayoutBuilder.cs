@@ -42,8 +42,10 @@ public sealed class RingLayoutBuilder : GraphLayoutBuilder
   /// <param name="radii">Node radii, in node order (validated).</param>
   /// <param name="edges">Edges (validated); they decide the order of the nodes around the ring.</param>
   /// <param name="linkGap">Free space kept between neighbouring nodes (validated).</param>
+  /// <param name="roots">Ignored by this layout.</param>
   /// <returns>Node centers, in node order; the ring is centered on the origin.</returns>
-  protected override Vector2[] PlaceCore(IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap)
+  protected override Vector2[] PlaceCore(
+    IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap, IReadOnlyList<int> roots)
   {
     int count = radii.Count;
     var positions = new Vector2[count];

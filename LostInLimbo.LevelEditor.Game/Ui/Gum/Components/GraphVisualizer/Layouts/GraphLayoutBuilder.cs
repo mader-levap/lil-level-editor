@@ -29,10 +29,16 @@ public abstract class GraphLayoutBuilder
   /// <param name="radii">Node radii, in node order.</param>
   /// <param name="edges">Edges as pairs of node indices (direction does not matter).</param>
   /// <param name="linkGap">Free space aimed for between the borders of two nodes, in pixels.</param>
+  /// <param name="roots">
+  /// Nodes that layouts with a starting point begin from (for example the start room); null or
+  /// empty lets such layouts choose. Several are allowed, one per connected part is the intended
+  /// use; if a part has several, the lowest index is used and the others are placed like ordinary
+  /// nodes. Other layouts ignore them.
+  /// </param>
   /// <returns>Node centers, in node order.</returns>
   /// <exception cref="ArgumentNullException"><paramref name="radii"/> or <paramref name="edges"/> is null.</exception>
-  /// <exception cref="ArgumentOutOfRangeException">An edge refers to a node index that does not exist, or <paramref name="linkGap"/> is not positive.</exception>
-  public Vector2[] Place(IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap)
+  /// <exception cref="ArgumentOutOfRangeException">An edge or root refers to a node index that does not exist, or <paramref name="linkGap"/> is not positive.</exception>
+  public Vector2[] Place(IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap, IReadOnlyList<int>? roots = null)
   {
     ArgumentNullException.ThrowIfNull(radii);
     ArgumentNullException.ThrowIfNull(edges);
@@ -45,7 +51,13 @@ public abstract class GraphLayoutBuilder
       if (to < 0 || to >= count) throw new ArgumentOutOfRangeException(nameof(edges), to, "Edge refers to a missing node.");
     }
 
-    return PlaceCore(radii, edges, linkGap);
+    roots ??= [];
+    foreach (int root in roots)
+    {
+      if (root < 0 || root >= count) throw new ArgumentOutOfRangeException(nameof(roots), root, "Root refers to a missing node.");
+    }
+
+    return PlaceCore(radii, edges, linkGap, roots);
   }
 
   /// <summary>
@@ -54,6 +66,8 @@ public abstract class GraphLayoutBuilder
   /// <param name="radii">Node radii, in node order.</param>
   /// <param name="edges">Edges as pairs of existing node indices (direction does not matter).</param>
   /// <param name="linkGap">Free space aimed for between the borders of two nodes; positive.</param>
+  /// <param name="roots">Existing node indices to start from (possibly empty); see <see cref="Place"/>.</param>
   /// <returns>Node centers, in node order.</returns>
-  protected abstract Vector2[] PlaceCore(IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap);
+  protected abstract Vector2[] PlaceCore(
+    IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap, IReadOnlyList<int> roots);
 }

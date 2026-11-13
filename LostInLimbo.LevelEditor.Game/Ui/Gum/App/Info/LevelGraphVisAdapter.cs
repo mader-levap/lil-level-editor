@@ -116,6 +116,7 @@ public static class LevelGraphVisAdapter
       RelativeSize = node.RelSize > 0 ? node.RelSize : SmallestRelativeSize,
       Color = group == null ? null : groupColors[group],
       IsDashed = node.Secret,
+      IsLayoutRoot = node.Pois.Any(poi => poi.Type == EnPoiType.Start), // layered layout starts at the start room
       Markers = node.Pois.Select(poi => new GraphVisMarker(Id(poi.Id), PoiLabel(poi))).ToArray(),
       Properties = properties,
       IndentedPropertyKeys = indentedKeys,

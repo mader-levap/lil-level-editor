@@ -306,4 +306,22 @@ public sealed class LevelGraphVisAdapterTests
     // Act + Assert: No graph, no conversion.
     Assert.Throws<ArgumentNullException>(() => LevelGraphVisAdapter.Convert(null!));
   }
+
+  /// <summary>
+  /// Verifies the place holding the Start POI is marked as layout root, and only that one.
+  /// </summary>
+  [Fact]
+  public void Convert_StartPlace_IsLayoutRoot()
+  {
+    // Arrange: A place with a Start POI, one with another POI and one without POIs.
+    LilNode start = Node(1, null, false, Poi(EnPoiType.Start));
+    LilNode exit = Node(1, null, false, Poi(EnPoiType.Exit));
+    LilNode plain = Node();
+
+    // Act: Convert.
+    GraphVisData data = LevelGraphVisAdapter.Convert(new LilGraph { Nodes = [start, exit, plain] });
+
+    // Assert: Only the start place is a layout root.
+    Assert.Equal([true, false, false], data.Nodes.Select(node => node.IsLayoutRoot));
+  }
 }
