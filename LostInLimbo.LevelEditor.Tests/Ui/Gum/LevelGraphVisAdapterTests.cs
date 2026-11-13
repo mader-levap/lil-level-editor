@@ -325,4 +325,68 @@ public sealed class LevelGraphVisAdapterTests
     // Assert: Only the start place is a layout root.
     Assert.Equal([true, false, false], data.Nodes.Select(node => node.IsLayoutRoot));
   }
+
+  /// <summary>
+  /// Verifies unnamed optional goals and solutions use the short type names.
+  /// </summary>
+  [Fact]
+  public void Convert_UnnamedOptionalGoalAndSolution_UseShortNames()
+  {
+    // Arrange: One unnamed optional goal and one unnamed solution.
+    LilPoi optional = Poi(EnPoiType.OptionalGoal);
+    LilPoi solution = Poi(EnPoiType.Solution);
+
+    // Act: Convert.
+    GraphVisNode converted = Assert.Single(
+      LevelGraphVisAdapter.Convert(new LilGraph { Nodes = [Node(pois: [optional, solution])] }).Nodes);
+
+    // Assert: Short labels on the markers and in the POI rows.
+    Assert.Equal(["OptGoal", "Sol"], converted.Markers.Select(marker => marker.Label));
+    Assert.Equal("OptGoal", converted.Properties["POI 1"]);
+    Assert.Equal("Sol", converted.Properties["POI 2"]);
+  }
+
+  /// <summary>
+  /// Verifies unnamed POIs of a type that occurs more than once in the graph are numbered in graph
+  /// order, across places, and that the numbers are used where the POIs are referenced.
+  /// </summary>
+  [Fact]
+  public void Convert_RepeatedUnnamedType_IsNumberedInGraphOrder()
+  {
+    // Arrange: Solutions in two places (two unnamed, one named), one start; the target needs the second unnamed solution.
+    LilPoi start = Poi(EnPoiType.Start);
+    LilPoi first = Poi(EnPoiType.Solution);
+    LilPoi named = Poi(EnPoiType.Solution, "Red Key");
+    LilPoi second = Poi(EnPoiType.Solution);
+    LilNode a = Node(pois: [start, first]);
+    LilNode b = Node(pois: [named, second]);
+    LilNode target = Node();
+    target.Reach[start.Id] = [second.Id];
+
+    // Act: Convert.
+    GraphVisData data = LevelGraphVisAdapter.Convert(new LilGraph { Nodes = [a, b, target] });
+
+    // Assert: Unnamed solutions numbered 1 and 2; the start (alone) and the named one are not.
+    Assert.Equal(["Start", "Sol 1"], data.Nodes[0].Markers.Select(marker => marker.Label));
+    Assert.Equal(["Red Key", "Sol 2"], data.Nodes[1].Markers.Select(marker => marker.Label));
+    Assert.Equal("Sol 2", data.Nodes[1].Properties["POI 2"]);
+    Assert.Equal("Sol 2", data.Nodes[2].Properties["Reach from Start needs"]);
+  }
+
+  /// <summary>
+  /// Verifies the short type names of all POI types.
+  /// </summary>
+  /// <param name="type">POI type.</param>
+  /// <param name="expected">Expected short name.</param>
+  [Theory]
+  [InlineData(EnPoiType.Start, "Start")]
+  [InlineData(EnPoiType.Exit, "Exit")]
+  [InlineData(EnPoiType.Goal, "Goal")]
+  [InlineData(EnPoiType.OptionalGoal, "OptGoal")]
+  [InlineData(EnPoiType.Solution, "Sol")]
+  public void ShortTypeName_IsAsExpected(EnPoiType type, string expected)
+  {
+    // Act + Assert: Short name of the type.
+    Assert.Equal(expected, LevelGraphVisAdapter.ShortTypeName(type));
+  }
 }

@@ -42,6 +42,12 @@ public static class LevelGraphVisAdapter
   /// <summary>Separator between the items of a list value.</summary>
   private const string ListSeparator = ", ";
 
+  /// <summary>Short label of <see cref="EnPoiType.OptionalGoal"/>.</summary>
+  public const string OptionalGoalShortName = "OptGoal";
+
+  /// <summary>Short label of <see cref="EnPoiType.Solution"/>.</summary>
+  public const string SolutionShortName = "Sol";
+
   #endregion
 
   /// <summary>
@@ -58,9 +64,9 @@ public static class LevelGraphVisAdapter
   {
     ArgumentNullException.ThrowIfNull(graph);
 
-    // POI texts by identifier, to describe conditions and reach data by name instead of by GUID.
-    var poiTexts = new Dictionary<Guid, string>();
-    foreach (LilPoi poi in graph.Nodes.SelectMany(node => node.Pois)) poiTexts.TryAdd(poi.Id, PoiLabel(poi));
+    // POI labels by identifier, used for markers and to describe conditions and reach data by
+    // name instead of by GUID.
+    IReadOnlyDictionary<Guid, string> poiTexts = PoiLabels(graph);
 
     IReadOnlyDictionary<string, UiRgba> groupColors = GraphVisColors.AssignColors(
       graph.Nodes.Select(node => node.Style.Group).Where(group => !string.IsNullOrEmpty(group)).Select(group => group!));
@@ -101,7 +107,7 @@ public static class LevelGraphVisAdapter
     {
       LilPoi poi = node.Pois[i];
       string key = $"POI {i + 1}";
-      properties[key] = string.IsNullOrWhiteSpace(poi.Name) ? poi.Type.ToString() : $"{poi.Name} ({poi.Type})";
+      properties[key] = IsUnnamed(poi) ? PoiText(poi.Id, poiTexts) : $"{poi.Name} ({poi.Type})";
       indentedKeys.Add(key);
     }
 
@@ -118,18 +124,73 @@ public static class LevelGraphVisAdapter
       Color = group == null ? null : groupColors[group],
       IsDashed = node.Secret,
       IsLayoutRoot = node.Pois.Any(poi => poi.Type == EnPoiType.Start), // layered layout starts at the start room
-      Markers = node.Pois.Select(poi => new GraphVisMarker(Id(poi.Id), PoiLabel(poi))).ToArray(),
+      Markers = node.Pois.Select(poi => new GraphVisMarker(Id(poi.Id), PoiText(poi.Id, poiTexts))).ToArray(),
       Properties = properties,
       IndentedPropertyKeys = indentedKeys,
     };
   }
 
   /// <summary>
-  /// Short text of a POI: its name, or its type when it has no name.
+  /// Labels every POI of the graph: its name, or the short name of its type when it has no name.
+  /// Unnamed POIs whose type occurs unnamed more than once in the graph get a number, counted in
+  /// graph order (places in order, POIs in order), so they can be told apart: "Sol 1", "Sol 2".
+  /// </summary>
+  /// <param name="graph">Level graph.</param>
+  /// <returns>Label of each POI, by identifier; a repeated identifier keeps its first label.</returns>
+  private static IReadOnlyDictionary<Guid, string> PoiLabels(LilGraph graph)
+  {
+    // First occurrence of each identifier, in graph order.
+    var pois = new List<LilPoi>();
+    var seen = new HashSet<Guid>();
+    foreach (LilPoi poi in graph.Nodes.SelectMany(node => node.Pois))
+    {
+      if (seen.Add(poi.Id)) pois.Add(poi);
+    }
+
+    Dictionary<EnPoiType, int> unnamedTotals = pois.Where(IsUnnamed).GroupBy(poi => poi.Type).ToDictionary(group => group.Key, group => group.Count());
+    var unnamedSoFar = new Dictionary<EnPoiType, int>();
+    var labels = new Dictionary<Guid, string>();
+    foreach (LilPoi poi in pois)
+    {
+      if (!IsUnnamed(poi))
+      {
+        labels[poi.Id] = poi.Name!;
+        continue;
+      }
+
+      string typeName = ShortTypeName(poi.Type);
+      if (unnamedTotals[poi.Type] == 1)
+      {
+        labels[poi.Id] = typeName;
+        continue;
+      }
+
+      int number = unnamedSoFar.GetValueOrDefault(poi.Type) + 1;
+      unnamedSoFar[poi.Type] = number;
+      labels[poi.Id] = $"{typeName} {number.ToString(CultureInfo.InvariantCulture)}";
+    }
+
+    return labels;
+  }
+
+  /// <summary>
+  /// Short name of a POI type, as shown in labels.
+  /// </summary>
+  /// <param name="type">POI type.</param>
+  /// <returns><see cref="OptionalGoalShortName"/>, <see cref="SolutionShortName"/>, or the type's own name for the other types.</returns>
+  public static string ShortTypeName(EnPoiType type) => type switch
+  {
+    EnPoiType.OptionalGoal => OptionalGoalShortName,
+    EnPoiType.Solution => SolutionShortName,
+    _ => type.ToString(),
+  };
+
+  /// <summary>
+  /// Tells whether a POI has no usable name (missing or blank).
   /// </summary>
   /// <param name="poi">POI.</param>
-  /// <returns>Label.</returns>
-  private static string PoiLabel(LilPoi poi) => string.IsNullOrWhiteSpace(poi.Name) ? poi.Type.ToString() : poi.Name;
+  /// <returns>True when its label comes from its type.</returns>
+  private static bool IsUnnamed(LilPoi poi) => string.IsNullOrWhiteSpace(poi.Name);
 
   /// <summary>
   /// Text of a POI referenced by identifier.
