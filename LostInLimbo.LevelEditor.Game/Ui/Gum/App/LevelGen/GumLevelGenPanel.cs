@@ -12,7 +12,6 @@ using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.ProgressBar;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
-using LostInLimbo.LevelGen.Data.Prop;
 using LostInLimbo.LevelGen.Data.Result;
 using LostInLimbo.LevelGen.Data.Status;
 
@@ -20,13 +19,14 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 
 /// <summary>
 /// Gum level generation overlay: transport buttons (start/step/pause/stop) on the right, the
-/// generation properties form next to the toolbar (replaced by a progress bar while a run is in
-/// progress), and a scrollable status log along the bottom.
+/// forms panel next to the toolbar (generation forms, replaced by a progress bar while a run is
+/// in progress), and a scrollable status log along the bottom.
 /// </summary>
 /// <remarks>
 /// Button and form logic lives in pure helpers (<see cref="LevelGenUiState"/>,
 /// <see cref="LevelGenPropsBuilder"/>, <see cref="LevelGenStatusMessages"/>,
-/// <see cref="StatusLog"/>) and the reusable <see cref="GumStatusLogView"/>; this class only
+/// <see cref="StatusLog"/>), the forms in <see cref="GumPropertiesPanel"/> and
+/// <see cref="GumConfigPanel"/>, and the reusable <see cref="GumStatusLogView"/>; this class only
 /// builds visuals and wires them to the service.
 /// </remarks>
 public sealed class GumLevelGenPanel : IOverlayView
@@ -34,7 +34,7 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <summary>Distance between panels and the window edge, in pixels.</summary>
   private const float Margin = 5;
 
-  /// <summary>Gap between the editor toolbar and the properties form, in pixels.</summary>
+  /// <summary>Gap between the editor toolbar and the forms panel, in pixels.</summary>
   private const float ToolbarGap = 10;
 
   /// <summary>Padding inside panels, in pixels.</summary>
@@ -42,15 +42,6 @@ public sealed class GumLevelGenPanel : IOverlayView
 
   /// <summary>Spacing between transport buttons, in pixels.</summary>
   private const float TransportSpacing = 4;
-
-  /// <summary>Spacing between form rows, in pixels.</summary>
-  private const float RowSpacing = 6;
-
-  /// <summary>Width of the form's label column, in pixels.</summary>
-  private const float LabelWidth = 210;
-
-  /// <summary>Width of the form's input column, in pixels.</summary>
-  private const float InputWidth = 200;
 
   /// <summary>Height of the status log panel, in percent of the window height.</summary>
   private const float StatusHeightPercent = 35;
@@ -60,6 +51,9 @@ public sealed class GumLevelGenPanel : IOverlayView
 
   /// <summary>Spacing between the progress caption and the bar, in pixels.</summary>
   private const float ProgressSpacing = 6;
+
+  /// <summary>Horizontal gap between forms in the forms panel, in pixels.</summary>
+  private const float FormSpacing = 24;
 
   /// <summary>Progress caption while generation runs.</summary>
   private const string CaptionRunning = "Generating...";
@@ -85,13 +79,18 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// <summary>Overlay root (full window, no events of its own).</summary>
   private ContainerRuntime? _root;
 
-  /// <summary>Properties panel: holds the form, or the progress view while a run is in progress.</summary>
-  private ContainerRuntime? _propsPanel;
+  /// <summary>
+  /// Forms panel: holds the generation forms, or the progress view while a run is in progress.
+  /// </summary>
+  private ContainerRuntime? _formsPanel;
 
-  /// <summary>Form rows inside <see cref="_propsPanel"/>.</summary>
-  private StackPanel? _propsRows;
+  /// <summary>Generation properties form inside <see cref="_formsPanel"/>.</summary>
+  private readonly GumPropertiesPanel _propertiesPanel = new();
 
-  /// <summary>Progress view (caption + bar), centered in <see cref="_propsPanel"/>.</summary>
+  /// <summary>Configuration overrides form, right of the properties form.</summary>
+  private readonly GumConfigPanel _configPanel = new();
+
+  /// <summary>Progress view (caption + bar), centered in <see cref="_formsPanel"/>.</summary>
   private StackPanel? _progressView;
 
   /// <summary>Progress caption (running/paused).</summary>
@@ -101,19 +100,10 @@ public sealed class GumLevelGenPanel : IOverlayView
   private readonly GumProgressBar _progressBar = new();
 
   /// <summary>
-  /// Whether <see cref="_propsPanel"/> was switched to a fixed size (measured with the form
-  /// shown), so it keeps its size when the form is swapped for the progress view.
+  /// Whether <see cref="_formsPanel"/> was switched to a fixed size (measured with the forms
+  /// shown), so it keeps its size when the forms are swapped for the progress view.
   /// </summary>
-  private bool _propsPanelSizeFrozen;
-
-  /// <summary>Seed input.</summary>
-  private TextBox? _seedBox;
-
-  /// <summary>Difficulty preset choice.</summary>
-  private ComboBox? _difficultyBox;
-
-  /// <summary>Many-themes check box.</summary>
-  private CheckBox? _manyThemesBox;
+  private bool _formsPanelSizeFrozen;
 
   /// <summary>Start/resume button.</summary>
   private Button? _btnStart;
@@ -167,8 +157,8 @@ public sealed class GumLevelGenPanel : IOverlayView
     };
 
     root.AddChild(CreateTransportPanel().Visual);
-    _propsPanel = CreatePropsPanel();
-    root.AddChild(_propsPanel);
+    _formsPanel = CreateFormsPanel();
+    root.AddChild(_formsPanel);
     root.AddChild(CreateStatusPanel());
 
     root.AddToRoot();
@@ -184,8 +174,8 @@ public sealed class GumLevelGenPanel : IOverlayView
     if (!visible)
     {
       // Release keyboard and close popups so nothing invisible keeps input.
-      if (_seedBox != null) _seedBox.IsFocused = false;
-      if (_difficultyBox != null) _difficultyBox.IsDropDownOpen = false;
+      _propertiesPanel.ReleaseInput();
+      _configPanel.ReleaseInput();
     }
     _root.Visible = visible;
   }
@@ -264,11 +254,11 @@ public sealed class GumLevelGenPanel : IOverlayView
   }
 
   /// <summary>
-  /// Creates the properties panel next to the editor toolbar: the form and the (hidden)
+  /// Creates the forms panel next to the editor toolbar: the generation forms and the (hidden)
   /// progress view in the same panel.
   /// </summary>
   /// <returns>Panel container.</returns>
-  private ContainerRuntime CreatePropsPanel()
+  private ContainerRuntime CreateFormsPanel()
   {
     ContainerRuntime panel = GumUiFactory.CreatePanel();
     panel.X = Margin + GumUiFactory.IconButtonSize + ToolbarGap;
@@ -278,43 +268,24 @@ public sealed class GumLevelGenPanel : IOverlayView
     panel.Height = PanelPadding; // bottom padding added to the children's extent
     panel.HeightUnits = DimensionUnitType.RelativeToChildren;
 
-    var rows = new StackPanel
+    // Forms side by side, top-aligned, inside the panel's padding.
+    var forms = new StackPanel
     {
+      Orientation = Orientation.Horizontal,
+      Spacing = FormSpacing,
       X = PanelPadding,
       Y = PanelPadding,
-      Spacing = RowSpacing,
     };
-
-    _seedBox = new TextBox
-    {
-      Width = InputWidth,
-      Placeholder = "empty = current time",
-    };
-    rows.AddChild(CreateFormRow("Seed:", _seedBox));
-
-    _difficultyBox = GumUiFactory.CreateComboBox(InputWidth);
-    var difficultyItems = _difficultyBox.Items
-      ?? throw new InvalidOperationException("Gum ComboBox has no item list.");
-    foreach (DifficultyPreset preset in DifficultyPresets.All) difficultyItems.Add(preset.Name);
-    _difficultyBox.SelectedIndex = DifficultyPresets.DefaultIndex;
-    rows.AddChild(CreateFormRow("Difficulty:", _difficultyBox));
-
-    _manyThemesBox = new CheckBox
-    {
-      Text = string.Empty,
-      IsChecked = PropMain.Default.ManyThemes,
-    };
-    rows.AddChild(CreateFormRow("Can have many themes:", _manyThemesBox));
-
-    panel.AddChild(rows.Visual);
-    _propsRows = rows;
+    forms.AddChild(_propertiesPanel.Build());
+    forms.AddChild(_configPanel.Build());
+    panel.AddChild(forms.Visual);
 
     panel.AddChild(CreateProgressView().Visual);
     return panel;
   }
 
   /// <summary>
-  /// Creates the progress view (caption above the bar), centered in the properties panel and
+  /// Creates the progress view (caption above the bar), centered in the forms panel and
   /// hidden until a run is in progress.
   /// </summary>
   /// <returns>Stack panel.</returns>
@@ -326,14 +297,16 @@ public sealed class GumLevelGenPanel : IOverlayView
       IsVisible = false,
     };
     view.Anchor(Anchor.Center);
-    // Does not size the panel: the panel is sized by the form (see FreezePropsPanelSize).
+    // Does not size the panel: the panel is sized by the forms (see FreezeFormsPanelSize).
     view.Visual.IgnoredByParentSize = true;
 
     _progressCaption = GumUiFactory.CreateLabel(CaptionRunning, EditorTheme.Palette.TextPrimary);
     _progressCaption.Anchor(Anchor.Top); // centers horizontally inside the stack
     view.AddChild(_progressCaption);
 
-    ContainerRuntime bar = _progressBar.Build(LabelWidth + InputWidth - 2 * PanelPadding, ProgressBarHeight);
+    // As wide as the forms row, less the padding on each side (the panel adds its own padding).
+    float formsWidth = GumPropertiesPanel.ContentWidth + FormSpacing + GumConfigPanel.ContentWidth;
+    ContainerRuntime bar = _progressBar.Build(formsWidth - 2 * PanelPadding, ProgressBarHeight);
     view.AddChild(bar);
 
     _progressView = view;
@@ -341,32 +314,23 @@ public sealed class GumLevelGenPanel : IOverlayView
   }
 
   /// <summary>
-  /// Fixes the properties panel at its current size (measured while the form is shown), so it
-  /// does not shrink when the form is hidden. Does nothing until the panel has been laid out.
+  /// Fixes the forms panel at its current size (measured while the forms are shown), so it does
+  /// not shrink when the forms are hidden. Does nothing until the panel has been laid out.
   /// </summary>
-  private void FreezePropsPanelSize()
+  private void FreezeFormsPanelSize()
   {
-    if (_propsPanelSizeFrozen || _propsPanel == null) return;
+    if (_formsPanelSizeFrozen || _formsPanel == null) return;
 
-    float width = _propsPanel.AbsoluteWidth;
-    float height = _propsPanel.AbsoluteHeight;
+    float width = _formsPanel.AbsoluteWidth;
+    float height = _formsPanel.AbsoluteHeight;
     if (width <= 2 * PanelPadding || height <= 2 * PanelPadding) return; // not laid out yet
 
-    _propsPanel.WidthUnits = DimensionUnitType.Absolute;
-    _propsPanel.Width = width;
-    _propsPanel.HeightUnits = DimensionUnitType.Absolute;
-    _propsPanel.Height = height;
-    _propsPanelSizeFrozen = true;
+    _formsPanel.WidthUnits = DimensionUnitType.Absolute;
+    _formsPanel.Width = width;
+    _formsPanel.HeightUnits = DimensionUnitType.Absolute;
+    _formsPanel.Height = height;
+    _formsPanelSizeFrozen = true;
   }
-
-  /// <summary>
-  /// Creates one form row with this form's label column width.
-  /// </summary>
-  /// <param name="labelText">Label text.</param>
-  /// <param name="input">Input control.</param>
-  /// <returns>Horizontal stack panel.</returns>
-  private static StackPanel CreateFormRow(string labelText, FrameworkElement input) =>
-    GumUiFactory.CreateFormRow(labelText, input, LabelWidth);
 
   /// <summary>
   /// Creates the status log panel along the bottom of the window.
@@ -395,8 +359,8 @@ public sealed class GumLevelGenPanel : IOverlayView
   private void OnStartClicked()
   {
     bool wasPaused = _levelGenService.Status().Result == EnGenResult.Paused;
-    bool started = _levelGenService.Start(BuildProps());
-    _statusLog.Add(LevelGenStatusMessages.ForStart(wasPaused, started, _seedBox?.Text));
+    bool started = _levelGenService.Start(_propertiesPanel.BuildProps(), _configPanel.BuildOverrides());
+    _statusLog.Add(LevelGenStatusMessages.ForStart(wasPaused, started, _propertiesPanel.Seed));
     if (!started) return;
 
     ApplyUiState(LevelGenUiState.For(EnGenResult.Running));
@@ -408,7 +372,7 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// </summary>
   private void OnStepClicked()
   {
-    bool stepped = _levelGenService.Step(BuildProps());
+    bool stepped = _levelGenService.Step(_propertiesPanel.BuildProps(), _configPanel.BuildOverrides());
     _statusLog.Add(LevelGenStatusMessages.ForStep(stepped));
     if (!stepped) return;
 
@@ -492,7 +456,7 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// </summary>
   private void StartLoop()
   {
-    _loop.Begin(_seedBox?.Text);
+    _loop.Begin(_propertiesPanel.Seed);
     SetLoopButtonIcon(looping: true);
     _statusLog.Add(LevelGenStatusMessages.ForLoopStart(_loop.CurrentSeed));
     StartLoopIteration();
@@ -504,8 +468,8 @@ public sealed class GumLevelGenPanel : IOverlayView
   /// </summary>
   private void StartLoopIteration()
   {
-    if (_seedBox != null) _seedBox.Text = _loop.CurrentSeed;
-    if (!_levelGenService.Start(BuildProps()))
+    _propertiesPanel.Seed = _loop.CurrentSeed;
+    if (!_levelGenService.Start(_propertiesPanel.BuildProps(), _configPanel.BuildOverrides()))
     {
       _statusLog.Add(LevelGenStatusMessages.ForLoopStartFailed(_loop.CurrentSeed));
       EndLoop();
@@ -592,21 +556,6 @@ public sealed class GumLevelGenPanel : IOverlayView
   #region Form and state
 
   /// <summary>
-  /// Builds generation properties from the form.
-  /// </summary>
-  /// <returns>Properties.</returns>
-  private PropMain BuildProps()
-  {
-    int index = _difficultyBox?.SelectedIndex ?? DifficultyPresets.DefaultIndex;
-    if (index < 0 || index >= DifficultyPresets.All.Count) index = DifficultyPresets.DefaultIndex;
-
-    return LevelGenPropsBuilder.Build(
-      _seedBox?.Text,
-      DifficultyPresets.All[index].Value,
-      _manyThemesBox?.IsChecked == true);
-  }
-
-  /// <summary>
   /// Applies button enable states and form visibility.
   /// </summary>
   /// <param name="state">UI state.</param>
@@ -620,11 +569,12 @@ public sealed class GumLevelGenPanel : IOverlayView
 
     if (!state.PropsVisible)
     {
-      if (_seedBox != null) _seedBox.IsFocused = false;
-      if (_difficultyBox != null) _difficultyBox.IsDropDownOpen = false;
-      FreezePropsPanelSize(); // form is still shown, so this measures the form's size
+      _propertiesPanel.ReleaseInput();
+      _configPanel.ReleaseInput();
+      FreezeFormsPanelSize(); // forms are still shown, so this measures their size
     }
-    if (_propsRows != null) _propsRows.IsVisible = state.PropsVisible;
+    _propertiesPanel.IsVisible = state.PropsVisible;
+    _configPanel.IsVisible = state.PropsVisible;
     ApplyProgressState(state);
   }
 

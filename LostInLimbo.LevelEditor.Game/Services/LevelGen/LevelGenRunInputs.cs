@@ -12,5 +12,5 @@ namespace LostInLimbo.LevelEditor.Services.LevelGen;
 /// safe. The numeric seed actually used is in <c>GenerationStatus.Seed</c>.
 /// </remarks>
 /// <param name="Props">Properties the run was started with.</param>
-/// <param name="Config">Configuration generated from <paramref name="Props"/> and passed to the library.</param>
+/// <param name="Config">Configuration generated from <paramref name="Props"/> (with the user's overrides applied) and passed to the library.</param>
 public sealed record LevelGenRunInputs(PropMain Props, CnfLevelGeneration Config);

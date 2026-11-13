@@ -16,15 +16,19 @@ public interface ILevelGenService
   /// Try to start level generation.
   /// </summary>
   /// <param name="props">Properties used in config generation.</param>
+  /// <param name="overrides">Configuration fields forced over the generated configuration; null for none.</param>
   /// <returns>True if start succeeded, otherwise false.</returns>
-  bool Start(PropMain props);
+  /// <remarks>Resuming a paused run ignores both arguments (the run keeps its configuration).</remarks>
+  bool Start(PropMain props, LevelGenConfigOverrides? overrides = null);
 
   /// <summary>
   /// Try to advance one step in level generation.
   /// </summary>
   /// <param name="props">Properties used in config generation.</param>
+  /// <param name="overrides">Configuration fields forced over the generated configuration; null for none.</param>
   /// <returns>True if step succeeded, otherwise false.</returns>
-  bool Step(PropMain props);
+  /// <remarks>Resuming a paused run ignores both arguments (the run keeps its configuration).</remarks>
+  bool Step(PropMain props, LevelGenConfigOverrides? overrides = null);
 
   /// <summary>
   /// Try to pause level generation.
@@ -83,28 +87,30 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   /// Try to start level generation.
   /// </summary>
   /// <param name="props">Properties used in config generation.</param>
+  /// <param name="overrides">Configuration fields forced over the generated configuration; null for none.</param>
   /// <returns>True if start succeeded, otherwise false.</returns>
-  public bool Start(PropMain props)
+  public bool Start(PropMain props, LevelGenConfigOverrides? overrides = null)
   {
     var status = _levelGenSession.Status();
     if (status.Result == EnGenResult.Running) return false; // already running
 
     if (status.Result == EnGenResult.Paused) return ResumeGen(EnRunKind.All);
-    return StartGen(EnRunKind.All, props);
+    return StartGen(EnRunKind.All, props, overrides ?? LevelGenConfigOverrides.None);
   }
 
   /// <summary>
   /// Try to advance one step in level generation.
   /// </summary>
   /// <param name="props">Properties used in config generation.</param>
+  /// <param name="overrides">Configuration fields forced over the generated configuration; null for none.</param>
   /// <returns>True if step succeeded, otherwise false.</returns>
-  public bool Step(PropMain props)
+  public bool Step(PropMain props, LevelGenConfigOverrides? overrides = null)
   {
     var status = _levelGenSession.Status();
     if (status.Result == EnGenResult.Running) return false; // already running
 
     if (status.Result == EnGenResult.Paused) return ResumeGen(EnRunKind.Step);
-    return StartGen(EnRunKind.Step, props);
+    return StartGen(EnRunKind.Step, props, overrides ?? LevelGenConfigOverrides.None);
   }
 
   /// <summary>
@@ -188,10 +194,11 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   /// </summary>
   /// <param name="runKind">Run kind.</param>
   /// <param name="props">Properties used in config generation.</param>
+  /// <param name="overrides">Configuration fields forced over the generated configuration.</param>
   /// <returns>True if start succeeded, otherwise false.</returns>
-  private bool StartGen(EnRunKind runKind, PropMain props)
+  private bool StartGen(EnRunKind runKind, PropMain props, LevelGenConfigOverrides overrides)
   {
-    CnfLevelGeneration config = GenerateConfig(props);
+    CnfLevelGeneration config = GenerateConfig(props, overrides);
     bool started;
     try
     {
@@ -244,14 +251,15 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
   }
 
   /// <summary>
-  /// Generate config.
+  /// Generate config from properties, then apply the overrides.
   /// </summary>
   /// <param name="props">Properties used in config generation.</param>
-  /// <returns>Generated config for level generation.</returns>
-  private static CnfLevelGeneration GenerateConfig(PropMain props)
+  /// <param name="overrides">Configuration fields forced over the generated configuration.</param>
+  /// <returns>Config for level generation.</returns>
+  private static CnfLevelGeneration GenerateConfig(PropMain props, LevelGenConfigOverrides overrides)
   {
     CnfLevelGeneration config = LevelGenConfig.Execute(props);
-    return config;
+    return overrides.Apply(config);
   }
 
   #endregion
