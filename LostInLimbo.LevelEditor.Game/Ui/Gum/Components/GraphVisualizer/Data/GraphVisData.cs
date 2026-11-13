@@ -46,6 +46,12 @@ public sealed record GraphVisNode
   /// </remarks>
   public bool IsLayoutRoot { get; init; }
 
+  /// <summary>
+  /// Drawn more prominently (radial glow fill), for example start and exit rooms. Purely
+  /// visual; size and layout are unaffected.
+  /// </summary>
+  public bool IsEmphasized { get; init; }
+
   /// <summary>Markers shown inside the node, in display order.</summary>
   public IReadOnlyList<GraphVisMarker> Markers { get; init; } = [];
 

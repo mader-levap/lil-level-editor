@@ -71,8 +71,11 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="Dots">Marker dots.</param>
   /// <param name="BaseFill">Fill color before brightening (source of <paramref name="Fill"/>).</param>
   /// <param name="BaseOutline">Outline color before brightening (source of <paramref name="Outline"/>).</param>
+  /// <param name="IsEmphasized">Whether the fill is a radial glow (lighter center).</param>
+  /// <param name="GlowCenter">Glow color at the center of an emphasized node (fades to <paramref name="Fill"/>).</param>
   private readonly record struct PreparedNode(
-    float Radius, SKColor Fill, SKColor Outline, bool IsDashed, SKColor MarkerColor, PreparedDot[] Dots, UiRgba BaseFill, UiRgba BaseOutline);
+    float Radius, SKColor Fill, SKColor Outline, bool IsDashed, SKColor MarkerColor, PreparedDot[] Dots, UiRgba BaseFill, UiRgba BaseOutline,
+    bool IsEmphasized, SKColor GlowCenter);
 
   /// <summary>
   /// One edge, ready to draw.
@@ -179,7 +182,9 @@ internal sealed class GraphVisRenderer : IDisposable
         EditorTheme.ToSkColor(GraphVisColors.ReadableOn(fill, _style.MarkerColor, _style.MarkerColorOnDark)),
         PrepareDots(node, radius),
         fill,
-        outline);
+        outline,
+        node.IsEmphasized,
+        EditorTheme.ToSkColor(GlowCenterColor(fill, 0f)));
     }
 
     // Several edges between the same two nodes are drawn as arcs side by side.
@@ -294,8 +299,18 @@ internal sealed class GraphVisRenderer : IDisposable
     {
       Fill = EditorTheme.ToSkColor(GraphVisColors.Brighten(node.BaseFill, amount)),
       Outline = EditorTheme.ToSkColor(GraphVisColors.Brighten(node.BaseOutline, amount)),
+      GlowCenter = EditorTheme.ToSkColor(GlowCenterColor(node.BaseFill, amount)), // the glow lights up with the node
     };
   }
+
+  /// <summary>
+  /// Color at the center of an emphasized node's glow.
+  /// </summary>
+  /// <param name="baseFill">Node fill before brightening.</param>
+  /// <param name="hoverAmount">Hover/selection brightening applied to the whole node (0 for none).</param>
+  /// <returns>Glow center color.</returns>
+  private UiRgba GlowCenterColor(UiRgba baseFill, float hoverAmount) =>
+    GraphVisColors.Brighten(GraphVisColors.Brighten(baseFill, _style.EmphasisGlowBrightening), hoverAmount);
 
   /// <summary>
   /// Gives an edge a brighter line and arrowhead color for its hover/selection level. Use the
@@ -526,7 +541,24 @@ internal sealed class GraphVisRenderer : IDisposable
   private void DrawNode(SKCanvas canvas, PreparedNode node, Vector2 center)
   {
     _fill.Color = node.Fill;
-    canvas.DrawCircle(center.X, center.Y, node.Radius, _fill);
+    if (node.IsEmphasized)
+    {
+      // Radial glow: lighter center fading to the plain fill before the rim (few nodes, so a
+      // shader per frame is cheap).
+      using SKShader glow = SKShader.CreateRadialGradient(
+        new SKPoint(center.X, center.Y),
+        node.Radius,
+        [node.GlowCenter, node.Fill],
+        [0f, 1f - _style.EmphasisGlowSolidShare],
+        SKShaderTileMode.Clamp);
+      _fill.Shader = glow;
+      canvas.DrawCircle(center.X, center.Y, node.Radius, _fill);
+      _fill.Shader = null;
+    }
+    else
+    {
+      canvas.DrawCircle(center.X, center.Y, node.Radius, _fill);
+    }
 
     // The outline is drawn inside the radius, so the visible circle is exactly the layout circle.
     _stroke.Color = node.Outline;

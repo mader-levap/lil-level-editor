@@ -124,6 +124,7 @@ public static class LevelGraphVisAdapter
       Color = group == null ? null : groupColors[group],
       IsDashed = node.Secret,
       IsLayoutRoot = node.Pois.Any(poi => poi.Type == EnPoiType.Start), // layered layout starts at the start room
+      IsEmphasized = node.Pois.Any(poi => poi.Type is EnPoiType.Start or EnPoiType.Exit), // where the level begins and ends
       Markers = node.Pois.Select(poi => new GraphVisMarker(Id(poi.Id), PoiText(poi.Id, poiTexts))).ToArray(),
       Properties = properties,
       IndentedPropertyKeys = indentedKeys,

@@ -138,6 +138,18 @@ public sealed record GraphVisStyle
   /// <summary>Time the hover/selection brightening takes to fade in or out, in seconds.</summary>
   public float HoverFadeSeconds { get; init; } = 0.15f;
 
+  /// <summary>
+  /// How much lighter the center of an emphasized node's radial glow is than its fill, as the
+  /// share of white mixed in (0..1).
+  /// </summary>
+  public float EmphasisGlowBrightening { get; init; } = 0.45f;
+
+  /// <summary>
+  /// Share of an emphasized node's radius, from the rim inward, that keeps the plain fill (the
+  /// glow fades out before it, so the outline keeps its contrast); 0..1.
+  /// </summary>
+  public float EmphasisGlowSolidShare { get; init; } = 0.15f;
+
   #endregion
 
   #region Selection and dragging

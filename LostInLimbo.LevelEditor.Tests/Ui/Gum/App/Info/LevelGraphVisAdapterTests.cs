@@ -327,6 +327,25 @@ public sealed class LevelGraphVisAdapterTests
   }
 
   /// <summary>
+  /// Verifies the places holding the Start or Exit POI are emphasized, and no others.
+  /// </summary>
+  [Fact]
+  public void Convert_StartOrExitPlace_IsEmphasized()
+  {
+    // Arrange: Places with Start, Exit (among other POIs), a Goal only, and no POIs.
+    LilNode start = Node(1, null, false, Poi(EnPoiType.Start));
+    LilNode exit = Node(1, null, false, Poi(EnPoiType.Goal), Poi(EnPoiType.Exit));
+    LilNode goal = Node(1, null, false, Poi(EnPoiType.Goal));
+    LilNode plain = Node();
+
+    // Act: Convert.
+    GraphVisData data = LevelGraphVisAdapter.Convert(new LilGraph { Nodes = [start, exit, goal, plain] });
+
+    // Assert: Start and exit places are emphasized.
+    Assert.Equal([true, true, false, false], data.Nodes.Select(node => node.IsEmphasized));
+  }
+
+  /// <summary>
   /// Verifies unnamed optional goals and solutions use the short type names.
   /// </summary>
   [Fact]
