@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
-using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 using LostInLimbo.LevelGen.Data.Result.Graph;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.App.Info;

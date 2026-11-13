@@ -1,7 +1,7 @@
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
-using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer.Render;
 
 /// <summary>
 /// Headless tests for <see cref="GraphVisColors"/> (darkening and stable, distinct key colors).

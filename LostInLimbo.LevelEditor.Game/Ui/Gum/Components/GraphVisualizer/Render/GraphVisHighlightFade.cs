@@ -1,6 +1,7 @@
 using System;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 
 /// <summary>
 /// Highlight level of every node and edge, easing towards 1 while the element is hovered or

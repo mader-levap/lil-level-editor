@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using SkiaGum.Renderables;
 using SkiaSharp;
 using Stride.Core.Mathematics;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 
 /// <summary>
 /// Gum renderable that hands Gum's draw call to a callback, which is how the visualizer gets a

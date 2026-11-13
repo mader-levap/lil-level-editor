@@ -1,7 +1,7 @@
-using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 using Stride.Core.Mathematics;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer.Render;
 
 /// <summary>
 /// Headless tests for <see cref="GraphVisCamera"/> and <see cref="GraphVisBounds"/> (pan, zoom,

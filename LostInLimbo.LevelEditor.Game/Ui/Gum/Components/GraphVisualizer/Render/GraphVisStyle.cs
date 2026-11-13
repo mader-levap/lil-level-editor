@@ -1,7 +1,7 @@
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 
 /// <summary>
 /// Look, navigation and interaction limits of the graph visualizer. Lengths are in world units,

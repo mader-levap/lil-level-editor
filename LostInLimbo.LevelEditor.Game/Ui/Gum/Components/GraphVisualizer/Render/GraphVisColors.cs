@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 
 /// <summary>
 /// Color helpers of the graph visualizer: darkening and assigning distinct, stable colors to keys

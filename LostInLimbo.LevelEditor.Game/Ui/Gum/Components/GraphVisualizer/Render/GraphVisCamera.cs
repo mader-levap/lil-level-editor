@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Stride.Core.Mathematics;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 
 /// <summary>
 /// Axis-aligned rectangle in world units, used as the extent of a graph.

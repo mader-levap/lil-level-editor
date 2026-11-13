@@ -1,6 +1,6 @@
-using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 using LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Data;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 using LostInLimbo.LevelGen.Data.Result.Graph;
 
 namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
