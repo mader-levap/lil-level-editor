@@ -15,6 +15,11 @@ using Stride.Input;
 
 namespace LostInLimbo.LevelEditor.Main;
 
+/// <summary>
+/// Level editor entry point and composition root of the application: registers global
+/// services, initializes Gum and applies the editor theme.
+/// </summary>
+/// <remarks>The Gum UI itself is built later by the <c>UiMain</c> script.</remarks>
 public sealed class LostInLimboEditor : Game
 {
   /// <summary>Folder of the editor's per-user data, under the user's local application data.</summary>
@@ -105,7 +110,6 @@ public sealed class LostInLimboEditor : Game
     // re-enabled later): initialize on the first frame that has a real compositor.
     EnsureGumInitialized();
 
-    // Optional: update services before base.Update() on every tick.
     base.Update(gameTime);
   }
 
@@ -133,11 +137,11 @@ public sealed class LostInLimboEditor : Game
   }
 
   /// <summary>
-  /// Dispose stuff here.
+  /// Releases the game. Registered services hold no resources that need disposing; UI resources
+  /// are released by the <c>UiMain</c> script.
   /// </summary>
   protected override void Destroy()
   {
-    // Dispose services here if needed.
-     base.Destroy();
+    base.Destroy();
   }
 }

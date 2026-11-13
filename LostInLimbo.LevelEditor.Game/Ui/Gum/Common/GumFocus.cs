@@ -82,12 +82,11 @@ public static class GumFocus
   /// Determines whether the Gum cursor currently reports an interactive element under it.
   /// </summary>
   /// <returns>
-  /// <see langword="true"/> when Gum is initialized and <c>Cursor.WindowOver</c> is non-null;
+  /// <see langword="true"/> when Gum is initialized and <c>Cursor.VisualOver</c> is non-null;
   /// otherwise <see langword="false"/>.
   /// </returns>
   /// <remarks>
-  /// Uses <c>Cursor.VisualOver</c> (the non-obsolete name for <c>WindowOver</c>), which
-  /// only reports elements with <c>HasEvents</c> under the default
+  /// <c>Cursor.VisualOver</c> only reports elements with <c>HasEvents</c> under the default
   /// <see cref="Gum.Wireframe.VisualOverBehavior.IfHasEventsIsTrue"/>. Non-interactive
   /// panels that must block camera look need <c>HasEvents = true</c> when they are
   /// built (see <c>GumUiFactory.CreatePanel</c>).

@@ -2,7 +2,7 @@
 
 ## Project overview
 
-`LostInLimbo.LevelEditor` is a **Stride 4.4.1** desktop application that serves as the level editor, level generator front-end and level viewer for the game codenamed *Lost in Limbo*.
+`LostInLimbo.LevelEditor` is a **Stride 4.4.2** desktop application that serves as the level editor, level generator front-end and level viewer for the game codenamed *Lost in Limbo*.
 
 It does not generate levels itself. Generation logic lives in the engine-neutral library `LostInLimbo.LevelGen` (sibling repository `../lil-level-gen`). This project's job is to:
 
@@ -36,7 +36,7 @@ lil-level-editor/
 ```
 
 - **LostInLimbo.LevelEditor.Game** holds everything game-related. New features (scripts, components, scenes, UI) go here.
-- **LostInLimbo.LevelEditor.Tests** holds xUnit tests for editor code (see *Code style → Tests*).
+- **LostInLimbo.LevelEditor.Tests** holds xUnit tests for editor code.
 - **LostInLimbo.LevelEditor.Windows** is only the launcher. Do not touch it.
 - Game output goes to `Bin/Windows/<Configuration>/`.
 - Do not add generated or machine-specific files (`Bin/`, `obj/`, `*.user`, `.vs/`) to the repository.
@@ -124,7 +124,7 @@ The editor consumes `LostInLimbo.LevelGen` as a **local NuGet package**, not as 
 
 ### Scripting conventions
 
-Reference implementation: `LostInLimbo.LevelEditor.Game/BasicCameraController.cs`.
+Reference implementation: `LostInLimbo.LevelEditor.Game/Input/BasicCameraController.cs`.
 
 - Gameplay/editor behavior lives in components deriving from `SyncScript` (or `AsyncScript` for long-running work), overriding `Start()` and `Update()`.
 - Scripts operate on `Entity.Transform`, `Input`, and the scene; keep `Update()` cheap. Do **not** perform blocking file I/O, network calls, or generation inside `Update()` — run them async or trigger them from a menu/action.

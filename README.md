@@ -5,7 +5,7 @@ This is a level generator front-end, editor and viewer for a future game codenam
 ## Stack
 
 - **Language**: C#
-- **Game engine**: Stride 4.4.1
+- **Game engine**: Stride 4.4.2
 - **Other**:
   - **UI library**: Gum
 

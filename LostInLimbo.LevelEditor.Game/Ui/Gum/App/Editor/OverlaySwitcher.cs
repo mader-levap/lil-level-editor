@@ -8,9 +8,9 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
 /// switching rules are unit-testable.
 /// </summary>
 /// <remarks>
-/// Rules (same as the former UGS editor toolbar): requesting the current overlay again, or
-/// <see cref="EnOverlay.None"/>, closes it; requesting another overlay hides the current one
-/// and shows the new one. Requesting an overlay with no registered view closes the current one.
+/// Rules: requesting the current overlay again, or <see cref="EnOverlay.None"/>, closes it;
+/// requesting another overlay hides the current one and shows the new one. Requesting an
+/// overlay with no registered view closes the current one.
 /// </remarks>
 public sealed class OverlaySwitcher
 {

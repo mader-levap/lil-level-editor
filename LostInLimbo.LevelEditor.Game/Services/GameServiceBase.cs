@@ -1,3 +1,4 @@
+using System;
 using Stride.Core.Diagnostics;
 
 namespace LostInLimbo.LevelEditor.Services;
@@ -23,8 +24,9 @@ public abstract class GameServiceBase
       if (_logger != null) return _logger;
 
       // Lazily create logger.
-      var className = GetType().FullName;
-      _logger = GlobalLogger.GetLogger(className!);
+      // FullName is null only for open generic types, which cannot be instantiated; fall back anyway.
+      Type type = GetType();
+      _logger = GlobalLogger.GetLogger(type.FullName ?? type.Name);
       return _logger;
     }
   }

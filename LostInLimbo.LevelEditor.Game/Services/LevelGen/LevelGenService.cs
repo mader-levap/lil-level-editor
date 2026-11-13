@@ -217,7 +217,7 @@ public sealed class LevelGenService : GameServiceBase, ILevelGenService
     }
     catch (Exception exception)
     {
-      // Invalid config: no run was claimed, so the button can be enabled again immediately.
+      // Resume refused by the session: no run was claimed, so the button can be enabled again immediately.
       Log.Error($"LevelGen: Could not resume generation - {exception}");
       return false;
     }

@@ -21,7 +21,7 @@ public static class GumUiFactory
   /// <summary>Logger for this class.</summary>
   private static readonly Logger Log = GlobalLogger.GetLogger(nameof(GumUiFactory));
 
-  /// <summary>Width and height of icon buttons, in pixels (same as the former UGS buttons).</summary>
+  /// <summary>Width and height of icon buttons, in pixels.</summary>
   public const float IconButtonSize = 48;
 
   /// <summary>Width and height of the icon drawn inside an icon button, in pixels.</summary>
