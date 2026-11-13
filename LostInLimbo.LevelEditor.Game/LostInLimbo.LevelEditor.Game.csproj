@@ -3,7 +3,7 @@
     <AssemblyTitle>Lost in Limbo: level generator/editor</AssemblyTitle>
     <Product>Lost in Limbo: level generator/editor</Product>
     <Company>Mader Levap</Company>
-    <InformationalVersion>0.0.3</InformationalVersion>
+    <InformationalVersion>0.1.0</InformationalVersion>
     <Description>Editor for Lost in Limbo.</Description>
 
     <!-- windows7.0 required: Gum.Stride GPU Skia path (D3D11) is only available on this TFM. -->
@@ -18,12 +18,12 @@
 
     <PackageReference Include="Gum.Stride" Version="2026.11.2.1" />
     <PackageReference Include="LostInLimbo.LevelGen" Version="0.0.9" />
-    <PackageReference Include="Stride.Engine" Version="4.4.1" />
-    <PackageReference Include="Stride.Video" Version="4.4.1" />
-    <PackageReference Include="Stride.Physics" Version="4.4.1" />
-    <PackageReference Include="Stride.Navigation" Version="4.4.1" />
-    <PackageReference Include="Stride.Particles" Version="4.4.1" />
-    <PackageReference Include="Stride.AssetCompiler" Version="4.4.1" IncludeAssets="build;buildTransitive" />
+    <PackageReference Include="Stride.Engine" Version="4.4.2" />
+    <PackageReference Include="Stride.Video" Version="4.4.2" />
+    <PackageReference Include="Stride.Physics" Version="4.4.2" />
+    <PackageReference Include="Stride.Navigation" Version="4.4.2" />
+    <PackageReference Include="Stride.Particles" Version="4.4.2" />
+    <PackageReference Include="Stride.AssetCompiler" Version="4.4.2" IncludeAssets="build;buildTransitive" />
   </ItemGroup>
 
   <ItemGroup>
