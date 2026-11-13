@@ -9,7 +9,7 @@ public enum EnGraphLayoutBuilder
   /// <summary>Stress layout (<see cref="StressLayoutBuilder"/>): screen distances follow graph distances.</summary>
   Stress = 0,
 
-  /// <summary>Layered layout (<see cref="LayeredLayoutBuilder"/>): columns by distance from the root, left to right.</summary>
+  /// <summary>Layered layout (<see cref="LayeredLayoutBuilder"/>): layers by distance from the root, as rows top to bottom or, for deep parts, columns left to right.</summary>
   Layered,
 
   /// <summary>Ring layout (<see cref="RingLayoutBuilder"/>): nodes on a circle, connected nodes next to each other.</summary>

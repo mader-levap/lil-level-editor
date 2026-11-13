@@ -179,7 +179,7 @@ public sealed class GraphLayoutBuilderPickerTests
     Vector2[] viaFacade = GraphVisLayout.Place(EnGraphLayoutBuilder.Layered, radii, edges, Gap, [2]);
     Vector2[] viaBuilder = new LayeredLayoutBuilder().Place(radii, edges, Gap, [2]);
 
-    // Assert: Identical, and the root is leftmost.
+    // Assert: Identical, and the root starts the chain (a chain is deep, so it runs left to right).
     Assert.Equal(viaBuilder, viaFacade);
     Assert.True(viaFacade[2].X < viaFacade[1].X && viaFacade[1].X < viaFacade[0].X);
   }

@@ -6,7 +6,7 @@ using Stride.Core.Mathematics;
 namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer.Layouts;
 
 /// <summary>
-/// Headless tests for <see cref="LayeredLayoutBuilder"/> (columns by distance from the root).
+/// Headless tests for <see cref="LayeredLayoutBuilder"/> (rows by distance from the root, top to bottom).
 /// </summary>
 public sealed class LayeredLayoutBuilderTests
 {
@@ -19,8 +19,11 @@ public sealed class LayeredLayoutBuilderTests
   /// <summary>Node radius used by most tests.</summary>
   private const float Radius = 20f;
 
-  /// <summary>Builder under test.</summary>
-  private static readonly LayeredLayoutBuilder Builder = new();
+  /// <summary>Builder under test, always in rows, so the structure tests do not depend on the part's shape.</summary>
+  private static readonly LayeredLayoutBuilder Builder = new(EnLayeredDirection.TopToBottom);
+
+  /// <summary>Builder choosing the direction per part, as the layout picker uses it.</summary>
+  private static readonly LayeredLayoutBuilder AutoBuilder = new();
 
   /// <summary>
   /// Creates equal radii.
@@ -44,14 +47,14 @@ public sealed class LayeredLayoutBuilderTests
   }
 
   /// <summary>
-  /// Groups nodes into columns by their X coordinate.
+  /// Groups nodes into rows by their Y coordinate.
   /// </summary>
   /// <param name="positions">Node centers.</param>
-  /// <returns>Column index of each node (0 = leftmost).</returns>
-  private static int[] Columns(Vector2[] positions)
+  /// <returns>Row index of each node (0 = top).</returns>
+  private static int[] Rows(Vector2[] positions)
   {
-    float[] xs = positions.Select(position => MathF.Round(position.X, 1)).Distinct().Order().ToArray();
-    return positions.Select(position => Array.IndexOf(xs, MathF.Round(position.X, 1))).ToArray();
+    float[] ys = positions.Select(position => MathF.Round(position.Y, 1)).Distinct().Order().ToArray();
+    return positions.Select(position => Array.IndexOf(ys, MathF.Round(position.Y, 1))).ToArray();
   }
 
   /// <summary>
@@ -67,10 +70,10 @@ public sealed class LayeredLayoutBuilderTests
   }
 
   /// <summary>
-  /// Verifies a chain from its first node runs left to right on one horizontal line.
+  /// Verifies a chain from its first node runs top to bottom on one vertical line.
   /// </summary>
   [Fact]
-  public void Place_ChainFromRoot_IsStraightLeftToRight()
+  public void Place_ChainFromRoot_IsStraightTopToBottom()
   {
     // Arrange: Chain 0-1-2-3-4, root 0.
     (int From, int To)[] edges = [(0, 1), (1, 2), (2, 3), (3, 4)];
@@ -78,45 +81,45 @@ public sealed class LayeredLayoutBuilderTests
     // Act: Place it.
     Vector2[] positions = Builder.Place(Radii(5), edges, Gap, [0]);
 
-    // Assert: X grows along the chain; all on one line.
+    // Assert: Y grows along the chain; all on one line.
     for (int i = 1; i < positions.Length; i++)
     {
-      Assert.True(positions[i].X > positions[i - 1].X, $"Node {i} is not right of node {i - 1}.");
-      Assert.Equal(positions[0].Y, positions[i].Y, Tolerance);
+      Assert.True(positions[i].Y > positions[i - 1].Y, $"Node {i} is not below node {i - 1}.");
+      Assert.Equal(positions[0].X, positions[i].X, Tolerance);
     }
   }
 
   /// <summary>
-  /// Verifies a marked root in the middle of a chain gets the leftmost column and the rest
-  /// follow by distance from it.
+  /// Verifies a marked root in the middle of a chain gets the top row and the rest follow by
+  /// distance from it.
   /// </summary>
   [Fact]
-  public void Place_MarkedRootInMiddle_ColumnsFollowDistance()
+  public void Place_MarkedRootInMiddle_RowsFollowDistance()
   {
     // Arrange: Chain 0-1-2-3-4, root 2.
     (int From, int To)[] edges = [(0, 1), (1, 2), (2, 3), (3, 4)];
 
     // Act: Place it.
-    int[] columns = Columns(Builder.Place(Radii(5), edges, Gap, [2]));
+    int[] rows = Rows(Builder.Place(Radii(5), edges, Gap, [2]));
 
     // Assert: Root first, then 1 and 3, then 0 and 4.
-    Assert.Equal([2, 1, 0, 1, 2], columns);
+    Assert.Equal([2, 1, 0, 1, 2], rows);
   }
 
   /// <summary>
   /// Verifies the marked root is used even when it is not the lowest node index.
   /// </summary>
   [Fact]
-  public void Place_MarkedRoot_IsLeftmost()
+  public void Place_MarkedRoot_IsOnTop()
   {
     // Arrange: A star around node 0 with node 3 marked as root.
     (int From, int To)[] edges = [(0, 1), (0, 2), (0, 3)];
 
     // Act: Place it.
-    int[] columns = Columns(Builder.Place(Radii(4), edges, Gap, [3]));
+    int[] rows = Rows(Builder.Place(Radii(4), edges, Gap, [3]));
 
-    // Assert: 3 alone in the first column, the hub next, the other leaves last.
-    Assert.Equal([1, 2, 2, 0], columns);
+    // Assert: 3 alone in the top row, the hub next, the other leaves last.
+    Assert.Equal([1, 2, 2, 0], rows);
   }
 
   /// <summary>
@@ -130,10 +133,10 @@ public sealed class LayeredLayoutBuilderTests
     (int From, int To)[] edges = [(0, 1), (1, 2), (2, 3), (3, 4)];
 
     // Act: Place it.
-    int[] columns = Columns(Builder.Place(Radii(5), edges, Gap, [3, 1]));
+    int[] rows = Rows(Builder.Place(Radii(5), edges, Gap, [3, 1]));
 
-    // Assert: 1 leftmost; 3 is two steps away like any other node.
-    Assert.Equal([1, 0, 1, 2, 3], columns);
+    // Assert: 1 on top; 3 is two steps away like any other node.
+    Assert.Equal([1, 0, 1, 2, 3], rows);
   }
 
   /// <summary>
@@ -150,19 +153,19 @@ public sealed class LayeredLayoutBuilderTests
     Vector2[] first = Builder.Place(Radii(4), edges, Gap);
     Vector2[] second = Builder.Place(Radii(4), edges, Gap);
 
-    // Assert: Same result; node 3 leftmost, then 1, 0, 2.
+    // Assert: Same result; node 3 on top, then 1, 0, 2.
     Assert.Equal(first, second);
-    Assert.Equal([2, 1, 3, 0], Columns(first));
+    Assert.Equal([2, 1, 3, 0], Rows(first));
   }
 
   /// <summary>
-  /// Verifies the order inside columns removes a crossing the breadth-first order would have.
+  /// Verifies the order inside rows removes a crossing the breadth-first order would have.
   /// </summary>
   [Fact]
   public void Place_CrossingInBreadthFirstOrder_IsRemoved()
   {
     // Arrange: Root 0 joins 1 and 2; 3 joins 1 and 2; 4 hangs off 1, 5 off 2. Breadth-first order
-    // puts 3 above 4 in the last column, which makes 2-3 cross 1-4.
+    // puts 3 left of 4 in the last row, which makes 2-3 cross 1-4.
     (int From, int To)[] edges = [(0, 1), (0, 2), (1, 3), (1, 4), (2, 3), (2, 5)];
 
     // Act: Place it.
@@ -186,7 +189,7 @@ public sealed class LayeredLayoutBuilderTests
   [Fact]
   public void Place_KeepsGapBetweenAllNodes()
   {
-    // Arrange: Mixed radii; a loop with branches and an edge inside a column (1-2).
+    // Arrange: Mixed radii; a loop with branches and an edge inside a row (1-2).
     float[] radii = [30f, 14f, 70f, 22f, 14f, 50f, 22f, 14f];
     (int From, int To)[] edges = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4), (3, 5), (4, 5), (5, 6), (5, 7)];
 
@@ -205,27 +208,27 @@ public sealed class LayeredLayoutBuilderTests
   }
 
   /// <summary>
-  /// Verifies every edge joins nodes in the same or neighbouring columns.
+  /// Verifies every edge joins nodes in the same or neighbouring rows.
   /// </summary>
   [Fact]
-  public void Place_EdgesSkipNoColumn()
+  public void Place_EdgesSkipNoRow()
   {
     // Arrange: A loop with a shortcut and a tail.
     (int From, int To)[] edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (1, 3), (4, 5), (5, 6)];
 
     // Act: Place it.
-    int[] columns = Columns(Builder.Place(Radii(7), edges, Gap, [0]));
+    int[] rows = Rows(Builder.Place(Radii(7), edges, Gap, [0]));
 
-    // Assert: Column difference of every edge is at most one.
-    Assert.All(edges, edge => Assert.True(Math.Abs(columns[edge.From] - columns[edge.To]) <= 1, $"Edge {edge} skips a column."));
+    // Assert: Row difference of every edge is at most one.
+    Assert.All(edges, edge => Assert.True(Math.Abs(rows[edge.From] - rows[edge.To]) <= 1, $"Edge {edge} skips a row."));
   }
 
   /// <summary>
-  /// Verifies separate parts are stacked top to bottom, larger first, without overlapping, and
-  /// their root columns line up.
+  /// Verifies separate parts are placed left to right, larger first, without overlapping, and
+  /// their root rows line up.
   /// </summary>
   [Fact]
-  public void Place_SeparateParts_AreStackedLargestFirst()
+  public void Place_SeparateParts_ArePlacedLargestFirst()
   {
     // Arrange: A pair 0-1 and a chain 2-3-4, roots 0 and 2.
     (int From, int To)[] edges = [(0, 1), (2, 3), (3, 4)];
@@ -233,11 +236,11 @@ public sealed class LayeredLayoutBuilderTests
     // Act: Place it.
     Vector2[] positions = Builder.Place(Radii(5), edges, Gap, [0, 2]);
 
-    // Assert: The chain (larger) is above the pair, with the gap between; roots share X.
-    float chainBottom = new[] { 2, 3, 4 }.Max(i => positions[i].Y) + Radius;
-    float pairTop = new[] { 0, 1 }.Min(i => positions[i].Y) - Radius;
-    Assert.True(pairTop - chainBottom >= Gap - Tolerance);
-    Assert.Equal(positions[2].X, positions[0].X, Tolerance);
+    // Assert: The chain (larger) is left of the pair, with the gap between; roots share Y.
+    float chainRight = new[] { 2, 3, 4 }.Max(i => positions[i].X) + Radius;
+    float pairLeft = new[] { 0, 1 }.Min(i => positions[i].X) - Radius;
+    Assert.True(pairLeft - chainRight >= Gap - Tolerance);
+    Assert.Equal(positions[2].Y, positions[0].Y, Tolerance);
   }
 
   /// <summary>
@@ -264,8 +267,8 @@ public sealed class LayeredLayoutBuilderTests
   }
 
   /// <summary>
-  /// Verifies a main path with a side room at every step stays on one horizontal line: the
-  /// side rooms make way for the path instead of pushing it up or down column by column.
+  /// Verifies a main path with a side room at every step stays on one vertical line: the side
+  /// rooms make way for the path instead of pushing it sideways row by row.
   /// </summary>
   [Fact]
   public void Place_SpineWithLeaves_SpineStaysStraight()
@@ -282,10 +285,92 @@ public sealed class LayeredLayoutBuilderTests
     // Act: Place it from the root.
     Vector2[] positions = Builder.Place(Radii(spineLength * 2 - 1), edges, Gap, [0]);
 
-    // Assert: All spine nodes share the root's height.
+    // Assert: All spine nodes share the root's X.
     for (int i = 1; i < spineLength; i++)
     {
+      Assert.Equal(positions[0].X, positions[i].X, Tolerance);
+    }
+  }
+
+  /// <summary>
+  /// Verifies that in automatic direction a deep part (a chain) is turned into columns: root on
+  /// the left, on one horizontal line.
+  /// </summary>
+  [Fact]
+  public void Place_AutoDeepChain_RunsLeftToRight()
+  {
+    // Arrange: Chain 0-1-2-3-4, root 0.
+    (int From, int To)[] edges = [(0, 1), (1, 2), (2, 3), (3, 4)];
+
+    // Act: Place it with automatic direction.
+    Vector2[] positions = AutoBuilder.Place(Radii(5), edges, Gap, [0]);
+
+    // Assert: X grows along the chain; all on the root's line.
+    for (int i = 1; i < positions.Length; i++)
+    {
+      Assert.True(positions[i].X > positions[i - 1].X, $"Node {i} is not right of node {i - 1}.");
       Assert.Equal(positions[0].Y, positions[i].Y, Tolerance);
     }
+  }
+
+  /// <summary>
+  /// Verifies that in automatic direction a wide part (a star) stays in rows: root on top.
+  /// </summary>
+  [Fact]
+  public void Place_AutoWideStar_RunsTopToBottom()
+  {
+    // Arrange: Root 0 with five leaves.
+    (int From, int To)[] edges = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)];
+
+    // Act: Place it with automatic direction.
+    Vector2[] positions = AutoBuilder.Place(Radii(6), edges, Gap, [0]);
+
+    // Assert: Root in the top row, leaves together in the row below.
+    Assert.Equal([0, 1, 1, 1, 1, 1], Rows(positions));
+  }
+
+  /// <summary>
+  /// Verifies the forced left-to-right direction puts the root in the left column even for a
+  /// wide part.
+  /// </summary>
+  [Fact]
+  public void Place_LeftToRight_RootIsLeftmost()
+  {
+    // Arrange: Root 0 with five leaves; the forced direction.
+    (int From, int To)[] edges = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)];
+    var builder = new LayeredLayoutBuilder(EnLayeredDirection.LeftToRight);
+
+    // Act: Place it.
+    Vector2[] positions = builder.Place(Radii(6), edges, Gap, [0]);
+
+    // Assert: Every leaf is right of the root.
+    for (int i = 1; i < positions.Length; i++) Assert.True(positions[i].X > positions[0].X, $"Leaf {i} is not right of the root.");
+  }
+
+  /// <summary>
+  /// Verifies that in automatic direction a turned part and a part in rows keep their roots on
+  /// one horizontal line.
+  /// </summary>
+  [Fact]
+  public void Place_AutoMixedParts_RootsLineUp()
+  {
+    // Arrange: A chain 0-1-2-3-4-5-6 (turned) and a star 7 with leaves 8..12 (rows), roots 0 and 7.
+    (int From, int To)[] edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (7, 8), (7, 9), (7, 10), (7, 11), (7, 12)];
+
+    // Act: Place it with automatic direction.
+    Vector2[] positions = AutoBuilder.Place(Radii(13), edges, Gap, [0, 7]);
+
+    // Assert: Both roots at the same height.
+    Assert.Equal(positions[0].Y, positions[7].Y, Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies an unknown direction is rejected.
+  /// </summary>
+  [Fact]
+  public void Constructor_UnknownDirection_Throws()
+  {
+    // Act + Assert: A value outside the enum.
+    Assert.Throws<ArgumentOutOfRangeException>(() => new LayeredLayoutBuilder((EnLayeredDirection)99));
   }
 }

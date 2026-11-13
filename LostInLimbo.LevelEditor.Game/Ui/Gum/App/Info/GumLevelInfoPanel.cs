@@ -47,14 +47,11 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
   /// <summary>Height of the lower area holding the graph panel, in percent of the window.</summary>
   private const float GraphAreaHeightPercent = 55f;
 
-  /// <summary>Width of the graph panel, in percent of the window.</summary>
-  private const float GraphAreaWidthPercent = 80f;
-
   /// <summary>Whole window, in percent.</summary>
   private const float FullPercent = 100f;
 
-  /// <summary>Free space below the graph panel, in pixels.</summary>
-  private const float GraphBottomMargin = 12f;
+  /// <summary>Free space left, right and below the graph panel, in pixels.</summary>
+  private const float GraphMargin = 12f;
 
   /// <summary>Card title.</summary>
   private const string Title = "Level information";
@@ -162,20 +159,22 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
     upperArea.AddChild(card);
     root.AddChild(upperArea);
 
-    // Lower area: the graph panel, bottom center.
+    // Lower area: the graph panel across the window's width, with the same margin left, right
+    // and below.
     var lowerArea = new ContainerRuntime
     {
       HasEvents = false,
-      Width = GraphAreaWidthPercent,
-      WidthUnits = DimensionUnitType.PercentageOfParent,
+      Width = 0,
+      WidthUnits = DimensionUnitType.RelativeToParent,
       Height = GraphAreaHeightPercent,
       HeightUnits = DimensionUnitType.PercentageOfParent,
     };
     lowerArea.Anchor(Anchor.Bottom);
     ContainerRuntime graphPanel = _graphVisualizer.Build();
-    graphPanel.Width = 0;
+    graphPanel.X = GraphMargin;
+    graphPanel.Width = -2 * GraphMargin;
     graphPanel.WidthUnits = DimensionUnitType.RelativeToParent;
-    graphPanel.Height = -GraphBottomMargin;
+    graphPanel.Height = -GraphMargin;
     graphPanel.HeightUnits = DimensionUnitType.RelativeToParent;
     lowerArea.AddChild(graphPanel);
     root.AddChild(lowerArea);
