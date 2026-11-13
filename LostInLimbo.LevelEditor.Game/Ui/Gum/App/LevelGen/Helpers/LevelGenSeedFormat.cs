@@ -1,4 +1,4 @@
-namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Helpers;
 
 /// <summary>
 /// Display format of text seeds, shared by the status log and the level information card.

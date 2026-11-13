@@ -4,7 +4,7 @@ using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using SkiaSharp;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Theme;
 
 /// <summary>
 /// Headless tests for <see cref="EditorPalette"/> and the pure parts of <see cref="EditorTheme"/>.

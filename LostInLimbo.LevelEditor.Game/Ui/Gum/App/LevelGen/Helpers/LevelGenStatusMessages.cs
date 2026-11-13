@@ -1,7 +1,7 @@
 using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 using LostInLimbo.LevelGen.Data.Status;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
+namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Helpers;
 
 /// <summary>
 /// Status log texts for level generation actions and outcomes. Inputs are plain values so the

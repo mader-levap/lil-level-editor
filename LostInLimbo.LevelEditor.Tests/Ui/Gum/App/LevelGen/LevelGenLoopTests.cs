@@ -1,7 +1,8 @@
 using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
+using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Data;
 using LostInLimbo.LevelGen.Data.Status;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.App.LevelGen;
 
 /// <summary>
 /// Headless tests for <see cref="LevelGenLoop"/> (loop state and seed progression).

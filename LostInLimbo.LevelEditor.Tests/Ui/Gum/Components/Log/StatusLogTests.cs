@@ -1,6 +1,6 @@
 using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.Log;
 
 /// <summary>
 /// Headless tests for the reusable <see cref="StatusLog"/> model.

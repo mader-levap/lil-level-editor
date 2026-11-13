@@ -1,6 +1,6 @@
 using LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.App.Editor;
 
 /// <summary>
 /// Headless tests for <see cref="OverlaySwitcher"/> (toolbar overlay switching rules).

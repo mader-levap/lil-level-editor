@@ -1,8 +1,8 @@
+using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Helpers;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
-using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 using LostInLimbo.LevelGen.Data.Status;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.App.LevelGen.Helpers;
 
 /// <summary>
 /// Headless tests for <see cref="LevelGenStatusMessages"/> (level generation log texts).

@@ -1,6 +1,6 @@
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Common;
 
 /// <summary>
 /// Headless tests for <see cref="ComboBoxRepickDetector"/> (picking the already selected item).

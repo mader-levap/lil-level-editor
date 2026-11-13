@@ -1,6 +1,6 @@
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Common;
 
 /// <summary>
 /// Headless tests for <see cref="GumFocus"/> pure decision functions (camera right-look gate).

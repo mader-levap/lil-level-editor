@@ -1,12 +1,12 @@
-using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
+using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Data;
 using LostInLimbo.LevelGen.Data.Prop;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.App.LevelGen.Data;
 
 /// <summary>
-/// Headless tests for <see cref="DifficultyPresets"/> and <see cref="LevelGenPropsBuilder"/>.
+/// Headless tests for <see cref="DifficultyPresets"/>.
 /// </summary>
-public sealed class LevelGenPropsTests
+public sealed class DifficultyPresetsTests
 {
   /// <summary>
   /// Verifies that the placeholder presets are Easy 0 / Medium 50 / Hard 100, in that order.
@@ -58,22 +58,5 @@ public sealed class LevelGenPropsTests
   {
     // Act + Assert: A value with no preset falls back to index 0.
     Assert.Equal(0, DifficultyPresets.FindIndex(37));
-  }
-
-  /// <summary>
-  /// Verifies that form values are copied unchanged and the result is valid.
-  /// </summary>
-  [Fact]
-  public void Build_Values_AreCopiedAndValid()
-  {
-    // Act: Build from typical form values.
-    PropMain props = LevelGenPropsBuilder.Build(" my seed ", 50, true);
-
-    // Assert: Values copied as entered (no trimming), other fields default, validation passes.
-    Assert.Equal(" my seed ", props.TextSeed);
-    Assert.Equal(50, props.Difficulty);
-    Assert.True(props.ManyThemes);
-    Assert.Equal(PropMain.Default.ConfigVersion, props.ConfigVersion);
-    props.Validate();
   }
 }

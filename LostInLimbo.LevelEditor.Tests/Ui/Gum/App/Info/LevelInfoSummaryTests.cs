@@ -6,7 +6,7 @@ using LostInLimbo.LevelGen.Data.Prop;
 using LostInLimbo.LevelGen.Data.Result.Stats;
 using LostInLimbo.LevelGen.Data.Status;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.App.Info;
 
 /// <summary>
 /// Headless tests for <see cref="LevelInfoSummary"/> (rows of the level information card).

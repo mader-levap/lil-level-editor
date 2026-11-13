@@ -1,6 +1,6 @@
-using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
+using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Helpers;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.App.LevelGen.Helpers;
 
 /// <summary>
 /// Headless tests for <see cref="LevelGenLoopSeed"/> (loop seed fallback and increment).

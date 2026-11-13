@@ -1,4 +1,6 @@
 using System;
+using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Data;
+using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Helpers;
 using LostInLimbo.LevelGen.Data.Status;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
