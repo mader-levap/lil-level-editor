@@ -187,6 +187,7 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
   public void SetVisible(bool visible)
   {
     if (_root == null) return;
+    if (!visible) _graphVisualizer.CloseLayoutPicker(); // an invisible open list must not keep the keyboard
     _root.Visible = visible;
     if (visible) Refresh();
   }

@@ -1,13 +1,17 @@
-using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 using Stride.Core.Mathematics;
 
-namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer.Layouts;
 
 /// <summary>
-/// Headless tests for <see cref="GraphVisLayout"/> (stress layout of the starting positions).
+/// Headless tests for <see cref="StressLayoutBuilder"/> (stress layout of the starting positions).
+/// Input validation shared by all builders is tested in <see cref="GraphLayoutBuilderPickerTests"/>.
 /// </summary>
-public sealed class GraphVisLayoutTests
+public sealed class StressLayoutBuilderTests
 {
+  /// <summary>Builder under test.</summary>
+  private static readonly StressLayoutBuilder Builder = new();
+
   /// <summary>Node radius used by most tests.</summary>
   private const float Radius = 20f;
 
@@ -58,7 +62,7 @@ public sealed class GraphVisLayoutTests
   public void Place_WithoutNodes_IsEmpty()
   {
     // Act + Assert: Nothing to place.
-    Assert.Empty(GraphVisLayout.Place([], [], LinkGap));
+    Assert.Empty(Builder.Place([], [], LinkGap));
   }
 
   /// <summary>
@@ -68,7 +72,7 @@ public sealed class GraphVisLayoutTests
   public void Place_SingleNode_IsPlaced()
   {
     // Act: Place one node.
-    Vector2 position = Assert.Single(GraphVisLayout.Place([Radius], [], LinkGap));
+    Vector2 position = Assert.Single(Builder.Place([Radius], [], LinkGap));
 
     // Assert: Finite coordinates.
     Assert.True(float.IsFinite(position.X) && float.IsFinite(position.Y));
@@ -84,7 +88,7 @@ public sealed class GraphVisLayoutTests
     (int, int)[] edges = [.. Chain(6, closed: true), (0, 6), (6, 7)];
 
     // Act + Assert: Two runs agree exactly.
-    Assert.Equal(GraphVisLayout.Place(Radii(8), edges, LinkGap), GraphVisLayout.Place(Radii(8), edges, LinkGap));
+    Assert.Equal(Builder.Place(Radii(8), edges, LinkGap), Builder.Place(Radii(8), edges, LinkGap));
   }
 
   /// <summary>
@@ -98,7 +102,7 @@ public sealed class GraphVisLayoutTests
     const int count = 6;
 
     // Act: Place it.
-    Vector2[] positions = GraphVisLayout.Place(Radii(count), Chain(count), LinkGap);
+    Vector2[] positions = Builder.Place(Radii(count), Chain(count), LinkGap);
 
     // Assert: Neighbours are about the ideal distance apart.
     for (int i = 1; i < count; i++)
@@ -123,7 +127,7 @@ public sealed class GraphVisLayoutTests
     (int From, int To)[] edges = Chain(count, closed: true);
 
     // Act: Place it.
-    Vector2[] positions = GraphVisLayout.Place(Radii(count), edges, LinkGap);
+    Vector2[] positions = Builder.Place(Radii(count), edges, LinkGap);
 
     // Assert: No pair of edges crosses.
     for (int i = 0; i < edges.Length; i++)
@@ -148,7 +152,7 @@ public sealed class GraphVisLayoutTests
     (int, int)[] edges = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)];
 
     // Act: Place it.
-    Vector2[] positions = GraphVisLayout.Place(Radii(6), edges, LinkGap);
+    Vector2[] positions = Builder.Place(Radii(6), edges, LinkGap);
 
     // Assert: No two nodes overlap.
     for (int i = 0; i < positions.Length; i++)
@@ -170,7 +174,7 @@ public sealed class GraphVisLayoutTests
     float[] radii = [Radius, Radius, 3 * Radius];
 
     // Act: Place it.
-    Vector2[] positions = GraphVisLayout.Place(radii, Chain(3), LinkGap);
+    Vector2[] positions = Builder.Place(radii, Chain(3), LinkGap);
 
     // Assert: Each link is about both radii plus the gap long.
     Assert.Equal(IdealLink, Vector2.Distance(positions[0], positions[1]), IdealLink * 0.05f);
@@ -188,7 +192,7 @@ public sealed class GraphVisLayoutTests
     (int, int)[] edges = [(0, 1), (2, 3), (3, 4)];
 
     // Act: Place it.
-    Vector2[] positions = GraphVisLayout.Place(Radii(6), edges, LinkGap);
+    Vector2[] positions = Builder.Place(Radii(6), edges, LinkGap);
 
     // Assert: Left to right: the chain of three, the pair, the lone node, with free space between them.
     float chainRight = new[] { 2, 3, 4 }.Max(i => positions[i].X) + Radius;
@@ -197,18 +201,5 @@ public sealed class GraphVisLayoutTests
     float loneLeft = positions[5].X - Radius;
     Assert.True(pairLeft - chainRight >= LinkGap - 0.01f);
     Assert.True(loneLeft - pairRight >= LinkGap - 0.01f);
-  }
-
-  /// <summary>
-  /// Verifies invalid arguments are rejected.
-  /// </summary>
-  [Fact]
-  public void Place_WithInvalidArguments_Throws()
-  {
-    // Act + Assert: Edge to a missing node, and a non-positive gap.
-    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisLayout.Place(Radii(2), [(0, 2)], LinkGap));
-    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisLayout.Place(Radii(2), [(-1, 0)], LinkGap));
-    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisLayout.Place(Radii(2), [], 0f));
-    Assert.Throws<ArgumentNullException>(() => GraphVisLayout.Place(null!, [], LinkGap));
   }
 }

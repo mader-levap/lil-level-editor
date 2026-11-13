@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
 using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using Stride.Input;
 
@@ -37,6 +39,15 @@ public sealed class GumGraphVisualizer : IDisposable
   /// <summary>Data panel title while an edge is selected.</summary>
   private const string EdgeTitle = "Edge";
 
+  /// <summary>Caption of the layout picker.</summary>
+  private const string LayoutPickerCaption = "Layout:";
+
+  /// <summary>Height of the layout picker row below the data panel, in pixels.</summary>
+  private const float LayoutPickerRowHeight = 32f;
+
+  /// <summary>Width of the layout picker caption, in pixels.</summary>
+  private const float LayoutPickerCaptionWidth = 64f;
+
   /// <summary>Drawing area.</summary>
   private readonly GumGraphViewport _viewport;
 
@@ -55,6 +66,12 @@ public sealed class GumGraphVisualizer : IDisposable
   /// <summary>Data panel container; null until built.</summary>
   private ContainerRuntime? _dataPanelContainer;
 
+  /// <summary>Layout picker row container; null until built, or when <see cref="ShowLayoutPicker"/> is off.</summary>
+  private ContainerRuntime? _layoutPickerRow;
+
+  /// <summary>Layout picker; null until built, or when <see cref="ShowLayoutPicker"/> is off.</summary>
+  private ComboBox? _layoutPicker;
+
   /// <summary>Data panel width currently applied, in pixels.</summary>
   private float _appliedDataPanelWidth = DataPanelMinWidth;
 
@@ -71,6 +88,18 @@ public sealed class GumGraphVisualizer : IDisposable
 
   /// <summary>Root container; null until <see cref="Build"/> is called.</summary>
   public ContainerRuntime? Root { get; private set; }
+
+  /// <summary>
+  /// Layout algorithm used at first (the first <see cref="EnGraphLayoutBuilder"/> value unless
+  /// changed). Read by <see cref="Build"/>; setting it afterwards has no effect.
+  /// </summary>
+  public EnGraphLayoutBuilder DefaultLayoutBuilder { get; set; }
+
+  /// <summary>
+  /// Whether a layout picker is shown below the data panel. Read by <see cref="Build"/>; setting
+  /// it afterwards has no effect.
+  /// </summary>
+  public bool ShowLayoutPicker { get; set; } = true;
 
   /// <summary>
   /// Builds the visuals, showing "no graph".
@@ -104,6 +133,16 @@ public sealed class GumGraphVisualizer : IDisposable
     dataPanel.HeightUnits = DimensionUnitType.RelativeToParent;
     root.AddChild(dataPanel);
     _dataPanelContainer = dataPanel;
+
+    _viewport.SetLayoutBuilder(DefaultLayoutBuilder);
+    if (ShowLayoutPicker)
+    {
+      // Picker row at the bottom of the right column; the data panel gives up the room.
+      ContainerRuntime pickerRow = CreateLayoutPickerRow();
+      root.AddChild(pickerRow);
+      _layoutPickerRow = pickerRow;
+      dataPanel.Height -= LayoutPickerRowHeight + Padding;
+    }
 
     ApplyDataPanelWidth(DataPanelMinWidth);
     Root = root;
@@ -144,7 +183,85 @@ public sealed class GumGraphVisualizer : IDisposable
   {
     _appliedDataPanelWidth = width;
     if (_dataPanelContainer != null) _dataPanelContainer.Width = width;
+    if (_layoutPickerRow != null) _layoutPickerRow.Width = width;
     if (_viewportContainer != null) _viewportContainer.Width = -(width + 3 * Padding);
+  }
+
+  /// <summary>
+  /// Creates the layout picker row: a caption and a combo box listing every
+  /// <see cref="EnGraphLayoutBuilder"/>, with <see cref="DefaultLayoutBuilder"/> selected.
+  /// </summary>
+  /// <returns>Row container, anchored to the bottom right; its width follows the data panel's.</returns>
+  private ContainerRuntime CreateLayoutPickerRow()
+  {
+    var row = new ContainerRuntime
+    {
+      WidthUnits = DimensionUnitType.Absolute,
+      Height = LayoutPickerRowHeight,
+      HeightUnits = DimensionUnitType.Absolute,
+    };
+    row.Anchor(Anchor.BottomRight); // resets X and Y, so the offsets come after
+    row.X = -Padding;
+    row.Y = -Padding;
+
+    Label caption = GumUiFactory.CreateLabel(LayoutPickerCaption, EditorTheme.Palette.TextPrimary);
+    caption.Width = LayoutPickerCaptionWidth;
+    caption.WidthUnits = DimensionUnitType.Absolute;
+    caption.Anchor(Anchor.CenterVertically);
+    row.AddChild(caption);
+
+    ComboBox picker = GumUiFactory.CreateComboBox(0);
+    var items = picker.Items ?? throw new InvalidOperationException("Gum ComboBox has no item list.");
+    foreach (EnGraphLayoutBuilder builder in GraphLayoutBuilderPicker.All) items.Add(GraphLayoutBuilderPicker.DisplayName(builder));
+    picker.SelectedIndex = IndexOf(DefaultLayoutBuilder);
+    picker.Anchor(Anchor.CenterVertically);
+    picker.X = LayoutPickerCaptionWidth;
+    picker.Width = -LayoutPickerCaptionWidth;
+    picker.WidthUnits = DimensionUnitType.RelativeToParent;
+    picker.SelectionChanged += (_, _) => OnLayoutPicked(picker.SelectedIndex);
+    row.AddChild(picker);
+    _layoutPicker = picker;
+
+    return row;
+  }
+
+  /// <summary>
+  /// Finds the position of a layout in <see cref="GraphLayoutBuilderPicker.All"/>.
+  /// </summary>
+  /// <param name="builder">Layout.</param>
+  /// <returns>Index; 0 (the default layout) for an unknown value.</returns>
+  private static int IndexOf(EnGraphLayoutBuilder builder)
+  {
+    IReadOnlyList<EnGraphLayoutBuilder> all = GraphLayoutBuilderPicker.All;
+    for (int i = 0; i < all.Count; i++)
+    {
+      if (all[i] == builder) return i;
+    }
+
+    return 0;
+  }
+
+  /// <summary>
+  /// Lays the graph out again with the picked layout; this resets the view and the selection.
+  /// </summary>
+  /// <param name="index">Picked index in <see cref="GraphLayoutBuilderPicker.All"/>; ignored when out of range.</param>
+  private void OnLayoutPicked(int index)
+  {
+    IReadOnlyList<EnGraphLayoutBuilder> all = GraphLayoutBuilderPicker.All;
+    if (index < 0 || index >= all.Count) return;
+
+    _viewport.SetLayoutBuilder(all[index]);
+    _shownSelection = GraphVisHit.None;
+    _dataPanel.Clear();
+  }
+
+  /// <summary>
+  /// Closes the layout picker's dropdown list if it is open (call when the visualizer is hidden,
+  /// so an invisible list does not keep the keyboard).
+  /// </summary>
+  public void CloseLayoutPicker()
+  {
+    if (_layoutPicker != null) _layoutPicker.IsDropDownOpen = false;
   }
 
   /// <summary>
@@ -181,6 +298,7 @@ public sealed class GumGraphVisualizer : IDisposable
   /// </summary>
   public void Dispose()
   {
+    CloseLayoutPicker();
     _viewport.Dispose();
     _data = null;
     _shownSelection = GraphVisHit.None;

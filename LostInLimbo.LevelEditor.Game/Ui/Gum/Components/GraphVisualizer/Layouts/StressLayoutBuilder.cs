@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Stride.Core.Mathematics;
 
-namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 
 /// <summary>
 /// Starting placement of graph nodes by stress layout: positions are chosen so that the distance
@@ -14,7 +14,7 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 /// Deterministic (no randomness): the same graph always gives the same positions. The live
 /// <see cref="GraphVisSimulation"/> takes over from these positions.
 /// </remarks>
-public static class GraphVisLayout
+public sealed class StressLayoutBuilder : GraphLayoutBuilder
 {
   #region Constants
 
@@ -37,27 +37,20 @@ public static class GraphVisLayout
   #endregion
 
   /// <summary>
-  /// Places the nodes of a graph.
+  /// Places the nodes of a graph. <paramref name="linkGap"/> is also the space between separate
+  /// parts of the graph, which are placed side by side, largest first.
   /// </summary>
-  /// <param name="radii">Node radii, in node order.</param>
-  /// <param name="edges">Edges as pairs of node indices (direction does not matter).</param>
-  /// <param name="linkGap">Free space aimed for between the borders of two connected nodes; also the space between separate parts of the graph.</param>
-  /// <returns>Node centers, in node order. Separate parts of the graph are placed side by side, largest first.</returns>
-  /// <exception cref="ArgumentNullException"><paramref name="radii"/> or <paramref name="edges"/> is null.</exception>
-  /// <exception cref="ArgumentOutOfRangeException">An edge refers to a node index that does not exist, or <paramref name="linkGap"/> is not positive.</exception>
-  public static Vector2[] Place(IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap)
+  /// <param name="radii">Node radii, in node order (validated).</param>
+  /// <param name="edges">Edges as pairs of node indices (validated).</param>
+  /// <param name="linkGap">Free space aimed for between connected nodes (validated).</param>
+  /// <returns>Node centers, in node order.</returns>
+  protected override Vector2[] PlaceCore(IReadOnlyList<float> radii, IReadOnlyList<(int From, int To)> edges, float linkGap)
   {
-    ArgumentNullException.ThrowIfNull(radii);
-    ArgumentNullException.ThrowIfNull(edges);
-    if (!(linkGap > 0)) throw new ArgumentOutOfRangeException(nameof(linkGap), linkGap, "Link gap must be positive.");
-
     int count = radii.Count;
     var neighbours = new List<int>[count];
     for (int i = 0; i < count; i++) neighbours[i] = [];
     foreach ((int from, int to) in edges)
     {
-      if (from < 0 || from >= count) throw new ArgumentOutOfRangeException(nameof(edges), from, "Edge refers to a missing node.");
-      if (to < 0 || to >= count) throw new ArgumentOutOfRangeException(nameof(edges), to, "Edge refers to a missing node.");
       if (from == to) continue; // a self-loop does not affect placement
       neighbours[from].Add(to);
       neighbours[to].Add(from);

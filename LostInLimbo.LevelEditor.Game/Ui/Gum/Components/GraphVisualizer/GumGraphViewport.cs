@@ -7,6 +7,7 @@ using Gum.Forms.Controls;
 using Gum.GueDeriving;
 using Gum.Wireframe;
 using LostInLimbo.LevelEditor.Ui.Gum.Common;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 using LostInLimbo.LevelEditor.Ui.Gum.Theme;
 using RenderingLibrary.Graphics;
 using SkiaSharp;
@@ -233,18 +234,45 @@ public sealed class GumGraphViewport : IDisposable
     }
 
     _renderer.SetGraph(data);
+    RebuildLayout(_renderer);
+  }
+
+  /// <summary>Layout algorithm placing the nodes of each new graph.</summary>
+  public EnGraphLayoutBuilder LayoutBuilder { get; private set; }
+
+  /// <summary>
+  /// Changes the layout algorithm. A shown graph is laid out again, which clears the selection
+  /// and fits the view anew.
+  /// </summary>
+  /// <param name="builder">Layout algorithm.</param>
+  public void SetLayoutBuilder(EnGraphLayoutBuilder builder)
+  {
+    if (builder == LayoutBuilder) return;
+    LayoutBuilder = builder;
+    if (_simulation != null && _renderer != null) RebuildLayout(_renderer);
+  }
+
+  /// <summary>
+  /// Lays out the renderer's current graph from scratch: starting positions by
+  /// <see cref="LayoutBuilder"/>, fresh physics, no selection, view fitted on the next update.
+  /// </summary>
+  /// <param name="renderer">Renderer holding the graph.</param>
+  private void RebuildLayout(GraphVisRenderer renderer)
+  {
+    HideScrollBars();
+    _bounds = null;
 
     // Edges as node index pairs, which is what layout and physics work with.
-    (int From, int To)[] edges = _renderer.EdgeShapes.Select(shape => (shape.From, shape.To)).ToArray();
+    (int From, int To)[] edges = renderer.EdgeShapes.Select(shape => (shape.From, shape.To)).ToArray();
 
     // Starting layout, then let the physics settle before the graph is first shown, so the
     // view is fitted to the final arrangement and nothing jumps on screen.
-    Vector2[] positions = GraphVisLayout.Place(_renderer.Radii, edges, _style.NodeGap * _style.LinkIdealGapFactor);
-    _simulation = new GraphVisSimulation(positions, _renderer.Radii, edges, _style);
+    Vector2[] positions = GraphVisLayout.Place(LayoutBuilder, renderer.Radii, edges, _style.NodeGap * _style.LinkIdealGapFactor);
+    _simulation = new GraphVisSimulation(positions, renderer.Radii, edges, _style);
     _simulation.Settle(_style.SimulationSettleSteps);
-    _interaction.SetGraph(_simulation, _renderer.Radii, _renderer.EdgeShapes);
-    _highlightFade.Reset(_renderer.Radii.Count, _renderer.EdgeShapes.Count);
-    _fittedSize = null; // new graph: fit it on the next update
+    _interaction.SetGraph(_simulation, renderer.Radii, renderer.EdgeShapes);
+    _highlightFade.Reset(renderer.Radii.Count, renderer.EdgeShapes.Count);
+    _fittedSize = null; // new layout: fit it on the next update
   }
 
   /// <summary>Selected node or edge (indices into the graph last passed to <see cref="SetGraph"/>), or <see cref="GraphVisHit.None"/>.</summary>

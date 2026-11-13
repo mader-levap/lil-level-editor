@@ -217,15 +217,17 @@ public static class GumUiFactory
   {
     if (sender is not ComboBox { ListBox: { } listBox }) return;
     listBox.DoListItemsHaveFocus = false;
-    FitDropDownHeight(listBox);
+    FitDropDownHeight(listBox, ((ComboBox)sender).Visual.AbsoluteTop);
   }
 
   /// <summary>
   /// Sets the dropdown list height to its rows' height plus the list's own chrome, capped at
-  /// <see cref="DropDownSizing.DefaultMaxVisibleRows"/> rows.
+  /// <see cref="DropDownSizing.DefaultMaxVisibleRows"/> rows. A list Gum opened above the combo
+  /// box is moved so it ends exactly at the combo box's top edge.
   /// </summary>
-  /// <param name="listBox">Dropdown list box (visible, laid out).</param>
-  private static void FitDropDownHeight(ListBox listBox)
+  /// <param name="listBox">Dropdown list box (visible, laid out; a popup placed in pixels from the top).</param>
+  /// <param name="comboBoxTop">Top of the combo box, in window pixels.</param>
+  private static void FitDropDownHeight(ListBox listBox, float comboBoxTop)
   {
     if (listBox.ListBoxItems.Count == 0) return; // nothing to measure; keep Gum's default
 
@@ -234,8 +236,13 @@ public static class GumUiFactory
     float contentHeight = listBox.InnerPanel.AbsoluteHeight;
     float rowHeight = listBox.ListBoxItems[0].Visual.AbsoluteHeight;
 
+    float listTop = list.AbsoluteTop;
+    float newHeight = DropDownSizing.Compute(contentHeight, chromeHeight, rowHeight);
+    float newTop = DropDownSizing.ListTopAfterResize(listTop, newHeight, comboBoxTop);
+
     list.HeightUnits = DimensionUnitType.Absolute;
-    list.Height = DropDownSizing.Compute(contentHeight, chromeHeight, rowHeight);
+    list.Height = newHeight;
+    list.Y += newTop - listTop; // the popup's Y counts pixels from the top
   }
 
   /// <summary>

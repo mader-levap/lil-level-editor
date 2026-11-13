@@ -1,4 +1,5 @@
 using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
+using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Layouts;
 using Stride.Core.Mathematics;
 
 namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer;
@@ -237,7 +238,7 @@ public sealed class GraphVisSimulationTests
       }
     }
 
-    Vector2[] start = GraphVisLayout.Place(radii, edges, Style.NodeGap * Style.LinkIdealGapFactor);
+    Vector2[] start = GraphVisLayout.Place(EnGraphLayoutBuilder.Stress, radii, edges, Style.NodeGap * Style.LinkIdealGapFactor);
     var simulation = new GraphVisSimulation(start, radii, edges, Style);
 
     // Act: Settle with the budget used before a graph is first shown.

@@ -34,4 +34,21 @@ public static class DropDownSizing
     float maxContentHeight = rowHeight * maxVisibleRows;
     return Math.Min(contentHeight, maxContentHeight) + chromeHeight;
   }
+
+  /// <summary>
+  /// Computes where the top of an open list belongs after its height changed: a list opened
+  /// above its combo box must end exactly at the combo box's top edge, a list opened below stays.
+  /// Gum places a list that does not fit below the combo box above it, using the height the list
+  /// had then; resizing it afterwards would otherwise leave a gap or an overlap.
+  /// </summary>
+  /// <param name="listTop">Top of the list before the resize, in pixels.</param>
+  /// <param name="newHeight">List height after the resize, in pixels.</param>
+  /// <param name="comboBoxTop">Top of the combo box, in pixels.</param>
+  /// <returns>New top of the list, in pixels.</returns>
+  public static float ListTopAfterResize(float listTop, float newHeight, float comboBoxTop)
+  {
+    // A list below the combo box starts at or under its top; one above starts over it.
+    bool isAbove = listTop < comboBoxTop;
+    return isAbove ? comboBoxTop - newHeight : listTop;
+  }
 }

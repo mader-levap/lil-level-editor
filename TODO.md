@@ -1,6 +1,14 @@
 # TODO
 
 ## Current
+`GraphVisLayout`: allow for existence of multiple layout algorithms.
+  - Move `GraphVisLayout` to subfolder `Layouts`. Adjust namespace.
+  - Create there common abstract class or interface for layout builders like `GraphLayoutBuilder`
+  - Move current stress algo from `GraphVisLayout` to dedicated class implementing `GraphLayoutBuilder` named `StressLayoutBuilder`.
+  - Get ring algo from commit history and put it in another class implementing `GraphLayoutBuilder` named `RingLayoutBuilder`.
+  - Add enum `EnGraphLayoutBuilder` listing known layout builders (for now two, Stress first) and picker class.
+  - In graph visualizer add combobox in good place (under data panel) with known layout builders (backed by enum, so it will automatically get new entries when we add new builders). Changing value there resets view and rebuilds layout. Also two fields: default builder to use (first enum) and bool if combobox should be shown (default true).
+Plan for it.
 
 ## Later
 
