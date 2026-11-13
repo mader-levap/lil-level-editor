@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <!-- Stride graphics API, set here so every project (Game, Windows launcher, Tests) uses the same one.
+         Direct3D 12: Gum draws with Skia, and Skia has a native D3D12 backend. On Direct3D 11 Skia has to go
+         through ANGLE (OpenGL ES to D3D11), which crashes. -->
+    <StrideGraphicsApi>Direct3D12</StrideGraphicsApi>
+  </PropertyGroup>
+</Project>

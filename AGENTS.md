@@ -10,7 +10,9 @@ It does not generate levels itself. Generation logic lives in the engine-neutral
 - Turn generated level **data** into Stride entities, components and scenes.
 - Let the user inspect, edit and preview the result in 3D.
 
-The solution targets **.NET 10** (`net10.0-windows7.0` for Game/Tests — required by Gum.Stride's GPU Skia path; launcher `net10.0-windows7.0`).
+The solution targets **.NET 10** (`net10.0-windows7.0` for Game/Tests — required by Gum.Stride's Direct3D Skia backends; launcher `net10.0-windows7.0`).
+
+Stride runs on **Direct3D 12** (`StrideGraphicsApi` in the root `Directory.Build.props`, shared by all projects). Not Direct3D 11: there Gum's Skia drawing goes through ANGLE (OpenGL ES to D3D11), which crashes. Direct3D 12 needs a Gum.Stride preview (the stable one supports only D3D11).
 
 ## Repository layout
 
@@ -19,6 +21,7 @@ lil-level-editor/
 ├ LostInLimbo.LevelEditor.slnx           - Solution (all projects; Windows is startup project).
 ├ AGENTS.md                              - This file.
 ├ README.md, TODO.md                     - Project notes and current tasks.
+├ Directory.Build.props                  - Settings shared by all projects (Stride graphics API).
 ├ Bin/                                   - Build output (gitignored).
 ├ LostInLimbo.LevelEditor.Game/          - Stride game package: all engine code, scripts and assets.
 │  ├ LostInLimbo.LevelEditor.Game.sdpkg  - Stride package manifest (asset/resource folders).
@@ -52,6 +55,8 @@ dotnet build LostInLimbo.LevelEditor.slnx
 ```
 
 Building the Game project also runs the **Stride asset compiler**; asset errors surface here, not only at runtime.
+
+After changing the graphics API (`StrideGraphicsApi`) or the Stride version, build from scratch: delete the `obj/` folders of all three projects and `Bin/Windows/<Configuration>/` first, so output of the old API is not mixed in.
 
 Start application:
 
@@ -225,7 +230,7 @@ $p.WaitForExit()
 Stop and ask before implementing changes that involve:
 
 - A new NuGet package (for this repo or LevelGen).
-- A target-framework or Stride-version change.
+- A target-framework, Stride-version or graphics-API change.
 - A `LostInLimbo.LevelGen` API or version change, or any change to how it is consumed.
 - Non-trivial hand-edits of serialized `.sd*` assets, asset GUID changes, or `.sdpkg` structure changes.
 - A breaking public-API change in editor code.

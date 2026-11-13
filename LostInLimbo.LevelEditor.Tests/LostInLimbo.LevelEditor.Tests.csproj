@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Must match Game project TFM (ProjectReference); Gum.Stride GPU path needs windows7.0. -->
+    <!-- Must match Game project TFM (ProjectReference); Gum.Stride's Direct3D backends need windows7.0. -->
     <TargetFramework>net10.0-windows7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

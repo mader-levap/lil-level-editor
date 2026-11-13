@@ -5,15 +5,23 @@ This is a level generator front-end, editor and viewer for a future game codenam
 ## Stack
 
 - **Language**: C#
-- **Game engine**: Stride 4.4.2
+- **Game engine**: Stride 4.4.2, Direct3D 12
 - **Other**:
-  - **UI library**: Gum
+  - **UI library**: Gum 2026.11.13.2-preview.7 (Gum.Stride preview, drawn with Skia on the GPU)
 
 ### How to update engine
 
 First download new version in Stride Launcher.
 
 In `LostInLimbo.LevelEditor.Game.csproj` updat all `<PackageReference>` that have `Include="'Stride.*"` to new version. Then rebuild from scratch, run tests, run application.
+
+"From scratch" means: delete the `obj/` folders of all three projects and `Bin/Windows/<Configuration>/`, then build. Do the same after changing the graphics API.
+
+### Graphics API
+
+Stride runs on **Direct3D 12**, set by `StrideGraphicsApi` in the root `Directory.Build.props` (shared by all projects). Direct3D 11 is not used: there Gum's Skia drawing has to go through ANGLE (OpenGL ES translated to D3D11), which crashes.
+
+Direct3D 12 needs a **Gum.Stride preview**, because the newest stable Gum.Stride (2026.11.2.1) supports only Direct3D 11. When updating Gum.Stride, move to a stable release once one supports Direct3D 12, and check that the editor still runs on Direct3D 12.
 
 ## Commands
 
