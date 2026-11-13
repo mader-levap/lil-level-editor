@@ -29,7 +29,9 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 /// Refreshes when shown, and while visible when the generation result changes. It does not
 /// poll the world every frame, because <see cref="ILevelGenService.World"/> returns a deep
 /// copy. Runs cannot start while this card is open (overlays are exclusive), so a result
-/// change is the only way the shown data can go stale.
+/// change is the only way the shown data can go stale. While the shown run is unchanged (see
+/// <see cref="LevelGraphSource"/>), the graph is not rebuilt on show: its physics resumes where
+/// it paused, and selection, zoom, pan and dragged nodes stay.
 /// </remarks>
 public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
 {
@@ -90,6 +92,9 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
 
   /// <summary>Generation result at the last refresh; null forces a refresh.</summary>
   private EnGenResult? _shownResult;
+
+  /// <summary>Source of the graph currently in the visualizer; null before the first refresh.</summary>
+  private LevelGraphSource? _shownGraphSource;
 
   /// <summary>
   /// Creates the panel. Call <see cref="Build"/> to create its visuals.
@@ -249,7 +254,13 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
 
     _shownResult = status.Result;
 
-    _graphVisualizer.SetGraph(ConvertGraph(world));
+    // Rebuild the graph only when it would differ: an unchanged run keeps the user's view.
+    var graphSource = new LevelGraphSource(status.Result, runInputs, status.Seed, world?.Phase, world?.Stats.Steps);
+    if (graphSource != _shownGraphSource)
+    {
+      _graphVisualizer.SetGraph(ConvertGraph(world));
+      _shownGraphSource = graphSource;
+    }
 
     _statusColumn?.Show(LevelInfoSummary.Build(status.Result, status.FailureReason, facts));
     _propertiesColumn?.Show(LevelInfoSummary.Properties(runInputs?.Props));

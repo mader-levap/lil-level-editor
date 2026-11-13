@@ -22,14 +22,14 @@ namespace LostInLimbo.LevelEditor.Ui.Main;
 /// </remarks>
 public sealed class UiMain : SyncScript
 {
-  /// <summary>Gum app bar; null until the Gum UI is built.</summary>
-  private GumAppBar? _gumAppBar;
+  /// <summary>
+  /// Whether the Gum UI was built. The app bar and toolbar are not kept in fields: the Gum root
+  /// holds their visuals, and their button handlers keep them alive.
+  /// </summary>
+  private bool _uiBuilt;
 
   /// <summary>Keeps at most one overlay visible; driven by the Gum toolbar.</summary>
   private readonly OverlaySwitcher _overlaySwitcher = new();
-
-  /// <summary>Gum editor toolbar; null until the Gum UI is built.</summary>
-  private GumEditorToolbar? _gumToolbar;
 
   /// <summary>Gum level generation overlay; null until the Gum UI is built.</summary>
   private GumLevelGenPanel? _gumLevelGenPanel;
@@ -67,7 +67,7 @@ public sealed class UiMain : SyncScript
   /// <exception cref="InvalidOperationException">A required service is not registered.</exception>
   private void EnsureGumUiBuilt()
   {
-    if (_gumAppBar != null) return; // already built
+    if (_uiBuilt) return; // already built
     if (!GumService.Default.IsInitialized) return; // Gum not ready yet; retry next frame
 
     ISystemInfoService systemInfo = Game.Services.GetService<ISystemInfoService>()
@@ -77,9 +77,10 @@ public sealed class UiMain : SyncScript
     ISettingsService settingsService = Game.Services.GetService<ISettingsService>()
       ?? throw new InvalidOperationException("ISettingsService was not registered.");
 
-    var appBar = new GumAppBar(systemInfo);
-    appBar.Build();
-    _gumAppBar = appBar;
+    // Set before building: a build that fails part-way must not run again and add duplicates.
+    _uiBuilt = true;
+
+    new GumAppBar(systemInfo).Build();
 
     var levelGenPanel = new GumLevelGenPanel(levelGenService, settingsService);
     levelGenPanel.Build();
@@ -93,8 +94,6 @@ public sealed class UiMain : SyncScript
     _gumLevelInfoPanel = levelInfoPanel;
     _overlaySwitcher.Register(EnOverlay.LevelInfo, levelInfoPanel);
 
-    var toolbar = new GumEditorToolbar(_overlaySwitcher);
-    toolbar.Build();
-    _gumToolbar = toolbar;
+    new GumEditorToolbar(_overlaySwitcher).Build();
   }
 }
