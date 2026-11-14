@@ -126,6 +126,33 @@ public static class GraphVisGeometry
   }
 
   /// <summary>
+  /// Computes the radius of a round plate drawn behind a short text (edge labels, node badges).
+  /// The plate is at least as wide as the font is tall, so single digits get a round plate too.
+  /// </summary>
+  /// <param name="textWidth">Measured text width.</param>
+  /// <param name="fontSize">Font size.</param>
+  /// <param name="padding">Free space between the text and the plate's rim.</param>
+  /// <returns>Plate radius.</returns>
+  public static float TextPlateRadius(float textWidth, float fontSize, float padding)
+  {
+    return Math.Max(textWidth, fontSize) / 2f + padding;
+  }
+
+  /// <summary>
+  /// Computes where a node's badge sits: centered on the node's rim at 2 o'clock, that is
+  /// <see cref="BadgeAngleAboveHorizontal"/> above the rightward horizontal (screen Y points down).
+  /// </summary>
+  /// <param name="nodeRadius">Node radius.</param>
+  /// <returns>Badge center relative to the node center.</returns>
+  public static Vector2 BadgeOffset(float nodeRadius)
+  {
+    return new Vector2(nodeRadius * MathF.Cos(BadgeAngleAboveHorizontal), -nodeRadius * MathF.Sin(BadgeAngleAboveHorizontal));
+  }
+
+  /// <summary>Angle of a node's badge above the rightward horizontal, in radians (2 o'clock: 30°).</summary>
+  public const float BadgeAngleAboveHorizontal = MathF.PI / 6f;
+
+  /// <summary>
   /// Computes the visible part of an edge: the line between the borders of two node circles.
   /// </summary>
   /// <param name="fromCenter">Center of the node the edge starts at.</param>

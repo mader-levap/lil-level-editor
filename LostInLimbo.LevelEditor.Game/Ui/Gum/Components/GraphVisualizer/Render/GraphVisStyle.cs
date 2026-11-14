@@ -112,6 +112,31 @@ public sealed record GraphVisStyle
 
   #endregion
 
+  #region Badge
+
+  /// <summary>Font size of the text in a node's badge.</summary>
+  public float BadgeFontSize { get; init; } = 11f;
+
+  /// <summary>Free space between a badge's text and the rim of its circle.</summary>
+  public float BadgePlatePadding { get; init; } = 2f;
+
+  /// <summary>
+  /// Fill color of a node's badge circle: very light blue, so badges are not mistaken for the
+  /// white plates of edge labels (or for the yellow highlight).
+  /// </summary>
+  public UiRgba BadgeFillColor { get; init; } = new(220, 235, 255);
+
+  /// <summary>Rim color of a node's badge circle.</summary>
+  public UiRgba BadgeRimColor { get; init; } = UiRgba.Black;
+
+  /// <summary>Rim width of a node's badge circle.</summary>
+  public float BadgeRimWidth { get; init; } = 1.5f;
+
+  /// <summary>Color of the text in a node's badge.</summary>
+  public UiRgba BadgeTextColor { get; init; } = UiRgba.Black;
+
+  #endregion
+
   #region Highlight
 
   /// <summary>Color of the selection highlight and of highlighted markers.</summary>

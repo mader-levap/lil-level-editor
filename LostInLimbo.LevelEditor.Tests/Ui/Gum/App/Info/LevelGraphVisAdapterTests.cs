@@ -186,6 +186,25 @@ public sealed class LevelGraphVisAdapterTests
   }
 
   /// <summary>
+  /// Verifies the build order (debug data) is shown as the node's badge and as its last property.
+  /// </summary>
+  [Fact]
+  public void Convert_NodeBuildOrder_IsBadgeAndLastProperty()
+  {
+    // Arrange: A place with a POI, so reach rows exist before the debug row.
+    LilNode node = Node(pois: [Poi(EnPoiType.Start)]) with { BuildOrder = 7 };
+
+    // Act: Convert it.
+    GraphVisNode converted = Assert.Single(LevelGraphVisAdapter.Convert(new LilGraph { Nodes = [node] }).Nodes);
+
+    // Assert: Badge and last data-panel row carry the build order.
+    Assert.Equal("7", converted.Badge);
+    KeyValuePair<string, string> last = converted.Properties[converted.Properties.Count - 1];
+    Assert.Equal(LevelGraphVisAdapter.BuildOrderKey, last.Key);
+    Assert.Equal("7", last.Value);
+  }
+
+  /// <summary>
   /// Verifies arrows follow the passage direction: both ends for two-way, destination only for one-way.
   /// </summary>
   /// <param name="direction">Passage direction.</param>

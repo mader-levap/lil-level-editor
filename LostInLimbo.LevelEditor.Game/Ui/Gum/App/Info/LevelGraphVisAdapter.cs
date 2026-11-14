@@ -39,6 +39,9 @@ public static class LevelGraphVisAdapter
   /// <summary>Value shown for an empty list.</summary>
   public const string NoneText = "-";
 
+  /// <summary>Data-panel key of <see cref="LilNode.BuildOrder"/>, which is also shown as the node's badge.</summary>
+  public const string BuildOrderKey = "Build order";
+
   /// <summary>Separator between the items of a list value.</summary>
   private const string ListSeparator = ", ";
 
@@ -117,6 +120,10 @@ public static class LevelGraphVisAdapter
       properties[$"Reach from {PoiText(start, poiTexts)} needs"] = Join(solutions.Select(solution => PoiText(solution, poiTexts)));
     }
 
+    // Debug data last.
+    string buildOrder = node.BuildOrder.ToString(CultureInfo.InvariantCulture);
+    properties[BuildOrderKey] = buildOrder;
+
     return new GraphVisNode
     {
       Id = Id(node.Id),
@@ -126,6 +133,7 @@ public static class LevelGraphVisAdapter
       IsLayoutRoot = node.Pois.Any(poi => poi.Type == EnPoiType.Start), // layered layout starts at the start room
       IsEmphasized = node.Pois.Any(poi => poi.Type is EnPoiType.Start or EnPoiType.Exit), // where the level begins and ends
       Markers = node.Pois.Select(poi => new GraphVisMarker(Id(poi.Id), PoiText(poi.Id, poiTexts))).ToArray(),
+      Badge = buildOrder, // debug: order in which the generator built the place
       Properties = new GraphVisProperties(properties),
       IndentedPropertyKeys = indentedKeys,
     };

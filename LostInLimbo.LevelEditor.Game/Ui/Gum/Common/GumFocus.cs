@@ -87,7 +87,7 @@ public static class GumFocus
   /// </returns>
   /// <remarks>
   /// <c>Cursor.VisualOver</c> only reports elements with <c>HasEvents</c> under the default
-  /// <see cref="Gum.Wireframe.VisualOverBehavior.IfHasEventsIsTrue"/>. Non-interactive
+  /// <see cref="VisualOverBehavior.IfHasEventsIsTrue"/>. Non-interactive
   /// panels that must block camera look need <c>HasEvents = true</c> when they are
   /// built (see <c>GumUiFactory.CreatePanel</c>).
   /// </remarks>

@@ -37,11 +37,13 @@ public sealed class UiMain : SyncScript
   /// <summary>Gum level information overlay; null until the Gum UI is built.</summary>
   private GumLevelInfoPanel? _gumLevelInfoPanel;
 
+  /// <inheritdoc />
   public override void Start()
   {
     EnsureGumUiBuilt();
   }
 
+  /// <inheritdoc />
   public override void Cancel()
   {
     // Shutdown: keep the level generation forms for the next start.
@@ -54,6 +56,7 @@ public sealed class UiMain : SyncScript
     _gumLevelInfoPanel = null;
   }
 
+  /// <inheritdoc />
   public override void Update()
   {
     EnsureGumUiBuilt();

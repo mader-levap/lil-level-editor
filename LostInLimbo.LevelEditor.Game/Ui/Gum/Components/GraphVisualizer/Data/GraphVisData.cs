@@ -55,6 +55,12 @@ public sealed record GraphVisNode
   /// <summary>Markers shown inside the node, in display order.</summary>
   public IReadOnlyList<GraphVisMarker> Markers { get; init; } = [];
 
+  /// <summary>
+  /// Short text shown in a small round badge centered on the node's rim at 2 o'clock (for example
+  /// a number). Null or empty shows no badge.
+  /// </summary>
+  public string? Badge { get; init; }
+
   /// <summary>Arbitrary key/value data shown in the data panel when the node is selected, in display order.</summary>
   public GraphVisProperties Properties { get; init; } = GraphVisProperties.Empty;
 

@@ -72,9 +72,11 @@ internal sealed class GraphVisRenderer : IDisposable
   /// <param name="BaseOutline">Outline color before brightening (source of <paramref name="Outline"/>).</param>
   /// <param name="IsEmphasized">Whether the fill is a radial glow (lighter center).</param>
   /// <param name="GlowCenter">Glow color at the center of an emphasized node (fades to <paramref name="Fill"/>).</param>
+  /// <param name="Badge">Text of the badge on the rim, or null.</param>
+  /// <param name="BadgeWidth">Measured width of <paramref name="Badge"/>.</param>
   private readonly record struct PreparedNode(
     float Radius, SKColor Fill, SKColor Outline, bool IsDashed, SKColor MarkerColor, PreparedDot[] Dots, UiRgba BaseFill, UiRgba BaseOutline,
-    bool IsEmphasized, SKColor GlowCenter);
+    bool IsEmphasized, SKColor GlowCenter, string? Badge, float BadgeWidth);
 
   /// <summary>
   /// One edge, ready to draw.
@@ -102,6 +104,9 @@ internal sealed class GraphVisRenderer : IDisposable
   /// </summary>
   private const float BaselineDropFactor = 0.36f;
 
+  /// <summary>Rim width of the plate behind an edge label when the edge is not selected.</summary>
+  private const float EdgeLabelRimWidth = 1f;
+
   /// <summary>Look of the graph.</summary>
   private readonly GraphVisStyle _style;
 
@@ -113,6 +118,9 @@ internal sealed class GraphVisRenderer : IDisposable
 
   /// <summary>Font of edge labels.</summary>
   private readonly SKFont _edgeLabelFont;
+
+  /// <summary>Font of node badges.</summary>
+  private readonly SKFont _badgeFont;
 
   /// <summary>Paint for filled shapes and text.</summary>
   private readonly SKPaint _fill = new() { IsAntialias = true, Style = SKPaintStyle.Fill };
@@ -145,6 +153,7 @@ internal sealed class GraphVisRenderer : IDisposable
 
     _markerFont = new SKFont(typeface, style.MarkerFontSize);
     _edgeLabelFont = new SKFont(typeface, style.EdgeLabelFontSize);
+    _badgeFont = new SKFont(typeface, style.BadgeFontSize);
     _dash = SKPathEffect.CreateDash([style.DashLength, style.DashGap], 0);
   }
 
@@ -173,6 +182,7 @@ internal sealed class GraphVisRenderer : IDisposable
       UiRgba fill = node.Color ?? _style.DefaultNodeColor;
       UiRgba outline = GraphVisColors.Darken(fill, _style.NodeOutlineBrightness);
       float radius = GraphVisGeometry.NodeRadius(node.RelativeSize, _style);
+      string? badge = string.IsNullOrEmpty(node.Badge) ? null : node.Badge;
       _nodes[i] = new PreparedNode(
         radius,
         EditorTheme.ToSkColor(fill),
@@ -183,7 +193,9 @@ internal sealed class GraphVisRenderer : IDisposable
         fill,
         outline,
         node.IsEmphasized,
-        EditorTheme.ToSkColor(GlowCenterColor(fill, 0f)));
+        EditorTheme.ToSkColor(GlowCenterColor(fill, 0f)),
+        badge,
+        badge == null ? 0 : _badgeFont.MeasureText(badge));
     }
 
     // Several edges between the same two nodes are drawn as arcs side by side.
@@ -277,6 +289,7 @@ internal sealed class GraphVisRenderer : IDisposable
       for (int i = 0; i < _nodes.Length; i++) DrawNode(canvas, Brightened(_nodes[i], fade.NodeLevel(i)), positions[i]);
       if (selectedNode >= 0) DrawSelectionRing(canvas, _nodes[selectedNode], positions[selectedNode]);
       for (int i = 0; i < _nodes.Length; i++) DrawMarkers(canvas, _nodes[i], positions[i], highlightedMarkers);
+      for (int i = 0; i < _nodes.Length; i++) DrawBadge(canvas, _nodes[i], positions[i]); // over the selection ring
       for (int i = 0; i < _edges.Length; i++) DrawEdgeLabel(canvas, _edges[i], positions, i == selectedEdge);
     }
 
@@ -518,17 +531,71 @@ internal sealed class GraphVisRenderer : IDisposable
     Vector2? labelPoint = edge.Bend != 0 ? CurveOf(edge, positions)?.Middle : SegmentOf(edge, positions)?.Middle;
     if (labelPoint is not { } middle) return;
 
-    float plateRadius = Math.Max(edge.LabelWidth, _style.EdgeLabelFontSize) / 2f + _style.EdgeLabelPlatePadding;
+    DrawTextPlate(
+      canvas,
+      middle,
+      new TextPlateLook(edge.Label, edge.LabelWidth, _edgeLabelFont, _style.EdgeLabelPlatePadding),
+      EditorTheme.ToSkColor(_style.EdgeLabelPlateColor),
+      isSelected ? EditorTheme.ToSkColor(_style.HighlightColor) : edge.Color,
+      isSelected ? _style.SelectionRingWidth : EdgeLabelRimWidth,
+      EditorTheme.ToSkColor(_style.EdgeLabelTextColor));
+  }
 
-    _fill.Color = EditorTheme.ToSkColor(_style.EdgeLabelPlateColor);
-    canvas.DrawCircle(middle.X, middle.Y, plateRadius, _fill);
-    _stroke.Color = isSelected ? EditorTheme.ToSkColor(_style.HighlightColor) : edge.Color;
-    _stroke.StrokeWidth = isSelected ? _style.SelectionRingWidth : 1f;
-    canvas.DrawCircle(middle.X, middle.Y, plateRadius, _stroke);
+  /// <summary>
+  /// Draws a node's badge: its text on a round plate centered on the node's rim at 2 o'clock.
+  /// </summary>
+  /// <param name="canvas">Canvas, in world units.</param>
+  /// <param name="node">Node.</param>
+  /// <param name="center">Node center.</param>
+  /// <remarks>Colors are fixed; the badge is not brightened with its node.</remarks>
+  private void DrawBadge(SKCanvas canvas, PreparedNode node, Vector2 center)
+  {
+    if (node.Badge == null) return;
 
-    _fill.Color = EditorTheme.ToSkColor(_style.EdgeLabelTextColor);
-    float baseline = middle.Y + _style.EdgeLabelFontSize * BaselineDropFactor;
-    canvas.DrawText(edge.Label, middle.X, baseline, SKTextAlign.Center, _edgeLabelFont, _fill);
+    DrawTextPlate(
+      canvas,
+      center + GraphVisGeometry.BadgeOffset(node.Radius),
+      new TextPlateLook(node.Badge, node.BadgeWidth, _badgeFont, _style.BadgePlatePadding),
+      EditorTheme.ToSkColor(_style.BadgeFillColor),
+      EditorTheme.ToSkColor(_style.BadgeRimColor),
+      _style.BadgeRimWidth,
+      EditorTheme.ToSkColor(_style.BadgeTextColor));
+  }
+
+  /// <summary>
+  /// Text drawn on a round plate, with what is needed to size the plate.
+  /// </summary>
+  /// <param name="Text">Text.</param>
+  /// <param name="TextWidth">Measured width of <paramref name="Text"/> in <paramref name="Font"/>.</param>
+  /// <param name="Font">Font of the text.</param>
+  /// <param name="Padding">Free space between the text and the plate's rim.</param>
+  private readonly record struct TextPlateLook(string Text, float TextWidth, SKFont Font, float Padding);
+
+  /// <summary>
+  /// Draws a short text centered on a filled, rimmed round plate.
+  /// </summary>
+  /// <param name="canvas">Canvas, in world units.</param>
+  /// <param name="center">Plate center.</param>
+  /// <param name="look">Text, font and padding.</param>
+  /// <param name="plateColor">Plate fill color.</param>
+  /// <param name="rimColor">Plate rim color.</param>
+  /// <param name="rimWidth">Plate rim width.</param>
+  /// <param name="textColor">Text color.</param>
+  private void DrawTextPlate(
+    SKCanvas canvas, Vector2 center, TextPlateLook look, SKColor plateColor, SKColor rimColor, float rimWidth, SKColor textColor)
+  {
+    float fontSize = look.Font.Size;
+    float plateRadius = GraphVisGeometry.TextPlateRadius(look.TextWidth, fontSize, look.Padding);
+
+    _fill.Color = plateColor;
+    canvas.DrawCircle(center.X, center.Y, plateRadius, _fill);
+    _stroke.Color = rimColor;
+    _stroke.StrokeWidth = rimWidth;
+    canvas.DrawCircle(center.X, center.Y, plateRadius, _stroke);
+
+    _fill.Color = textColor;
+    float baseline = center.Y + fontSize * BaselineDropFactor;
+    canvas.DrawText(look.Text, center.X, baseline, SKTextAlign.Center, look.Font, _fill);
   }
 
   /// <summary>
@@ -627,6 +694,7 @@ internal sealed class GraphVisRenderer : IDisposable
     _dash.Dispose();
     _markerFont.Dispose();
     _edgeLabelFont.Dispose();
+    _badgeFont.Dispose();
     _ownedTypeface?.Dispose();
   }
 }

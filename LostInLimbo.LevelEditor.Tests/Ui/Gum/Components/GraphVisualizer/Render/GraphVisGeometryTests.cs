@@ -68,6 +68,41 @@ public sealed class GraphVisGeometryTests
 
   #endregion
 
+  #region Text plates and badges
+
+  /// <summary>
+  /// Verifies a plate fits wide text, and short text still gets a plate as wide as the font is tall.
+  /// </summary>
+  /// <param name="textWidth">Measured text width.</param>
+  /// <param name="expected">Expected plate radius (font size 10, padding 2).</param>
+  [Theory]
+  [InlineData(30f, 17f)]
+  [InlineData(4f, 7f)]
+  public void TextPlateRadius_FitsTextOrFontSize(float textWidth, float expected)
+  {
+    // Act: Size the plate.
+    float radius = GraphVisGeometry.TextPlateRadius(textWidth, 10f, 2f);
+
+    // Assert: Half the larger of width and font size, plus padding.
+    Assert.Equal(expected, radius, Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies a badge sits on the node's rim at 2 o'clock.
+  /// </summary>
+  [Fact]
+  public void BadgeOffset_IsOnRimAtTwoOClock()
+  {
+    // Act: Place the badge of a node with radius 20.
+    Vector2 offset = GraphVisGeometry.BadgeOffset(20f);
+
+    // Assert: On the rim, 30° above the rightward horizontal (screen Y points down).
+    Assert.Equal(20f, offset.Length(), Tolerance);
+    AssertClose(new Vector2(20f * MathF.Sqrt(3f) / 2f, -10f), offset);
+  }
+
+  #endregion
+
   #region Edges
 
   /// <summary>
