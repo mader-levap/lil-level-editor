@@ -62,7 +62,19 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
   private const float PropertiesLabelWidth = 140;
 
   /// <summary>Width of the configuration column's labels, in pixels.</summary>
-  private const float ConfigurationLabelWidth = 80;
+  private const float ConfigurationLabelWidth = 130;
+
+  /// <summary>
+  /// Minimum width of the status column, in pixels: room for its labels and the longest numeric
+  /// seed, so the card keeps its width when values change between runs.
+  /// </summary>
+  private const float StatusMinWidth = 350;
+
+  /// <summary>Minimum width of the properties column, in pixels (see <see cref="StatusMinWidth"/>).</summary>
+  private const float PropertiesMinWidth = 300;
+
+  /// <summary>Minimum width of the configuration column, in pixels (see <see cref="StatusMinWidth"/>).</summary>
+  private const float ConfigurationMinWidth = 240;
 
   /// <summary>Height of the lower area holding the graph panel, in percent of the window.</summary>
   private const float GraphAreaHeightPercent = 55f;
@@ -166,11 +178,11 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
       HeightUnits = DimensionUnitType.RelativeToChildren,
     };
 
-    _statusColumn = new InfoColumn(content, LevelInfoSummary.StatusTitle, StatusLabelWidth);
+    _statusColumn = new InfoColumn(content, LevelInfoSummary.StatusTitle, StatusLabelWidth, StatusMinWidth);
     content.AddChild(CreateColumnSeparator());
-    _propertiesColumn = new InfoColumn(content, LevelInfoSummary.PropertiesTitle, PropertiesLabelWidth);
+    _propertiesColumn = new InfoColumn(content, LevelInfoSummary.PropertiesTitle, PropertiesLabelWidth, PropertiesMinWidth);
     content.AddChild(CreateColumnSeparator());
-    _configurationColumn = new InfoColumn(content, LevelInfoSummary.ConfigurationTitle, ConfigurationLabelWidth);
+    _configurationColumn = new InfoColumn(content, LevelInfoSummary.ConfigurationTitle, ConfigurationLabelWidth, ConfigurationMinWidth);
 
     card.AddChild(content);
     upperArea.AddChild(card);
@@ -325,7 +337,11 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
     /// <param name="parent">Container the column is added to.</param>
     /// <param name="title">Column title.</param>
     /// <param name="labelWidth">Width of the rows' label column, in pixels.</param>
-    public InfoColumn(ContainerRuntime parent, string title, float labelWidth)
+    /// <param name="minWidth">
+    /// Minimum width of the column, in pixels; it grows past this only for wider content, so the
+    /// card does not change width with every run.
+    /// </param>
+    public InfoColumn(ContainerRuntime parent, string title, float labelWidth, float minWidth)
     {
       _labelWidth = labelWidth;
 
@@ -335,6 +351,7 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
         StackSpacing = RowSpacing * 2,
         Width = 0,
         WidthUnits = DimensionUnitType.RelativeToChildren,
+        MinWidth = minWidth,
         Height = 0,
         HeightUnits = DimensionUnitType.RelativeToChildren,
       };

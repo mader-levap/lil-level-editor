@@ -19,9 +19,11 @@ public static class DifficultyPresets
   /// <summary>Presets in display order.</summary>
   public static IReadOnlyList<DifficultyPreset> All { get; } =
   [
-    new("Easy", 0),
-    new("Medium", 50),
-    new("Hard", PropMain.MaxDifficulty),
+    new("Very easy", 0),
+    new("Easy", 5),
+    new("Medium", 10),
+    new("Hard", 15),
+    new("Very hard", 20),
   ];
 
   /// <summary>

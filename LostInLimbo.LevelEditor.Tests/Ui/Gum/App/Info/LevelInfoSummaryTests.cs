@@ -184,16 +184,20 @@ public sealed class LevelInfoSummaryTests
   #region Configuration column
 
   /// <summary>
-  /// Verifies the configuration column shows the graph builder used.
+  /// Verifies the configuration column shows the graph size, connectivity and complexity, then
+  /// the graph builder used.
   /// </summary>
   [Fact]
-  public void Configuration_ShowsBuilder()
+  public void Configuration_ShowsGraphFieldsAndBuilder()
   {
-    // Arrange: Configuration using the Linear builder.
+    // Arrange: Configuration with distinct graph values, using the Linear builder.
     var config = CnfLevelGeneration.Default with
     {
       Graph = CnfGraph.Default with
       {
+        Size = 12,
+        Connectivity = 3,
+        Complexity = 5,
         GraphBuilder = new CnfGraphBuilder { Builder = EnGraphBuilder.Linear, CnfLinear = CnfGraphBuilderLinear.Default },
       },
     };
@@ -201,8 +205,15 @@ public sealed class LevelInfoSummaryTests
     // Act: Build rows.
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Configuration(config);
 
-    // Assert: Builder row.
-    Assert.Equal([new LevelInfoRow("Builder:", "Linear")], rows);
+    // Assert: Graph field rows in order, then the builder row.
+    Assert.Equal(
+      [
+        new LevelInfoRow("Size:", "12"),
+        new LevelInfoRow("Connectivity:", "3"),
+        new LevelInfoRow("Complexity:", "5"),
+        new LevelInfoRow("Builder:", "Linear"),
+      ],
+      rows);
   }
 
   /// <summary>

@@ -9,17 +9,24 @@ namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.App.LevelGen.Data;
 public sealed class DifficultyPresetsTests
 {
   /// <summary>
-  /// Verifies that the placeholder presets are Easy 0 / Medium 50 / Hard 100, in that order.
+  /// Verifies that the presets are Very easy 0 / Easy 5 / Medium 10 / Hard 15 / Very hard 20, in
+  /// that order.
   /// </summary>
   [Fact]
-  public void Presets_MatchPlaceholderTable()
+  public void Presets_MatchTable()
   {
     // Act: Read the table.
     IReadOnlyList<DifficultyPreset> presets = DifficultyPresets.All;
 
     // Assert: Names and values in display order.
     Assert.Equal(
-      [new DifficultyPreset("Easy", 0), new DifficultyPreset("Medium", 50), new DifficultyPreset("Hard", 100)],
+      [
+        new DifficultyPreset("Very easy", 0),
+        new DifficultyPreset("Easy", 5),
+        new DifficultyPreset("Medium", 10),
+        new DifficultyPreset("Hard", 15),
+        new DifficultyPreset("Very hard", 20),
+      ],
       presets);
   }
 

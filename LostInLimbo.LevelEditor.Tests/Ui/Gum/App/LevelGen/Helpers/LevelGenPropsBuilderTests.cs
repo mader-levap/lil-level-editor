@@ -15,11 +15,11 @@ public sealed class LevelGenPropsBuilderTests
   public void Build_Values_AreCopiedAndValid()
   {
     // Act: Build from typical form values.
-    PropMain props = LevelGenPropsBuilder.Build(" my seed ", 50, true);
+    PropMain props = LevelGenPropsBuilder.Build(" my seed ", 10, true);
 
     // Assert: Values copied as entered (no trimming), other fields default, validation passes.
     Assert.Equal(" my seed ", props.TextSeed);
-    Assert.Equal(50, props.Difficulty);
+    Assert.Equal(10, props.Difficulty);
     Assert.True(props.ManyThemes);
     Assert.Equal(PropMain.Default.ConfigVersion, props.ConfigVersion);
     props.Validate();

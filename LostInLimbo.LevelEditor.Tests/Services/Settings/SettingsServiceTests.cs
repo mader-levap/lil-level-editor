@@ -48,7 +48,7 @@ public sealed class SettingsServiceTests : IDisposable
     {
       LevelGen = new DatLevelGenSettings
       {
-        Properties = PropMain.Default with { TextSeed = "007", Difficulty = 100 },
+        Properties = PropMain.Default with { TextSeed = "007", Difficulty = PropMain.MaxDifficulty },
         Configuration = new DatConfigFormSettings { Active = true, GraphBuilder = EnGraphBuilder.Simple },
       },
     };

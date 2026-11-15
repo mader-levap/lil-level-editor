@@ -118,6 +118,9 @@ public static class LevelInfoSummary
 
     return
     [
+      new("Size:", config.Graph.Size.ToString(CultureInfo.InvariantCulture)),
+      new("Connectivity:", config.Graph.Connectivity.ToString(CultureInfo.InvariantCulture)),
+      new("Complexity:", config.Graph.Complexity.ToString(CultureInfo.InvariantCulture)),
       new("Builder:", config.Graph.GraphBuilder.Builder.ToString()),
     ];
   }

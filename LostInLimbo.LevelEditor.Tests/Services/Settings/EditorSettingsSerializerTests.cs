@@ -15,7 +15,7 @@ public sealed class EditorSettingsSerializerTests
   {
     LevelGen = new DatLevelGenSettings
     {
-      Properties = PropMain.Default with { TextSeed = "mordor", Difficulty = 50, ManyThemes = true },
+      Properties = PropMain.Default with { TextSeed = "mordor", Difficulty = 10, ManyThemes = true },
       Configuration = new DatConfigFormSettings { Active = true, GraphBuilder = EnGraphBuilder.Linear },
     },
   };
