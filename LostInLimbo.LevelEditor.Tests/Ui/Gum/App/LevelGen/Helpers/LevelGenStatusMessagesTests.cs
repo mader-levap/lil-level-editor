@@ -74,4 +74,19 @@ public sealed class LevelGenStatusMessagesTests
     Assert.Equal(new StatusEntry("Loop: failed to start generation with seed \"8\". Loop stopped.", EnStatusSeverity.Error), startFailed);
     Assert.Equal(new StatusEntry("Loop: stopped by user.", EnStatusSeverity.Info), LevelGenStatusMessages.LoopStopped);
   }
+
+  /// <summary>
+  /// Verifies quick generation (F5) messages: seeds are quoted, a refused start is an error.
+  /// </summary>
+  [Fact]
+  public void QuickGenerateMessages_ReturnExpectedTexts()
+  {
+    // Act: Build each quick generation message.
+    StatusEntry start = LevelGenStatusMessages.ForQuickGenerateStart("42");
+    StatusEntry startFailed = LevelGenStatusMessages.ForQuickGenerateStartFailed("43");
+
+    // Assert: Texts and severities.
+    Assert.Equal(new StatusEntry("F5: started generation with seed \"42\".", EnStatusSeverity.Info), start);
+    Assert.Equal(new StatusEntry("F5: failed to start generation with seed \"43\".", EnStatusSeverity.Error), startFailed);
+  }
 }

@@ -115,6 +115,26 @@ public static class LevelGenStatusMessages
 
   #endregion
 
+  #region Quick generate
+
+  /// <summary>
+  /// Message when quick generation (F5) started a run.
+  /// </summary>
+  /// <param name="seed">Seed of the run.</param>
+  /// <returns>Status entry.</returns>
+  public static StatusEntry ForQuickGenerateStart(string seed) =>
+    new($"F5: started generation with seed {Quote(seed)}.", EnStatusSeverity.Info);
+
+  /// <summary>
+  /// Message when the service refused to start a quick generation (F5) run.
+  /// </summary>
+  /// <param name="seed">Seed of the run that could not start.</param>
+  /// <returns>Status entry.</returns>
+  public static StatusEntry ForQuickGenerateStartFailed(string seed) =>
+    new($"F5: failed to start generation with seed {Quote(seed)}.", EnStatusSeverity.Error);
+
+  #endregion
+
   #region Helpers
 
   /// <summary>

@@ -66,6 +66,41 @@ public sealed class LevelGenLoopSeedTests
   }
 
   /// <summary>
+  /// Verifies that a numeric seed text advances to the next seed.
+  /// </summary>
+  [Theory]
+  [InlineData("41", "42")]
+  [InlineData("007", "8")]
+  [InlineData("-1", "0")]
+  [InlineData("9223372036854775807", "-9223372036854775808")]
+  public void Advance_NumericSeed_Increments(string seedText, string expected)
+  {
+    // Act: Advance the seed text.
+    string next = LevelGenLoopSeed.Advance(seedText);
+
+    // Assert: Incremented (wrapping at the 64-bit limit).
+    Assert.Equal(expected, next);
+  }
+
+  /// <summary>
+  /// Verifies that empty, non-numeric and padded seed texts advance to the fallback seed "0".
+  /// </summary>
+  [Theory]
+  [InlineData(null)]
+  [InlineData("")]
+  [InlineData("mordor")]
+  [InlineData(" 5")]
+  [InlineData("9223372036854775808")]
+  public void Advance_NonNumericSeed_FallsBackToZero(string? seedText)
+  {
+    // Act: Advance the seed text.
+    string next = LevelGenLoopSeed.Advance(seedText);
+
+    // Assert: Fallback seed "0".
+    Assert.Equal(LevelGenLoopSeed.FallbackSeed, next);
+  }
+
+  /// <summary>
   /// Verifies that a non-numeric current seed is rejected.
   /// </summary>
   [Fact]

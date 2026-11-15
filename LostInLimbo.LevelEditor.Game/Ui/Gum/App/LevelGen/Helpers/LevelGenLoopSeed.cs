@@ -51,6 +51,17 @@ public static class LevelGenLoopSeed
   }
 
   /// <summary>
+  /// Gets the seed that follows the seed text box content (used by single quick generation).
+  /// </summary>
+  /// <param name="seedText">Seed text box content.</param>
+  /// <returns>
+  /// <paramref name="seedText"/> + 1 (see <see cref="Next"/>) if it is a 64-bit integer;
+  /// otherwise <see cref="FallbackSeed"/>.
+  /// </returns>
+  public static string Advance(string? seedText) =>
+    seedText != null && TryParse(seedText, out _) ? Next(seedText) : FallbackSeed;
+
+  /// <summary>
   /// Parses a seed text as a 64-bit integer.
   /// </summary>
   /// <param name="text">Seed text.</param>

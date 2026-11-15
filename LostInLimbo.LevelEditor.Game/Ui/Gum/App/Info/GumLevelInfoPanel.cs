@@ -26,10 +26,11 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 /// below it, a large panel visualizing the level graph.
 /// </summary>
 /// <remarks>
-/// Refreshes when shown, and while visible when the generation result changes. It does not
-/// poll the world every frame, because <see cref="ILevelGenService.World"/> returns a deep
-/// copy. Runs cannot start while this card is open (overlays are exclusive), so a result
-/// change is the only way the shown data can go stale. While the shown run is unchanged (see
+/// Refreshes when shown, and while visible when the generation result changes or a new run
+/// started (see <see cref="LevelInfoRefreshCheck"/>). It does not poll the world every frame,
+/// because <see cref="ILevelGenService.World"/> returns a deep copy. Runs can start while this
+/// card is open (F5 works from any overlay) and can end within the same frame, so a result
+/// change alone is not enough. While the shown run is unchanged (see
 /// <see cref="LevelGraphSource"/>), the graph is not rebuilt on show: its physics resumes where
 /// it paused, and selection, zoom, pan and dragged nodes stay.
 /// </remarks>
@@ -92,6 +93,9 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
 
   /// <summary>Generation result at the last refresh; null forces a refresh.</summary>
   private EnGenResult? _shownResult;
+
+  /// <summary>Run inputs at the last refresh (identifies the run); null if there was no run.</summary>
+  private LevelGenRunInputs? _shownRunInputs;
 
   /// <summary>Source of the graph currently in the visualizer; null before the first refresh.</summary>
   private LevelGraphSource? _shownGraphSource;
@@ -206,15 +210,17 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
   }
 
   /// <summary>
-  /// Refreshes the card if the generation result changed while it is visible. Call every frame;
-  /// cheap when nothing changed (one status read, no world copy). Also advances the graph's
-  /// node physics.
+  /// Refreshes the card if the generation result changed or a new run started while it is
+  /// visible. Call every frame; cheap when nothing changed (status and run inputs reads, no
+  /// world copy). Also advances the graph's node physics.
   /// </summary>
   /// <param name="deltaSeconds">Elapsed time since the last frame, in seconds.</param>
   public void Update(float deltaSeconds)
   {
     if (!IsVisible) return;
-    if (_levelGenService.Status().Result != _shownResult) Refresh();
+    if (LevelInfoRefreshCheck.IsStale(
+          _shownResult, _shownRunInputs, _levelGenService.Status().Result, _levelGenService.RunInputs()))
+      Refresh();
     _graphVisualizer.Update(deltaSeconds);
   }
 
@@ -253,6 +259,7 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
       : new LevelWorldFacts(world.Phase, status.Seed, world.Stats.Steps);
 
     _shownResult = status.Result;
+    _shownRunInputs = runInputs;
 
     // Rebuild the graph only when it would differ: an unchanged run keeps the user's view.
     var graphSource = new LevelGraphSource(status.Result, runInputs, status.Seed, world?.Phase, world?.Stats.Steps);

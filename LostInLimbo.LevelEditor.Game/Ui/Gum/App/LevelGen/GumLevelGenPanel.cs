@@ -608,6 +608,36 @@ public sealed class GumLevelGenPanel : IOverlayView, IDisposable
 
   #endregion
 
+  #region Quick generate
+
+  /// <summary>
+  /// Generates one map with the next seed (F5), as one loop iteration would: the seed box is
+  /// advanced first, then a run is started. Works while the overlay is hidden; the outcome is
+  /// reported by <see cref="Update"/>. Does nothing when blocked (see
+  /// <see cref="LevelGenQuickGenerate.CanStart"/>) or before <see cref="Build"/>.
+  /// </summary>
+  public void QuickGenerate()
+  {
+    if (_root == null) return; // not built
+    if (!LevelGenQuickGenerate.CanStart(_levelGenService.Status().Result, _loop.IsActive, _awaitingResult)) return;
+
+    // The box holds the seed before the run starts, so a failure is reproducible with Start.
+    string seed = LevelGenLoopSeed.Advance(_propertiesPanel.Seed);
+    _propertiesPanel.Seed = seed;
+    if (!_levelGenService.Start(_propertiesPanel.BuildProps(), _configPanel.BuildOverrides()))
+    {
+      _statusLog.Add(LevelGenStatusMessages.ForQuickGenerateStartFailed(seed));
+      return;
+    }
+
+    _statusLog.Add(LevelGenStatusMessages.ForQuickGenerateStart(seed));
+    ApplyUiState(LevelGenUiState.For(EnGenResult.Running));
+    _progressBar.Reset(_levelGenService.Status().Completion); // new run: no easing from the previous one
+    _awaitingResult = true;
+  }
+
+  #endregion
+
   #region Form and state
 
   /// <summary>

@@ -8,6 +8,7 @@ using LostInLimbo.LevelEditor.Ui.Gum.App.Editor;
 using LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 using Stride.Engine;
+using Stride.Input;
 
 namespace LostInLimbo.LevelEditor.Ui.Main;
 
@@ -22,6 +23,9 @@ namespace LostInLimbo.LevelEditor.Ui.Main;
 /// </remarks>
 public sealed class UiMain : SyncScript
 {
+  /// <summary>Key that generates one map with the next seed (see <see cref="GumLevelGenPanel.QuickGenerate"/>).</summary>
+  private const Keys QuickGenerateKey = Keys.F5;
+
   /// <summary>
   /// Whether the Gum UI was built. The app bar and toolbar are not kept in fields: the Gum root
   /// holds their visuals, and their button handlers keep them alive.
@@ -60,6 +64,11 @@ public sealed class UiMain : SyncScript
   public override void Update()
   {
     EnsureGumUiBuilt();
+
+    // Raw key, not gated by keyboard capture: F5 types nothing, and the capture would also
+    // block it while the pointer is over the level graph. Before the panels' Update, so the
+    // new run is polled this frame already.
+    if (Input.IsKeyPressed(QuickGenerateKey)) _gumLevelGenPanel?.QuickGenerate();
 
     float deltaSeconds = (float)Game.UpdateTime.Elapsed.TotalSeconds;
     _gumLevelGenPanel?.Update(deltaSeconds);

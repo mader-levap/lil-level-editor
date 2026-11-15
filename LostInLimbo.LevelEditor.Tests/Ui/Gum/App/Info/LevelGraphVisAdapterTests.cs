@@ -53,7 +53,7 @@ public sealed class LevelGraphVisAdapterTests
     To = to.Id,
     Direction = direction,
     Secret = secret,
-    Conditions = requiredPois.Select(poi => new LilCondition { Type = EnConditionType.RequiresSolution, RequiresPoi = poi.Id }).ToList(),
+    Conditions = requiredPois.Select(poi => new LilCondition { Type = EnConditionType.ReqSolution, RequiresPoi = poi.Id }).ToList(),
   };
 
   /// <summary>
@@ -298,8 +298,8 @@ public sealed class LevelGraphVisAdapterTests
     Assert.Equal("Bidirectional", converted.Properties["Direction"]);
     Assert.Equal("yes", converted.Properties["Chokepoint"]);
     Assert.Equal("2", converted.Properties["Conditions"]);
-    Assert.Equal("RequiresSolution: Red Key", converted.Properties["Condition 1"]);
-    Assert.Equal("RequiresSolution: Blue Key", converted.Properties["Condition 2"]);
+    Assert.Equal("ReqSolution: Red Key", converted.Properties["Condition 1"]);
+    Assert.Equal("ReqSolution: Blue Key", converted.Properties["Condition 2"]);
     Assert.Equal(["Condition 1", "Condition 2"], converted.IndentedPropertyKeys.Order());
   }
 
