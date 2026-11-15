@@ -1,3 +1,4 @@
+using System;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 using LostInLimbo.LevelGen.Data.Status;
 
@@ -54,17 +55,20 @@ public static class LevelGenStatusMessages
   /// <param name="edges">Graph edge count (0 if no world).</param>
   /// <param name="steps">Map generation steps (0 if no world).</param>
   /// <param name="error">Error description for <see cref="EnGenResult.Error"/>; may be null.</param>
+  /// <param name="elapsed">Generation time the library reported for the run.</param>
   /// <returns>Status entry.</returns>
-  public static StatusEntry ForOutcome(EnGenResult result, string? seedText, int nodes, int edges, long steps, string? error)
+  public static StatusEntry ForOutcome(
+    EnGenResult result, string? seedText, int nodes, int edges, long steps, string? error, TimeSpan elapsed)
   {
     string counts = Counts(nodes, edges, steps);
     string prefix = $"LevelGen: {SeedLabel(seedText)}";
+    string time = Time(elapsed);
     return result switch
     {
-      EnGenResult.Finished => new($"{prefix} Finished. {counts}", EnStatusSeverity.Success),
-      EnGenResult.ValidationError => new($"{prefix} ValidationError. {counts}", EnStatusSeverity.Warning),
-      EnGenResult.Error => new($"{prefix} Error - {error}", EnStatusSeverity.Error),
-      _ => new($"{prefix} {result}.", EnStatusSeverity.Debug),
+      EnGenResult.Finished => new($"{prefix} Finished {time}. {counts}", EnStatusSeverity.Success),
+      EnGenResult.ValidationError => new($"{prefix} ValidationError {time}. {counts}", EnStatusSeverity.Warning),
+      EnGenResult.Error => new($"{prefix} Error {time} - {error}", EnStatusSeverity.Error),
+      _ => new($"{prefix} {result} {time}.", EnStatusSeverity.Debug),
     };
   }
 
@@ -85,9 +89,10 @@ public static class LevelGenStatusMessages
   /// <param name="nodes">Graph node count (0 if no world).</param>
   /// <param name="edges">Graph edge count (0 if no world).</param>
   /// <param name="steps">Map generation steps (0 if no world).</param>
+  /// <param name="elapsed">Generation time the library reported for the iteration's run.</param>
   /// <returns>Status entry.</returns>
-  public static StatusEntry ForLoopIteration(string seed, int nodes, int edges, long steps) =>
-    new($"Loop: seed {Quote(seed)} Finished. {Counts(nodes, edges, steps)}", EnStatusSeverity.Success);
+  public static StatusEntry ForLoopIteration(string seed, int nodes, int edges, long steps, TimeSpan elapsed) =>
+    new($"Loop: seed {Quote(seed)} Finished {Time(elapsed)}. {Counts(nodes, edges, steps)}", EnStatusSeverity.Success);
 
   /// <summary>
   /// Message when a loop iteration ended with anything other than success; the loop stops.
@@ -95,11 +100,13 @@ public static class LevelGenStatusMessages
   /// <param name="seed">Seed of the failed iteration.</param>
   /// <param name="result">Reached state.</param>
   /// <param name="error">Error description; may be null.</param>
+  /// <param name="elapsed">Generation time the library reported for the iteration's run.</param>
   /// <returns>Status entry.</returns>
-  public static StatusEntry ForLoopFailure(string seed, EnGenResult result, string? error)
+  public static StatusEntry ForLoopFailure(string seed, EnGenResult result, string? error, TimeSpan elapsed)
   {
     string detail = string.IsNullOrEmpty(error) ? string.Empty : $" - {error}";
-    return new($"Loop: seed {Quote(seed)} ended with {result}{detail}. Loop stopped.", EnStatusSeverity.Error);
+    return new(
+      $"Loop: seed {Quote(seed)} ended with {result} {Time(elapsed)}{detail}. Loop stopped.", EnStatusSeverity.Error);
   }
 
   /// <summary>
@@ -146,6 +153,13 @@ public static class LevelGenStatusMessages
   /// <returns>Counts text.</returns>
   private static string Counts(int nodes, int edges, long steps) =>
     $"Graph: nodes={nodes}, edges={edges}. Map: steps={steps}.";
+
+  /// <summary>
+  /// Formats a run's generation time for a message (see <see cref="LevelGenTimeFormat.Milliseconds"/>).
+  /// </summary>
+  /// <param name="elapsed">Generation time.</param>
+  /// <returns>For example <c>(1234 ms)</c>.</returns>
+  private static string Time(TimeSpan elapsed) => $"({LevelGenTimeFormat.Milliseconds(elapsed)})";
 
   /// <summary>
   /// Puts a loop seed in quotes (see <see cref="LevelGenSeedFormat.Quote"/>).

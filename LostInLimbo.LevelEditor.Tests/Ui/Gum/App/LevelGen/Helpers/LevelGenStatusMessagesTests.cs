@@ -1,3 +1,4 @@
+using System;
 using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Helpers;
 using LostInLimbo.LevelEditor.Ui.Gum.Components.Log;
 using LostInLimbo.LevelGen.Data.Status;
@@ -30,47 +31,54 @@ public sealed class LevelGenStatusMessagesTests
   }
 
   /// <summary>
-  /// Verifies outcome messages: quoted seed (time-based when empty) and counts for finished and
-  /// validation-error runs.
+  /// Verifies outcome messages: quoted seed (time-based when empty), generation time in whole
+  /// milliseconds, and counts for finished and validation-error runs.
   /// </summary>
   [Fact]
   public void ForOutcome_ReturnsExpectedMessages()
   {
-    // Act: Build messages for each kind of outcome.
-    StatusEntry finished = LevelGenStatusMessages.ForOutcome(EnGenResult.Finished, "mordor", 5, 4, 12, null);
-    StatusEntry invalid = LevelGenStatusMessages.ForOutcome(EnGenResult.ValidationError, "007", 1, 0, 3, null);
-    StatusEntry error = LevelGenStatusMessages.ForOutcome(EnGenResult.Error, "mordor", 0, 0, 0, "boom");
-    StatusEntry cancelled = LevelGenStatusMessages.ForOutcome(EnGenResult.Cancelled, "mordor", 0, 0, 0, null);
-    StatusEntry timeSeeded = LevelGenStatusMessages.ForOutcome(EnGenResult.Finished, "", 5, 4, 12, null);
-    StatusEntry nullSeed = LevelGenStatusMessages.ForOutcome(EnGenResult.Paused, null, 0, 0, 0, null);
+    // Arrange: Generation time that rounds up.
+    TimeSpan elapsed = TimeSpan.FromMilliseconds(1520.6);
 
-    // Assert: Texts (with quoted seed) and severities.
-    Assert.Equal(new StatusEntry("LevelGen: seed \"mordor\" Finished. Graph: nodes=5, edges=4. Map: steps=12.", EnStatusSeverity.Success), finished);
-    Assert.Equal(new StatusEntry("LevelGen: seed \"007\" ValidationError. Graph: nodes=1, edges=0. Map: steps=3.", EnStatusSeverity.Warning), invalid);
-    Assert.Equal(new StatusEntry("LevelGen: seed \"mordor\" Error - boom", EnStatusSeverity.Error), error);
-    Assert.Equal(new StatusEntry("LevelGen: seed \"mordor\" Cancelled.", EnStatusSeverity.Debug), cancelled);
-    Assert.Equal(new StatusEntry("LevelGen: seed \"\" (current time) Finished. Graph: nodes=5, edges=4. Map: steps=12.", EnStatusSeverity.Success), timeSeeded);
-    Assert.Equal(new StatusEntry("LevelGen: seed \"\" (current time) Paused.", EnStatusSeverity.Debug), nullSeed);
+    // Act: Build messages for each kind of outcome.
+    StatusEntry finished = LevelGenStatusMessages.ForOutcome(EnGenResult.Finished, "mordor", 5, 4, 12, null, elapsed);
+    StatusEntry invalid = LevelGenStatusMessages.ForOutcome(EnGenResult.ValidationError, "007", 1, 0, 3, null, elapsed);
+    StatusEntry error = LevelGenStatusMessages.ForOutcome(EnGenResult.Error, "mordor", 0, 0, 0, "boom", elapsed);
+    StatusEntry cancelled = LevelGenStatusMessages.ForOutcome(EnGenResult.Cancelled, "mordor", 0, 0, 0, null, elapsed);
+    StatusEntry timeSeeded = LevelGenStatusMessages.ForOutcome(EnGenResult.Finished, "", 5, 4, 12, null, elapsed);
+    StatusEntry nullSeed = LevelGenStatusMessages.ForOutcome(EnGenResult.Paused, null, 0, 0, 0, null, elapsed);
+
+    // Assert: Texts (with quoted seed and time) and severities.
+    Assert.Equal(new StatusEntry("LevelGen: seed \"mordor\" Finished (1521 ms). Graph: nodes=5, edges=4. Map: steps=12.", EnStatusSeverity.Success), finished);
+    Assert.Equal(new StatusEntry("LevelGen: seed \"007\" ValidationError (1521 ms). Graph: nodes=1, edges=0. Map: steps=3.", EnStatusSeverity.Warning), invalid);
+    Assert.Equal(new StatusEntry("LevelGen: seed \"mordor\" Error (1521 ms) - boom", EnStatusSeverity.Error), error);
+    Assert.Equal(new StatusEntry("LevelGen: seed \"mordor\" Cancelled (1521 ms).", EnStatusSeverity.Debug), cancelled);
+    Assert.Equal(new StatusEntry("LevelGen: seed \"\" (current time) Finished (1521 ms). Graph: nodes=5, edges=4. Map: steps=12.", EnStatusSeverity.Success), timeSeeded);
+    Assert.Equal(new StatusEntry("LevelGen: seed \"\" (current time) Paused (1521 ms).", EnStatusSeverity.Debug), nullSeed);
   }
 
   /// <summary>
-  /// Verifies loop messages: seeds are quoted, failures are errors.
+  /// Verifies loop messages: seeds are quoted, run-ending messages show the generation time,
+  /// failures are errors.
   /// </summary>
   [Fact]
   public void LoopMessages_ReturnExpectedTexts()
   {
+    // Arrange: Generation time.
+    TimeSpan elapsed = TimeSpan.FromMilliseconds(42);
+
     // Act: Build each loop message.
     StatusEntry start = LevelGenStatusMessages.ForLoopStart("5");
-    StatusEntry iteration = LevelGenStatusMessages.ForLoopIteration("5", 5, 4, 12);
-    StatusEntry invalid = LevelGenStatusMessages.ForLoopFailure("6", EnGenResult.ValidationError, null);
-    StatusEntry error = LevelGenStatusMessages.ForLoopFailure("7", EnGenResult.Error, "boom");
+    StatusEntry iteration = LevelGenStatusMessages.ForLoopIteration("5", 5, 4, 12, elapsed);
+    StatusEntry invalid = LevelGenStatusMessages.ForLoopFailure("6", EnGenResult.ValidationError, null, elapsed);
+    StatusEntry error = LevelGenStatusMessages.ForLoopFailure("7", EnGenResult.Error, "boom", elapsed);
     StatusEntry startFailed = LevelGenStatusMessages.ForLoopStartFailed("8");
 
     // Assert: Texts and severities.
     Assert.Equal(new StatusEntry("Loop: started with seed \"5\".", EnStatusSeverity.Info), start);
-    Assert.Equal(new StatusEntry("Loop: seed \"5\" Finished. Graph: nodes=5, edges=4. Map: steps=12.", EnStatusSeverity.Success), iteration);
-    Assert.Equal(new StatusEntry("Loop: seed \"6\" ended with ValidationError. Loop stopped.", EnStatusSeverity.Error), invalid);
-    Assert.Equal(new StatusEntry("Loop: seed \"7\" ended with Error - boom. Loop stopped.", EnStatusSeverity.Error), error);
+    Assert.Equal(new StatusEntry("Loop: seed \"5\" Finished (42 ms). Graph: nodes=5, edges=4. Map: steps=12.", EnStatusSeverity.Success), iteration);
+    Assert.Equal(new StatusEntry("Loop: seed \"6\" ended with ValidationError (42 ms). Loop stopped.", EnStatusSeverity.Error), invalid);
+    Assert.Equal(new StatusEntry("Loop: seed \"7\" ended with Error (42 ms) - boom. Loop stopped.", EnStatusSeverity.Error), error);
     Assert.Equal(new StatusEntry("Loop: failed to start generation with seed \"8\". Loop stopped.", EnStatusSeverity.Error), startFailed);
     Assert.Equal(new StatusEntry("Loop: stopped by user.", EnStatusSeverity.Info), LevelGenStatusMessages.LoopStopped);
   }

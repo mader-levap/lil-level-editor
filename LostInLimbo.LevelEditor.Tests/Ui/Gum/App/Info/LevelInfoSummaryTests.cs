@@ -43,17 +43,18 @@ public sealed class LevelInfoSummaryTests
   public void Build_WithWorld_ShowsFacts()
   {
     // Arrange: Facts of a completed world.
-    var facts = new LevelWorldFacts(EnPhase.Completed, -8341167147440548823L, 1234L);
+    var facts = new LevelWorldFacts(EnPhase.Completed, -8341167147440548823L, TimeSpan.FromMilliseconds(1520.6), 1234L);
 
     // Act: Build rows.
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(EnGenResult.Finished, null, facts);
 
-    // Assert: Status, phase, numeric seed and steps in display order.
+    // Assert: Status, phase, numeric seed, elapsed time (whole ms) and steps in display order.
     Assert.Equal(
       [
         new LevelInfoRow("Status:", "Finished"),
         new LevelInfoRow("Phase:", "Completed"),
         new LevelInfoRow("Numeric seed:", "-8341167147440548823"),
+        new LevelInfoRow("Elapsed time:", "1521 ms"),
         new LevelInfoRow("Map steps:", "1234"),
       ],
       rows);
@@ -66,14 +67,14 @@ public sealed class LevelInfoSummaryTests
   public void Build_WithFailureReason_AddsReasonRow()
   {
     // Arrange: Facts of a world that failed validation.
-    var facts = new LevelWorldFacts(EnPhase.Map, 7L, 10L);
+    var facts = new LevelWorldFacts(EnPhase.Map, 7L, TimeSpan.FromMilliseconds(5), 10L);
 
     // Act: Build rows with a reason.
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Build(EnGenResult.ValidationError, "Too few rooms.", facts);
 
     // Assert: Reason row follows the status row.
     Assert.Equal(new LevelInfoRow("Reason:", "Too few rooms."), rows[1]);
-    Assert.Equal(5, rows.Count);
+    Assert.Equal(6, rows.Count);
   }
 
   /// <summary>

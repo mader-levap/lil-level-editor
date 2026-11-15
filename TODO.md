@@ -1,7 +1,6 @@
 # TODO
 
 ## Current
-- Make better difficulty preset.
 
 ## Later
 - First video for LiL on this, post in discord on my server.

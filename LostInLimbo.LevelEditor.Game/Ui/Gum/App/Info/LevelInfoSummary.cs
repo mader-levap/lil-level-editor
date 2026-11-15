@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Helpers;
@@ -21,8 +22,9 @@ public sealed record LevelInfoRow(string Label, string Value);
 /// </summary>
 /// <param name="Phase">Generation phase the world is in.</param>
 /// <param name="NumericSeed">Numeric seed the library actually used (reproduces the run).</param>
+/// <param name="Elapsed">Processing time the library reported for the run.</param>
 /// <param name="Steps">Map generation steps.</param>
-public sealed record LevelWorldFacts(EnPhase Phase, long NumericSeed, long Steps);
+public sealed record LevelWorldFacts(EnPhase Phase, long NumericSeed, TimeSpan Elapsed, long Steps);
 
 /// <summary>
 /// Builds the rows of the level information card's three columns: generation status, the
@@ -84,6 +86,7 @@ public static class LevelInfoSummary
 
     rows.Add(new("Phase:", world.Phase.ToString()));
     rows.Add(new("Numeric seed:", world.NumericSeed.ToString(CultureInfo.InvariantCulture)));
+    rows.Add(new("Elapsed time:", LevelGenTimeFormat.Milliseconds(world.Elapsed)));
     rows.Add(new("Map steps:", world.Steps.ToString(CultureInfo.InvariantCulture)));
     return rows;
   }

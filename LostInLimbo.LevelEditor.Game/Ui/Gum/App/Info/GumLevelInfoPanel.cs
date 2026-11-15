@@ -268,7 +268,7 @@ public sealed class GumLevelInfoPanel : IOverlayView, IDisposable
     LevelGenRunInputs? runInputs = _levelGenService.RunInputs(); // shown even without a world: what was attempted
     LevelWorldFacts? facts = world == null
       ? null
-      : new LevelWorldFacts(world.Phase, status.Seed, world.Stats.Steps);
+      : new LevelWorldFacts(world.Phase, status.Seed, status.Elapsed, world.Stats.Steps);
 
     _shownResult = status.Result;
     _shownRunInputs = runInputs;

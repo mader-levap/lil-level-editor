@@ -245,7 +245,8 @@ public sealed class GumLevelGenPanel : IOverlayView, IDisposable
       world?.Graph.Nodes.Count ?? 0,
       world?.Graph.Edges.Count ?? 0,
       world?.Stats.Steps ?? 0,
-      status.Error?.ToString()));
+      status.Error?.ToString(),
+      status.Elapsed));
   }
 
   /// <summary>
@@ -553,11 +554,12 @@ public sealed class GumLevelGenPanel : IOverlayView, IDisposable
           seed,
           world?.Graph.Nodes.Count ?? 0,
           world?.Graph.Edges.Count ?? 0,
-          world?.Stats.Steps ?? 0));
+          world?.Stats.Steps ?? 0,
+          status.Elapsed));
         StartLoopIteration();
         break;
       case EnLoopDecision.Failed:
-        _statusLog.Add(LevelGenStatusMessages.ForLoopFailure(seed, status.Result, status.Error?.ToString()));
+        _statusLog.Add(LevelGenStatusMessages.ForLoopFailure(seed, status.Result, status.Error?.ToString(), status.Elapsed));
         EndLoop();
         break;
     }
