@@ -5,7 +5,9 @@
     <Company>Mader Levap</Company>
     <InformationalVersion>0.1.0</InformationalVersion>
     <Description>Editor for Lost in Limbo.</Description>
+  </PropertyGroup>
 
+  <PropertyGroup>
     <!-- windows7.0 required: Gum.Stride's Direct3D Skia backends (D3D11, D3D12) are only available on this TFM.
          The graphics API itself (Direct3D 12) is set in the root Directory.Build.props. -->
     <TargetFramework>net10.0-windows7.0</TargetFramework>
@@ -18,7 +20,7 @@
   <ItemGroup>
     <AssemblyMetadata Include="BuildType" Value="$(Configuration)" />
 
-    <PackageReference Include="LostInLimbo.LevelGen" Version="0.0.15" />
+    <PackageReference Include="LostInLimbo.LevelGen" Version="0.0.16" />
     <PackageReference Include="Stride.Engine" Version="4.4.2" />
     <PackageReference Include="Stride.Video" Version="4.4.2" />
     <PackageReference Include="Stride.Physics" Version="4.4.2" />

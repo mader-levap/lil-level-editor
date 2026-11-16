@@ -14,14 +14,17 @@ public sealed record GraphVisStyle
 
   #region Nodes
 
-  /// <summary>Radius of a node with relative size 1.</summary>
-  public float NodeBaseRadius { get; init; } = 22f;
+  /// <summary>
+  /// Radius of a node with relative size 1. Large enough that three markers with short numbered
+  /// labels (such as "Sol 1", "Sol 2", "Sol 3") fit inside the node, inside its outline.
+  /// </summary>
+  public float NodeBaseRadius { get; init; } = 32f;
 
   /// <summary>Smallest node radius, so tiny nodes stay clickable and can hold a marker.</summary>
   public float NodeMinRadius { get; init; } = 14f;
 
   /// <summary>Largest node radius, so one huge node cannot fill the view.</summary>
-  public float NodeMaxRadius { get; init; } = 70f;
+  public float NodeMaxRadius { get; init; } = 150f;
 
   /// <summary>Node outline width.</summary>
   public float NodeOutlineWidth { get; init; } = 4f;
@@ -204,8 +207,12 @@ public sealed record GraphVisStyle
   /// <summary>Largest zoom factor.</summary>
   public float MaxZoom { get; init; } = 4f;
 
-  /// <summary>Largest zoom factor chosen by fit-to-view, so small graphs are not blown up.</summary>
-  public float MaxFitZoom { get; init; } = 1f;
+  /// <summary>
+  /// Largest zoom factor chosen by fit-to-view. Above 1, so a graph of only a few nodes fills
+  /// more of the view instead of sitting as a tiny cluster in its middle; limited, so one or two
+  /// nodes are not blown up to a huge size. Also the furthest the user can zoom out on such a graph.
+  /// </summary>
+  public float MaxFitZoom { get; init; } = 2f;
 
   /// <summary>Zoom change per mouse wheel notch.</summary>
   public float ZoomStep { get; init; } = 1.15f;

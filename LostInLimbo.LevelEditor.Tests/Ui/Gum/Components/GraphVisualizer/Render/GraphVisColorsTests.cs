@@ -4,26 +4,10 @@ using LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer.Render;
 namespace LostInLimbo.LevelEditor.Tests.Ui.Gum.Components.GraphVisualizer.Render;
 
 /// <summary>
-/// Headless tests for <see cref="GraphVisColors"/> (darkening and stable, distinct key colors).
+/// Headless tests for <see cref="GraphVisColors"/> (darkening and distinct key colors).
 /// </summary>
 public sealed class GraphVisColorsTests
 {
-  /// <summary>
-  /// Finds two different keys that hash to the same palette slot.
-  /// </summary>
-  /// <returns>Colliding keys, in ordinal order.</returns>
-  private static (string First, string Second) FindCollidingKeys()
-  {
-    var seen = new Dictionary<uint, string>();
-    for (int i = 0; ; i++)
-    {
-      string key = $"group{i:D4}"; // zero-padded, so generation order is ordinal order
-      uint slot = GraphVisColors.StableHash(key) % (uint)GraphVisColors.Palette.Count;
-      if (seen.TryGetValue(slot, out string? earlier)) return (earlier, key);
-      seen[slot] = key;
-    }
-  }
-
   /// <summary>
   /// Verifies darkening scales the color channels and keeps alpha.
   /// </summary>
@@ -105,17 +89,57 @@ public sealed class GraphVisColorsTests
     Assert.Equal(expectDark ? UiRgba.Black : UiRgba.White, picked);
   }
 
+  /// <summary>Tolerance for floating-point comparisons.</summary>
+  private const float Tolerance = 0.001f;
+
+  /// <summary>Perceptual difference from which colors look very distinct.</summary>
+  private const float VeryDistinct = 20f;
+
+  /// <summary>Perceptual difference from which colors still look distinct.</summary>
+  private const float Distinct = 15f;
+
   /// <summary>
-  /// Verifies the hash is a fixed function of the text (known FNV-1a values), so colors survive
-  /// restarts; <c>string.GetHashCode</c> would differ per process.
+  /// Smallest perceptual difference a palette color must keep from the colors that already have
+  /// a meaning in the view (background, ungrouped gray, selection highlight).
+  /// </summary>
+  private const float ClearOfReservedColors = 12f;
+
+  /// <summary>Number of leading palette colors that must be very distinct from each other.</summary>
+  private const int VeryDistinctPrefix = 7;
+
+  /// <summary>
+  /// Asserts every pair among the first colors of the palette differs by at least a minimum.
+  /// </summary>
+  /// <param name="count">Number of leading palette colors to check.</param>
+  /// <param name="minimum">Smallest allowed perceptual difference.</param>
+  private static void AssertPairsDiffer(int count, float minimum)
+  {
+    for (int i = 0; i < count; i++)
+    {
+      for (int j = i + 1; j < count; j++)
+      {
+        float difference = GraphVisColors.PerceptualDifference(GraphVisColors.Palette[i], GraphVisColors.Palette[j]);
+        Assert.True(difference >= minimum, $"Slots {i} and {j} differ by only {difference:0.0}.");
+      }
+    }
+  }
+
+  /// <summary>
+  /// Verifies the perceptual difference on known values: 0 for equal colors, 100 between black
+  /// and white, the same in both directions, and alpha ignored.
   /// </summary>
   [Fact]
-  public void StableHash_MatchesKnownValues()
+  public void PerceptualDifference_KnownValues()
   {
-    // Assert: Empty string gives the FNV offset basis; "a" (bytes 0x61, 0x00) its known hash.
-    Assert.Equal(2166136261u, GraphVisColors.StableHash(string.Empty));
-    // FNV-1a wraps around on overflow by design.
-    Assert.Equal(unchecked((2166136261u ^ 0x61) * 16777619u * 16777619u), GraphVisColors.StableHash("a"));
+    // Arrange: Two different colors.
+    var red = new UiRgba(255, 0, 0);
+    var blue = new UiRgba(0, 0, 255);
+
+    // Assert: Known values, symmetry, alpha ignored.
+    Assert.Equal(0f, GraphVisColors.PerceptualDifference(red, red), Tolerance);
+    Assert.Equal(100f, GraphVisColors.PerceptualDifference(UiRgba.Black, UiRgba.White), 0.01f);
+    Assert.Equal(GraphVisColors.PerceptualDifference(red, blue), GraphVisColors.PerceptualDifference(blue, red), Tolerance);
+    Assert.Equal(0f, GraphVisColors.PerceptualDifference(red, new UiRgba(255, 0, 0, 10)), Tolerance);
   }
 
   /// <summary>
@@ -134,61 +158,78 @@ public sealed class GraphVisColorsTests
   }
 
   /// <summary>
-  /// Verifies neighbouring palette slots differ strongly, so a key pushed to the next slot by a
-  /// collision is still easy to tell apart.
+  /// Verifies the first palette colors all look very different from each other, so a graph with
+  /// a usual number of groups never shows look-alike colors.
   /// </summary>
   [Fact]
-  public void Palette_NeighbouringSlotsAreFarApart()
+  public void Palette_FirstSevenAreVeryDistinct()
   {
-    // Minimum sum of channel differences between neighbours, found adequate by eye.
-    const int minimumDifference = 120;
+    // Assert: Every pair among the leading colors is very distinct.
+    AssertPairsDiffer(VeryDistinctPrefix, VeryDistinct);
+  }
 
-    // Assert: Every slot differs clearly from the next one.
+  /// <summary>
+  /// Verifies all palette colors still look different from each other.
+  /// </summary>
+  [Fact]
+  public void Palette_AllColorsAreDistinct()
+  {
+    // Assert: Every pair of the whole palette is distinct.
+    AssertPairsDiffer(GraphVisColors.Palette.Count, Distinct);
+  }
+
+  /// <summary>
+  /// Verifies no palette color resembles the background, the color of ungrouped nodes or the
+  /// selection highlight.
+  /// </summary>
+  [Fact]
+  public void Palette_StaysClearOfBackgroundGrayAndHighlight()
+  {
+    // Arrange: Colors that already mean something in the view.
+    GraphVisStyle style = GraphVisStyle.Default;
+    UiRgba[] reserved = [style.BackgroundColor, style.DefaultNodeColor, style.HighlightColor];
+
+    // Assert: Every palette color keeps its distance from each of them.
     for (int i = 0; i < GraphVisColors.Palette.Count; i++)
     {
-      UiRgba current = GraphVisColors.Palette[i];
-      UiRgba next = GraphVisColors.Palette[(i + 1) % GraphVisColors.Palette.Count];
-      int difference = Math.Abs(current.Red - next.Red) + Math.Abs(current.Green - next.Green) + Math.Abs(current.Blue - next.Blue);
-      Assert.True(difference >= minimumDifference, $"Slots {i} and {i + 1} differ by only {difference}.");
+      foreach (UiRgba color in reserved)
+      {
+        float difference = GraphVisColors.PerceptualDifference(GraphVisColors.Palette[i], color);
+        Assert.True(difference >= ClearOfReservedColors, $"Slot {i} is only {difference:0.0} from {color}.");
+      }
     }
   }
 
   /// <summary>
-  /// Verifies a key gets the same color regardless of which other (non-colliding) keys are
-  /// present and of the input order.
+  /// Verifies keys take palette slots in ordinal order, independent of input order, and
+  /// duplicates collapse.
   /// </summary>
   [Fact]
-  public void AssignColors_SameKey_GetsSameColorAcrossCalls()
+  public void AssignColors_TakesSlotsInOrdinalOrder()
   {
-    // Act: Assign colors for a key alone and for the same key listed after another one.
-    UiRgba alone = GraphVisColors.AssignColors(["castle"])["castle"];
-    UiRgba expected = GraphVisColors.Palette[(int)(GraphVisColors.StableHash("castle") % (uint)GraphVisColors.Palette.Count)];
-    IReadOnlyDictionary<string, UiRgba> reversed = GraphVisColors.AssignColors(["castle", "castle"]);
+    // Act: Assign colors to the generator's group names, shuffled and with a duplicate.
+    IReadOnlyDictionary<string, UiRgba> colors = GraphVisColors.AssignColors(["g3", "g1", "g2", "g1"]);
 
-    // Assert: The color is the palette slot of the key's hash; duplicates collapse.
-    Assert.Equal(expected, alone);
-    Assert.Equal(expected, Assert.Single(reversed).Value);
+    // Assert: g1, g2, g3 get slots 0, 1, 2.
+    Assert.Equal(3, colors.Count);
+    Assert.Equal(GraphVisColors.Palette[0], colors["g1"]);
+    Assert.Equal(GraphVisColors.Palette[1], colors["g2"]);
+    Assert.Equal(GraphVisColors.Palette[2], colors["g3"]);
   }
 
   /// <summary>
-  /// Verifies two keys hashing to the same slot still get different colors, the same way for
-  /// either input order.
+  /// Verifies a key gets the same color across calls when the set of keys is the same.
   /// </summary>
   [Fact]
-  public void AssignColors_CollidingKeys_GetDistinctColorsIndependentOfInputOrder()
+  public void AssignColors_SameKeys_GetSameColorsAcrossCalls()
   {
-    // Arrange: Two keys with the same palette slot.
-    (string first, string second) = FindCollidingKeys();
+    // Act: Assign the same keys twice, in different input orders.
+    IReadOnlyDictionary<string, UiRgba> forward = GraphVisColors.AssignColors(["castle", "lobby"]);
+    IReadOnlyDictionary<string, UiRgba> backward = GraphVisColors.AssignColors(["lobby", "castle"]);
 
-    // Act: Assign in both input orders.
-    IReadOnlyDictionary<string, UiRgba> forward = GraphVisColors.AssignColors([first, second]);
-    IReadOnlyDictionary<string, UiRgba> backward = GraphVisColors.AssignColors([second, first]);
-
-    // Assert: Colors differ, the ordinal-first key keeps its hash slot, order does not matter.
-    Assert.NotEqual(forward[first], forward[second]);
-    Assert.Equal(GraphVisColors.AssignColors([first])[first], forward[first]);
-    Assert.Equal(forward[first], backward[first]);
-    Assert.Equal(forward[second], backward[second]);
+    // Assert: Same colors both times.
+    Assert.Equal(forward["castle"], backward["castle"]);
+    Assert.Equal(forward["lobby"], backward["lobby"]);
   }
 
   /// <summary>

@@ -157,6 +157,25 @@ public sealed class GraphVisInteractionTests
   }
 
   /// <summary>
+  /// Verifies fit-to-view magnifies a very small graph (a few nodes), so it does not sit as a tiny
+  /// cluster in the middle of the viewport.
+  /// </summary>
+  [Fact]
+  public void FitView_SmallGraph_IsMagnified()
+  {
+    // Arrange: A graph much smaller than the viewport at zoom 1.
+    var interaction = new GraphVisInteraction(Style);
+    var smallGraph = new GraphVisBounds(new Vector2(-50, -30), new Vector2(50, 30));
+
+    // Act: Fit it.
+    interaction.FitView(smallGraph, Viewport);
+
+    // Assert: Magnified beyond 1:1, up to the fit limit.
+    Assert.True(interaction.Camera.Zoom > 1f, $"Zoom {interaction.Camera.Zoom} should exceed 1.");
+    Assert.Equal(Style.MaxFitZoom, interaction.Camera.Zoom, Tolerance);
+  }
+
+  /// <summary>
   /// Verifies keys move the view along the axis at the keyboard speed (the graph moves the other
   /// way), with diagonals no faster than straight moves.
   /// </summary>
