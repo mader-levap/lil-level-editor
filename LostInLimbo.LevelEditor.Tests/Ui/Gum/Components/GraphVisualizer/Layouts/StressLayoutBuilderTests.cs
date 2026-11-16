@@ -91,6 +91,47 @@ public sealed class StressLayoutBuilderTests
     Assert.Equal(Builder.Place(Radii(8), edges, LinkGap), Builder.Place(Radii(8), edges, LinkGap));
   }
 
+  /// <summary>Edges of four nodes all connected to each other.</summary>
+  private static readonly (int From, int To)[] FullyConnectedFour = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)];
+
+  /// <summary>
+  /// Verifies the experimental "edges only stretch" mode is deterministic, keeps nodes apart and
+  /// actually changes the layout where stress has to compromise (four fully connected nodes).
+  /// </summary>
+  [Fact]
+  public void Place_EdgesOnlyStretch_IsDeterministicAndChangesCompromisedLayout()
+  {
+    // Arrange: Builder with the mode on.
+    var stretching = new StressLayoutBuilder { EdgesOnlyStretch = true };
+
+    // Act: Place K4 twice with the mode, once without.
+    Vector2[] first = stretching.Place(Radii(4), FullyConnectedFour, LinkGap);
+    Vector2[] second = stretching.Place(Radii(4), FullyConnectedFour, LinkGap);
+    Vector2[] standard = Builder.Place(Radii(4), FullyConnectedFour, LinkGap);
+
+    // Assert: Same result twice, different from the standard layout, no circles overlapping.
+    Assert.Equal(first, second);
+    Assert.NotEqual(standard, first);
+    foreach ((int from, int to) in FullyConnectedFour)
+    {
+      Assert.True(Vector2.Distance(first[from], first[to]) > 2 * Radius, $"Nodes {from} and {to} overlap.");
+    }
+  }
+
+  /// <summary>
+  /// Verifies the mode is off by default: an explicitly disabled builder matches the default one.
+  /// </summary>
+  [Fact]
+  public void Place_EdgesOnlyStretchOff_MatchesDefault()
+  {
+    // Arrange: Builder with the mode explicitly off; a loop with a tail.
+    var standard = new StressLayoutBuilder { EdgesOnlyStretch = false };
+    (int, int)[] edges = [.. Chain(6, closed: true), (0, 6), (6, 7)];
+
+    // Act + Assert: Same positions as the shared default builder.
+    Assert.Equal(Builder.Place(Radii(8), edges, LinkGap), standard.Place(Radii(8), edges, LinkGap));
+  }
+
   /// <summary>
   /// Verifies a chain comes out as a nearly straight horizontal line with neighbours at their
   /// ideal distance.

@@ -38,6 +38,15 @@ public sealed class StressLayoutBuilder : GraphLayoutBuilder
   #endregion
 
   /// <summary>
+  /// Experimental: whether edges may only stretch. When on, two directly connected nodes that
+  /// are farther apart than their ideal distance are not pulled back during refinement, so the
+  /// ideal acts as a minimum for edges. Meant to give compromised edges (for example in a group
+  /// of four nodes all connected to each other) their full length, but it can leave such groups
+  /// in a worse arrangement (a triangle with one node in its middle). Off by default.
+  /// </summary>
+  public bool EdgesOnlyStretch { get; init; }
+
+  /// <summary>
   /// Places the nodes of a graph. <paramref name="linkGap"/> is also the space between separate
   /// parts of the graph, which are placed side by side, largest first.
   /// </summary>
@@ -122,14 +131,15 @@ public sealed class StressLayoutBuilder : GraphLayoutBuilder
   /// <param name="neighbours">Neighbours of all nodes.</param>
   /// <param name="linkGap">Free space aimed for between connected nodes.</param>
   /// <returns>Positions, in the order of <paramref name="part"/>.</returns>
-  private static Vector2[] PlacePart(int[] part, IReadOnlyList<float> radii, List<int>[] neighbours, float linkGap)
+  private Vector2[] PlacePart(int[] part, IReadOnlyList<float> radii, List<int>[] neighbours, float linkGap)
   {
     int count = part.Length;
     if (count == 1) return [Vector2.Zero];
 
     float[,] ideal = IdealDistances(part, radii, neighbours, linkGap);
     Vector2[] positions = Seed(ideal, count, linkGap);
-    Refine(positions, ideal, count);
+    bool[,]? stretchOnly = EdgesOnlyStretch ? DirectLinks(part, neighbours) : null;
+    Refine(positions, ideal, count, stretchOnly);
     MakeLandscape(positions);
     return positions;
   }
@@ -180,6 +190,26 @@ public sealed class StressLayoutBuilder : GraphLayoutBuilder
     }
 
     return distance;
+  }
+
+  /// <summary>
+  /// Marks which pairs of nodes of a part are directly connected.
+  /// </summary>
+  /// <param name="part">Node indices of the part.</param>
+  /// <param name="neighbours">Neighbours of all nodes.</param>
+  /// <returns>True for every directly connected pair, indexed by position in <paramref name="part"/>.</returns>
+  private static bool[,] DirectLinks(int[] part, List<int>[] neighbours)
+  {
+    var localIndex = new Dictionary<int, int>(part.Length);
+    for (int i = 0; i < part.Length; i++) localIndex[part[i]] = i;
+
+    var linked = new bool[part.Length, part.Length];
+    for (int i = 0; i < part.Length; i++)
+    {
+      foreach (int neighbour in neighbours[part[i]]) linked[i, localIndex[neighbour]] = true;
+    }
+
+    return linked;
   }
 
   /// <summary>
@@ -235,7 +265,11 @@ public sealed class StressLayoutBuilder : GraphLayoutBuilder
   /// <param name="positions">Positions, refined in place.</param>
   /// <param name="ideal">Ideal distances.</param>
   /// <param name="count">Number of nodes.</param>
-  private static void Refine(Vector2[] positions, float[,] ideal, int count)
+  /// <param name="stretchOnly">
+  /// Pairs whose ideal distance is only a minimum (see <see cref="EdgesOnlyStretch"/>), or null
+  /// when every ideal distance is aimed for exactly.
+  /// </param>
+  private static void Refine(Vector2[] positions, float[,] ideal, int count, bool[,]? stretchOnly)
   {
     for (int iteration = 0; iteration < MaxIterations; iteration++)
     {
@@ -252,6 +286,9 @@ public sealed class StressLayoutBuilder : GraphLayoutBuilder
           float weight = 1f / (wanted * wanted);
           Vector2 offset = positions[i] - positions[j];
           float length = offset.Length();
+
+          // A stretch-only pair that is already long enough is happy where it is.
+          if (stretchOnly != null && stretchOnly[i, j] && length > wanted) wanted = length;
 
           // Where node j would like node i to be: at the ideal distance, in the current direction.
           Vector2 target = length > 0 ? positions[j] + offset * (wanted / length) : positions[j];

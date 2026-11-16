@@ -1,9 +1,11 @@
+using System;
 using LostInLimbo.LevelGen.Data.Status;
 
 namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen.Helpers;
 
 /// <summary>
-/// Rules for quick generation (F5): one run with the next seed, as one loop iteration would do.
+/// Rules for quick generation (F5): one run with the seed in the box, or with the next seed once
+/// that one was generated.
 /// </summary>
 public static class LevelGenQuickGenerate
 {
@@ -23,4 +25,23 @@ public static class LevelGenQuickGenerate
     !loopActive
     && !awaitingResult
     && result is EnGenResult.None or EnGenResult.Finished or EnGenResult.Cancelled;
+
+  /// <summary>
+  /// Chooses the seed of a quick generation run: the seed in the box if it was not generated yet
+  /// (first press, or the user typed another seed), otherwise the next one. So the box always
+  /// shows the seed of the map on screen, and a failed seed stays there to retry with Start.
+  /// </summary>
+  /// <param name="seedText">Seed text box content.</param>
+  /// <param name="lastRunSeed">Text seed of the current or last run; null if there was none.</param>
+  /// <returns>
+  /// <see cref="LevelGenLoopSeed.FallbackSeed"/> for a blank box (a blank seed would make the
+  /// library pick a time-based one); <paramref name="seedText"/> unchanged if it differs from
+  /// <paramref name="lastRunSeed"/> (compared as text); otherwise
+  /// <see cref="LevelGenLoopSeed.Advance"/> of it.
+  /// </returns>
+  public static string SeedFor(string? seedText, string? lastRunSeed)
+  {
+    if (string.IsNullOrWhiteSpace(seedText)) return LevelGenLoopSeed.FallbackSeed;
+    return string.Equals(seedText, lastRunSeed, StringComparison.Ordinal) ? LevelGenLoopSeed.Advance(seedText) : seedText;
+  }
 }

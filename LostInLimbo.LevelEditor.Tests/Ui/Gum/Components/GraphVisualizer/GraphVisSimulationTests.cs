@@ -66,6 +66,86 @@ public sealed class GraphVisSimulationTests
   }
 
   /// <summary>
+  /// Verifies connected nodes closer than the link minimum (but farther than the node gap) are
+  /// pushed apart to the link minimum.
+  /// </summary>
+  [Fact]
+  public void Settle_ConnectedNodesBelowLinkMinimum_ArePushedToIt()
+  {
+    // Arrange: Two connected radius-20 nodes with borders 35 apart (node gap 30 < 35 < link minimum 45).
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(75, 0)], [20f, 20f], [(0, 1)], Physics);
+
+    // Act: Let it settle.
+    bool asleep = simulation.Settle(ManySteps);
+
+    // Assert: Asleep, borders the link minimum apart.
+    Assert.True(asleep);
+    Assert.Equal(40f + Physics.LinkMinGap, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), SettledTolerance);
+  }
+
+  /// <summary>
+  /// Verifies that with the link minimum off, connected nodes between the node gap and the link
+  /// minimum stay where they are.
+  /// </summary>
+  [Fact]
+  public void Settle_LinkMinimumOff_ConnectedNodesKeepTheirDistance()
+  {
+    // Arrange: Same nodes as above, link minimum off.
+    var physics = Physics with { KeepLinkMinGap = false };
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(75, 0)], [20f, 20f], [(0, 1)], physics);
+
+    // Act: Let it settle.
+    bool asleep = simulation.Settle(ManySteps);
+
+    // Assert: Asleep without having moved.
+    Assert.True(asleep);
+    Assert.Equal(75f, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies the link minimum applies to connected nodes only: unconnected nodes between the
+  /// node gap and the link minimum stay where they are.
+  /// </summary>
+  [Fact]
+  public void Settle_UnconnectedNodesBelowLinkMinimum_DoNotMove()
+  {
+    // Arrange: Two unconnected radius-20 nodes with borders 35 apart.
+    var simulation = new GraphVisSimulation([Vector2.Zero, new Vector2(75, 0)], [20f, 20f], [], Physics);
+
+    // Act: Let it settle.
+    simulation.Settle(ManySteps);
+
+    // Assert: Not moved.
+    Assert.Equal(75f, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), Tolerance);
+  }
+
+  /// <summary>
+  /// Verifies a group of four nodes all connected to each other, placed by the stress layout
+  /// (which must compromise: four equal distances are impossible on a flat screen), ends with
+  /// no edge shorter than the link minimum.
+  /// </summary>
+  [Fact]
+  public void Settle_FullyConnectedFour_HasNoShortEdges()
+  {
+    // Arrange: K4 plus a tail on one node (the tail makes the stress compromise lopsided).
+    const float radius = 32f;
+    (int From, int To)[] edges = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (0, 4), (4, 5), (5, 6)];
+    float[] radii = Enumerable.Repeat(radius, 7).ToArray();
+    Vector2[] start = new StressLayoutBuilder().Place(radii, edges, Physics.LinkIdealGap);
+    var simulation = new GraphVisSimulation(start, radii, edges, Physics);
+
+    // Act: Let it settle.
+    simulation.Settle(ManySteps);
+
+    // Assert: Every edge keeps (nearly) the link minimum between the borders.
+    foreach ((int from, int to) in edges)
+    {
+      float gap = Vector2.Distance(simulation.Positions[from], simulation.Positions[to]) - 2 * radius;
+      Assert.True(gap >= Physics.LinkMinGap - SettledTolerance, $"Edge {from}-{to} has a gap of only {gap:0.0}.");
+    }
+  }
+
+  /// <summary>
   /// Verifies nothing moves when no rule is broken: unconnected nodes far apart, and connected
   /// nodes between "too close" and "too far".
   /// </summary>
@@ -302,8 +382,8 @@ public sealed class GraphVisSimulationTests
     // Act: Let it settle.
     simulation.Settle(ManySteps);
 
-    // Assert: The borders keep the node gap.
-    Assert.Equal(40f + physics.NodeGap, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), SettledTolerance);
+    // Assert: The borders keep the link minimum (the nodes are connected).
+    Assert.Equal(40f + physics.LinkMinGap, Vector2.Distance(simulation.Positions[0], simulation.Positions[1]), SettledTolerance);
   }
 
   /// <summary>
@@ -360,6 +440,7 @@ public sealed class GraphVisSimulationTests
       Physics with { RepelStrength = -1f },
       Physics with { StepSeconds = 0f },
       Physics with { NodeGap = -1f },
+      Physics with { LinkMinGapFactor = -1f },
       Physics with { SettleSteps = -1 },
     ];
 

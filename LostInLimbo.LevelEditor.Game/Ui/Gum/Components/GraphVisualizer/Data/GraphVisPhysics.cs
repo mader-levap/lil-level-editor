@@ -20,9 +20,27 @@ public sealed record GraphVisPhysics
 
   /// <summary>
   /// Free space the starting layout aims for between two connected nodes, as a multiple of
-  /// <see cref="NodeGap"/>. Lies between "too close" (1) and "too far" (<see cref="LinkRestGapFactor"/>).
+  /// <see cref="NodeGap"/>. Lies between "too close" (<see cref="LinkMinGapFactor"/>) and "too
+  /// far" (<see cref="LinkRestGapFactor"/>).
   /// </summary>
   public float LinkIdealGapFactor { get; init; } = 2f;
+
+  /// <summary>
+  /// Whether connected nodes closer than <see cref="LinkMinGap"/> are pushed apart. Keeps edges
+  /// visible as lines where a layout had to compromise, for example in a group of four nodes that
+  /// are all connected to each other (they cannot all be equally far apart on a flat screen).
+  /// When off, connected nodes only keep <see cref="NodeGap"/> like any other pair.
+  /// </summary>
+  public bool KeepLinkMinGap { get; init; } = true;
+
+  /// <summary>
+  /// Smallest free space between two connected nodes, as a multiple of <see cref="NodeGap"/>
+  /// (used while <see cref="KeepLinkMinGap"/> is on). Keep it at or below
+  /// <see cref="LinkRestGapFactor"/> divided by √2: a fully connected group of four then fits as a
+  /// square whose sides keep this minimum while its diagonals stay within the rest gap, so push
+  /// and pull do not fight.
+  /// </summary>
+  public float LinkMinGapFactor { get; init; } = 1.5f;
 
   /// <summary>
   /// Free space between two connected nodes beyond which they pull each other closer, as a
@@ -54,6 +72,9 @@ public sealed record GraphVisPhysics
   /// <summary>Free space starting layouts aim for between two connected nodes (<see cref="NodeGap"/> × <see cref="LinkIdealGapFactor"/>).</summary>
   public float LinkIdealGap => NodeGap * LinkIdealGapFactor;
 
+  /// <summary>Smallest free space between two connected nodes (<see cref="NodeGap"/> × <see cref="LinkMinGapFactor"/>).</summary>
+  public float LinkMinGap => NodeGap * LinkMinGapFactor;
+
   /// <summary>
   /// Checks that the values can drive a simulation.
   /// </summary>
@@ -62,6 +83,7 @@ public sealed record GraphVisPhysics
   {
     if (!(NodeGap >= 0)) throw new ArgumentOutOfRangeException(nameof(NodeGap), NodeGap, "Node gap must not be negative.");
     if (!(LinkIdealGapFactor >= 0)) throw new ArgumentOutOfRangeException(nameof(LinkIdealGapFactor), LinkIdealGapFactor, "Factor must not be negative.");
+    if (!(LinkMinGapFactor >= 0)) throw new ArgumentOutOfRangeException(nameof(LinkMinGapFactor), LinkMinGapFactor, "Factor must not be negative.");
     if (!(LinkRestGapFactor >= 0)) throw new ArgumentOutOfRangeException(nameof(LinkRestGapFactor), LinkRestGapFactor, "Factor must not be negative.");
     if (!(RepelStrength is >= 0 and <= 1)) throw new ArgumentOutOfRangeException(nameof(RepelStrength), RepelStrength, "Strength must be between 0 and 1.");
     if (!(AttractStrength is >= 0 and <= 1)) throw new ArgumentOutOfRangeException(nameof(AttractStrength), AttractStrength, "Strength must be between 0 and 1.");

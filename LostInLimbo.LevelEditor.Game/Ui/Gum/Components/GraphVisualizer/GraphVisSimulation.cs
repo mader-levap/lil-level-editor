@@ -7,9 +7,10 @@ using Stride.Core.Mathematics;
 namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 
 /// <summary>
-/// Live physics of the graph visualizer: nodes that are too close push each other away, connected
-/// nodes that are too far apart pull each other closer, and circles never overlap. Heavier
-/// (larger) nodes move less than lighter ones.
+/// Live physics of the graph visualizer: nodes that are too close push each other away (connected
+/// nodes already below the link minimum, others below the node gap), connected nodes that are too
+/// far apart pull each other closer, and circles never overlap. Heavier (larger) nodes move less
+/// than lighter ones.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -176,6 +177,7 @@ public sealed class GraphVisSimulation
 
     PushApart(_physics.NodeGap, _physics.RepelStrength);
     PullTogether();
+    PushLinksApart();
 
     // Hard rule: whatever the forces did, circles must not overlap.
     for (int pass = 0; pass < _physics.OverlapPasses; pass++)
@@ -237,6 +239,27 @@ public sealed class GraphVisSimulation
 
       // Negative separation: the two nodes approach each other.
       Separate(from, to, offset / distance * (-(distance - rest) * _physics.AttractStrength));
+    }
+  }
+
+  /// <summary>
+  /// Pushes apart connected nodes whose borders are closer than the link minimum, so every edge
+  /// stays visible as a line. Does nothing while <see cref="GraphVisPhysics.KeepLinkMinGap"/> is off.
+  /// </summary>
+  private void PushLinksApart()
+  {
+    if (!_physics.KeepLinkMinGap) return;
+
+    foreach ((int from, int to) in _edges)
+    {
+      float wanted = _radii[from] + _radii[to] + _physics.LinkMinGap;
+      Vector2 offset = _positions[to] - _positions[from];
+      float distance = offset.Length();
+      if (distance >= wanted) continue;
+
+      // Nodes on the same spot have no direction to part in; pick a fixed one.
+      Vector2 direction = distance > 0 ? offset / distance : Vector2.UnitX;
+      Separate(from, to, direction * ((wanted - distance) * _physics.RepelStrength));
     }
   }
 
