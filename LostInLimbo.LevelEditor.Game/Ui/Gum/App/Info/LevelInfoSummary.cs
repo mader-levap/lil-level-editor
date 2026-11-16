@@ -124,6 +124,8 @@ public static class LevelInfoSummary
       new("Size:", config.Graph.Size.ToString(CultureInfo.InvariantCulture)),
       new("Connectivity:", config.Graph.Connectivity.ToString(CultureInfo.InvariantCulture)),
       new("Complexity:", config.Graph.Complexity.ToString(CultureInfo.InvariantCulture)),
+      new("Goals:", config.Graph.ProcOpts.NodeObjectives.GoalAmount.ToString(CultureInfo.InvariantCulture)),
+      new("Opt goals:", config.Graph.ProcOpts.NodeObjectives.OptGoalAmount.ToString(CultureInfo.InvariantCulture)),
       new("Builder:", config.Graph.GraphBuilder.Builder.ToString()),
     ];
   }

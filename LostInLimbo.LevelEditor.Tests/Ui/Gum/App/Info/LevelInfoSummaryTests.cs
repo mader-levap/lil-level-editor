@@ -4,6 +4,7 @@ using LostInLimbo.LevelEditor.Ui.Gum.App.Info;
 using LostInLimbo.LevelGen.Data.Config;
 using LostInLimbo.LevelGen.Data.Config.Graph;
 using LostInLimbo.LevelGen.Data.Config.Graph.Builder;
+using LostInLimbo.LevelGen.Data.Config.Graph.Proc;
 using LostInLimbo.LevelGen.Data.Prop;
 using LostInLimbo.LevelGen.Data.Result.Stats;
 using LostInLimbo.LevelGen.Data.Status;
@@ -185,13 +186,13 @@ public sealed class LevelInfoSummaryTests
   #region Configuration column
 
   /// <summary>
-  /// Verifies the configuration column shows the graph size, connectivity and complexity, then
-  /// the graph builder used.
+  /// Verifies the configuration column shows the graph size, connectivity and complexity, the
+  /// goal amounts, then the graph builder used.
   /// </summary>
   [Fact]
   public void Configuration_ShowsGraphFieldsAndBuilder()
   {
-    // Arrange: Configuration with distinct graph values, using the Linear builder.
+    // Arrange: Configuration with distinct graph and goal values, using the Linear builder.
     var config = CnfLevelGeneration.Default with
     {
       Graph = CnfGraph.Default with
@@ -200,18 +201,24 @@ public sealed class LevelInfoSummaryTests
         Connectivity = 3,
         Complexity = 5,
         GraphBuilder = new CnfGraphBuilder { Builder = EnGraphBuilder.Linear, CnfLinear = CnfGraphBuilderLinear.Default },
+        ProcOpts = CnfProcOpt.Default with
+        {
+          NodeObjectives = CnfProcNodeObjectivesOpt.Default with { GoalAmount = 2, OptGoalAmount = 4 },
+        },
       },
     };
 
     // Act: Build rows.
     IReadOnlyList<LevelInfoRow> rows = LevelInfoSummary.Configuration(config);
 
-    // Assert: Graph field rows in order, then the builder row.
+    // Assert: Graph field rows in order, the goal amounts, then the builder row.
     Assert.Equal(
       [
         new LevelInfoRow("Size:", "12"),
         new LevelInfoRow("Connectivity:", "3"),
         new LevelInfoRow("Complexity:", "5"),
+        new LevelInfoRow("Goals:", "2"),
+        new LevelInfoRow("Opt goals:", "4"),
         new LevelInfoRow("Builder:", "Linear"),
       ],
       rows);
