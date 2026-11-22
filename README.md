@@ -35,6 +35,12 @@ dotnet build LostInLimbo.LevelEditor.slnx
 
 Building the Game project also runs the **Stride asset compiler**; asset errors surface here, not only at runtime.
 
+Run tests:
+
+```bash
+dotnet test LostInLimbo.LevelEditor.slnx
+```
+
 Start application:
 
 ```bash
@@ -45,12 +51,6 @@ Open **Stride Game Studio** (the asset/scene editor):
 
 ```bash
 stride studio
-```
-
-Run tests:
-
-```bash
-dotnet test LostInLimbo.LevelEditor.slnx
 ```
 
 ## Debugging

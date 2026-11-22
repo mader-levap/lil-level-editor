@@ -19,8 +19,9 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.Components.GraphVisualizer;
 /// <remarks>
 /// <para>Part of <see cref="GumGraphVisualizer"/>, which tells it what to show.</para>
 /// <para>Pairs whose key and value fit side by side share one row, with keys and values in
-/// aligned columns; the others show the value below the key, wrapped to the width. Which pairs
-/// share a row is decided by <see cref="GraphVisDataRows"/> from the measured text widths.</para>
+/// aligned columns, the key column at least <see cref="KeyColumnMinWidth"/> wide; the others show
+/// the value below the key, wrapped to the width. Which pairs share a row is decided by
+/// <see cref="GraphVisDataRows"/> from the measured text widths.</para>
 /// </remarks>
 public sealed class GumGraphDataPanel
 {
@@ -35,6 +36,9 @@ public sealed class GumGraphDataPanel
 
   /// <summary>Free space between the key column and the values of single-row pairs, in pixels.</summary>
   private const float ColumnGap = 10f;
+
+  /// <summary>Smallest width of the key column of single-row pairs (indent included), in pixels.</summary>
+  private const float KeyColumnMinWidth = 115f;
 
   /// <summary>Indent of rows whose key is in the indented keys, in pixels.</summary>
   private const float Indent = 12f;
@@ -118,7 +122,7 @@ public sealed class GumGraphDataPanel
     GraphVisDataPairSize[] sizes = pairs
       .Select(pair => new GraphVisDataPairSize(pair.Indent + pair.Key.Visual.AbsoluteWidth, pair.Value.Visual.AbsoluteWidth))
       .ToArray();
-    GraphVisDataRowLayout layout = GraphVisDataRows.Arrange(sizes, AvailableRowWidth(_scrollViewer), ColumnGap);
+    GraphVisDataRowLayout layout = GraphVisDataRows.Arrange(sizes, AvailableRowWidth(_scrollViewer), ColumnGap, KeyColumnMinWidth);
 
     for (int i = 0; i < pairs.Length; i++)
     {

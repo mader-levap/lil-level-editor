@@ -21,12 +21,12 @@
     <AssemblyMetadata Include="BuildType" Value="$(Configuration)" />
 
     <PackageReference Include="LostInLimbo.LevelGen" Version="0.0.16" />
-    <PackageReference Include="Stride.Engine" Version="4.4.2" />
-    <PackageReference Include="Stride.Video" Version="4.4.2" />
-    <PackageReference Include="Stride.Physics" Version="4.4.2" />
-    <PackageReference Include="Stride.Navigation" Version="4.4.2" />
-    <PackageReference Include="Stride.Particles" Version="4.4.2" />
-    <PackageReference Include="Stride.AssetCompiler" Version="4.4.2" IncludeAssets="build;buildTransitive" />
+    <PackageReference Include="Stride.Engine" Version="4.4.3" />
+    <PackageReference Include="Stride.Video" Version="4.4.3" />
+    <PackageReference Include="Stride.Physics" Version="4.4.3" />
+    <PackageReference Include="Stride.Navigation" Version="4.4.3" />
+    <PackageReference Include="Stride.Particles" Version="4.4.3" />
+    <PackageReference Include="Stride.AssetCompiler" Version="4.4.3" IncludeAssets="build;buildTransitive" />
     <!-- Preview on purpose: the newest stable Gum.Stride (2026.11.2.1) supports only Direct3D 11, which crashes.
          Move to a stable release once one supports Direct3D 12. -->
     <PackageReference Include="Gum.Stride" Version="2026.11.13.2-preview.7" />

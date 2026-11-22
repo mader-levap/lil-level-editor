@@ -19,7 +19,7 @@ namespace LostInLimbo.LevelEditor.Ui.Gum.App.LevelGen;
 public sealed class GumConfigPanel
 {
   /// <summary>Form header text.</summary>
-  private const string Title = "Configuration";
+  private const string Title = "Config override";
 
   /// <summary>Spacing between form rows, in pixels.</summary>
   private const float RowSpacing = 6;
@@ -28,7 +28,7 @@ public sealed class GumConfigPanel
   private const float LabelWidth = 90;
 
   /// <summary>Width of the form's input column, in pixels.</summary>
-  private const float InputWidth = 140;
+  private const float InputWidth = 170;
 
   /// <summary>Width of the form's content (label and input columns), in pixels.</summary>
   public const float ContentWidth = LabelWidth + InputWidth;

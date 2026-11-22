@@ -23,8 +23,9 @@ public sealed record GraphVisDataRowLayout(float KeyColumnWidth, IReadOnlyList<b
 /// <remarks>
 /// Single-row pairs form two aligned columns: keys on the left, values starting at the same X.
 /// A pair is single-row when its key fits the key column and its value fits between the value
-/// column and the right edge. The key column width is chosen among the key widths so that as
-/// many pairs as possible are single-row; on a tie the narrower column wins. Deterministic.
+/// column and the right edge. The key column width is chosen among the key widths, each raised to
+/// the minimum column width, so that as many pairs as possible are single-row; on a tie the
+/// narrower column wins. Deterministic.
 /// </remarks>
 public static class GraphVisDataRows
 {
@@ -34,20 +35,26 @@ public static class GraphVisDataRows
   /// <param name="pairs">Measured pairs, in display order.</param>
   /// <param name="availableWidth">Width available for a row, in pixels.</param>
   /// <param name="columnGap">Free space between the key column and the value, in pixels.</param>
+  /// <param name="minKeyColumnWidth">Smallest width of the key column, in pixels.</param>
   /// <returns>Layout.</returns>
   /// <exception cref="ArgumentNullException"><paramref name="pairs"/> is null.</exception>
-  /// <exception cref="ArgumentOutOfRangeException"><paramref name="columnGap"/> is negative.</exception>
-  public static GraphVisDataRowLayout Arrange(IReadOnlyList<GraphVisDataPairSize> pairs, float availableWidth, float columnGap)
+  /// <exception cref="ArgumentOutOfRangeException"><paramref name="columnGap"/> or <paramref name="minKeyColumnWidth"/> is negative or NaN.</exception>
+  public static GraphVisDataRowLayout Arrange(
+    IReadOnlyList<GraphVisDataPairSize> pairs,
+    float availableWidth,
+    float columnGap,
+    float minKeyColumnWidth = 0)
   {
     ArgumentNullException.ThrowIfNull(pairs);
     if (!(columnGap >= 0)) throw new ArgumentOutOfRangeException(nameof(columnGap), columnGap, "Gap must not be negative.");
+    if (!(minKeyColumnWidth >= 0)) throw new ArgumentOutOfRangeException(nameof(minKeyColumnWidth), minKeyColumnWidth, "Minimum key column width must not be negative.");
 
-    // Try every key width as the column width; keep the one with the most single-row pairs.
+    // Try every key width (but at least the minimum) as the column width; keep the one with the most single-row pairs.
     float bestColumn = 0;
     int bestCount = 0;
     foreach (GraphVisDataPairSize candidate in pairs)
     {
-      float column = candidate.KeyWidth;
+      float column = Math.Max(candidate.KeyWidth, minKeyColumnWidth);
       int count = 0;
       foreach (GraphVisDataPairSize pair in pairs)
       {

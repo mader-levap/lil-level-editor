@@ -106,13 +106,61 @@ public sealed class GraphVisDataRowsTests
   }
 
   /// <summary>
+  /// Verifies the key column is as wide as the minimum, or as the widest key if that is wider.
+  /// </summary>
+  /// <param name="minimum">Minimum key column width.</param>
+  /// <param name="expected">Key column width.</param>
+  [Theory]
+  [InlineData(100f, 100f)]
+  [InlineData(50f, 80f)]
+  public void Arrange_MinimumColumn_IsLowerBound(float minimum, float expected)
+  {
+    // Act: Widest key is 80.
+    GraphVisDataRowLayout layout = GraphVisDataRows.Arrange([new(30, 40), new(80, 20)], Width, Gap, minimum);
+
+    // Assert: The larger of minimum and widest key; both pairs still fit.
+    Assert.Equal(expected, layout.KeyColumnWidth);
+    Assert.Equal([true, true], layout.IsSingleRow);
+  }
+
+  /// <summary>
+  /// Verifies a value that no longer fits beside the minimum column goes below its key.
+  /// </summary>
+  [Fact]
+  public void Arrange_MinimumColumn_StacksValueThatNoLongerFits()
+  {
+    // Act: Column 130 + gap 10 leaves 60 for values.
+    GraphVisDataRowLayout layout = GraphVisDataRows.Arrange([new(30, 40), new(30, 70)], Width, Gap, 130f);
+
+    // Assert: The wider value is stacked, the column keeps the minimum.
+    Assert.Equal(130f, layout.KeyColumnWidth);
+    Assert.Equal([true, false], layout.IsSingleRow);
+  }
+
+  /// <summary>
+  /// Verifies a row too narrow for the minimum column stacks everything.
+  /// </summary>
+  [Fact]
+  public void Arrange_MinimumColumnWiderThanRow_AllStacked()
+  {
+    // Act: Column 195 + gap 10 is wider than the row.
+    GraphVisDataRowLayout layout = GraphVisDataRows.Arrange([new(30, 40)], Width, Gap, 195f);
+
+    // Assert: No column, value below the key.
+    Assert.Equal(0f, layout.KeyColumnWidth);
+    Assert.Equal([false], layout.IsSingleRow);
+  }
+
+  /// <summary>
   /// Verifies invalid arguments are rejected.
   /// </summary>
   [Fact]
   public void Arrange_WithInvalidArguments_Throws()
   {
-    // Act + Assert: Null pairs, negative gap.
+    // Act + Assert: Null pairs, negative gap, negative or NaN minimum column.
     Assert.Throws<ArgumentNullException>(() => GraphVisDataRows.Arrange(null!, Width, Gap));
     Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisDataRows.Arrange([], Width, -1f));
+    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisDataRows.Arrange([], Width, Gap, -1f));
+    Assert.Throws<ArgumentOutOfRangeException>(() => GraphVisDataRows.Arrange([], Width, Gap, float.NaN));
   }
 }
