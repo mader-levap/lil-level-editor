@@ -2,7 +2,7 @@
 
 ## Project overview
 
-`LostInLimbo.LevelEditor` is a **Stride 4.4.2** desktop application that serves as the level editor, level generator front-end and level viewer for the game codenamed *Lost in Limbo*.
+`LostInLimbo.LevelEditor` is a **Stride 4.4.3** desktop application that serves as the level editor, level generator front-end and level viewer for the game codenamed *Lost in Limbo*.
 
 It does not generate levels itself. Generation logic lives in the engine-neutral library `LostInLimbo.LevelGen` (sibling repository `../lil-level-gen`). This project's job is to:
 

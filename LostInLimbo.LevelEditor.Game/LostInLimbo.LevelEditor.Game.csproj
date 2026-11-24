@@ -29,7 +29,7 @@
     <PackageReference Include="Stride.AssetCompiler" Version="4.4.3" IncludeAssets="build;buildTransitive" />
     <!-- Preview on purpose: the newest stable Gum.Stride (2026.11.2.1) supports only Direct3D 11, which crashes.
          Move to a stable release once one supports Direct3D 12. -->
-    <PackageReference Include="Gum.Stride" Version="2026.11.13.2-preview.7" />
+    <PackageReference Include="Gum.Stride" Version="2026.11.24.1-preview.10" />
   </ItemGroup>
 
   <ItemGroup>
