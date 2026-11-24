@@ -4,6 +4,7 @@ using Gum.Converters;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.Forms.Controls.Primitives;
+using Gum.Forms.DefaultVisuals.V3;
 using Gum.GueDeriving;
 using Gum.Managers;
 using Gum.Wireframe;
@@ -20,6 +21,9 @@ public static class GumUiFactory
 {
   /// <summary>Logger for this class.</summary>
   private static readonly Logger Log = GlobalLogger.GetLogger(nameof(GumUiFactory));
+
+  /// <summary>Rows a combo box dropdown shows at most before it scrolls.</summary>
+  public const int DropDownMaxVisibleRows = 8;
 
   /// <summary>Width and height of icon buttons, in pixels.</summary>
   public const float IconButtonSize = 48;
@@ -208,22 +212,30 @@ public static class GumUiFactory
   /// Known limit: arrow keys in the open dropdown focus the newly selected row again (Gum does
   /// that after raising <c>SelectionChanged</c>, so it can't be undone from that event), and the
   /// selection is unmarked until the dropdown is reopened. Accepted (mouse-driven editor).
-  /// The dropdown is also resized on open to fit its items (Gum's default is a fixed 128 px),
-  /// up to <see cref="DropDownSizing.DefaultMaxVisibleRows"/> rows; longer lists scroll.
+  /// The dropdown sizes itself to its items with Gum's built-in
+  /// <see cref="ListBoxVisual.MakeHeightSizedToChildren"/> (Gum's default is a fixed 256 px),
+  /// up to <see cref="DropDownMaxVisibleRows"/> rows; longer lists scroll. Gum never opens the
+  /// list above the combo box (when it does not fit below, Gum slides it up over the combo box),
+  /// so that is done on open (see <see cref="PlaceDropDownAboveIfNeeded"/>).
   /// </remarks>
+  /// <exception cref="InvalidOperationException">Gum's dropdown list is not a V3 <see cref="ListBoxVisual"/>.</exception>
   public static ComboBox CreateComboBox(float width)
   {
     var comboBox = new ComboBox
     {
       Width = width,
     };
+    var listVisual = comboBox.ListBox?.Visual as ListBoxVisual
+      ?? throw new InvalidOperationException("Gum ComboBox dropdown is not a V3 ListBoxVisual.");
+    listVisual.MakeHeightSizedToChildren();
     comboBox.DropDownOpened += OnComboBoxDropDownOpened;
     return comboBox;
   }
 
   /// <summary>
   /// Adjusts a just-opened combo box dropdown: removes row keyboard focus, so the selected row
-  /// shows Gum's Selected state, and fits the list height to its items (see <see cref="CreateComboBox"/>).
+  /// shows Gum's Selected state, caps the list at <see cref="DropDownMaxVisibleRows"/> rows, and
+  /// moves it above the combo box when Gum could not open it below (see <see cref="CreateComboBox"/>).
   /// </summary>
   /// <param name="sender">Combo box that opened.</param>
   /// <param name="e">Event data.</param>
@@ -231,32 +243,53 @@ public static class GumUiFactory
   {
     if (sender is not ComboBox { ListBox: { } listBox } comboBox) return;
     listBox.DoListItemsHaveFocus = false;
-    FitDropDownHeight(listBox, comboBox.Visual.AbsoluteTop);
+    CapDropDownHeight(listBox); // first: placement needs the final height
+    PlaceDropDownAboveIfNeeded(listBox, comboBox);
   }
 
   /// <summary>
-  /// Sets the dropdown list height to its rows' height plus the list's own chrome, capped at
-  /// <see cref="DropDownSizing.DefaultMaxVisibleRows"/> rows. A list Gum opened above the combo
-  /// box is moved so it ends exactly at the combo box's top edge.
+  /// Moves a dropdown list that Gum slid up over its combo box so it ends exactly at the combo
+  /// box's top edge. A list opened below the combo box is left alone.
   /// </summary>
-  /// <param name="listBox">Dropdown list box (visible, laid out; a popup placed in pixels from the top).</param>
-  /// <param name="comboBoxTop">Top of the combo box, in window pixels.</param>
-  private static void FitDropDownHeight(ListBox listBox, float comboBoxTop)
+  /// <param name="listBox">Dropdown list box (visible, laid out, already capped).</param>
+  /// <param name="comboBox">Combo box that owns the list.</param>
+  private static void PlaceDropDownAboveIfNeeded(ListBox listBox, ComboBox comboBox)
   {
-    if (listBox.ListBoxItems.Count == 0) return; // nothing to measure; keep Gum's default
-
     GraphicalUiElement list = listBox.Visual;
-    float chromeHeight = Math.Max(0, list.AbsoluteHeight - listBox.ClipContainer.AbsoluteHeight);
-    float contentHeight = listBox.InnerPanel.AbsoluteHeight;
-    float rowHeight = listBox.ListBoxItems[0].Visual.AbsoluteHeight;
+    GraphicalUiElement box = comboBox.Visual;
 
     float listTop = list.AbsoluteTop;
-    float newHeight = DropDownSizing.Compute(contentHeight, chromeHeight, rowHeight);
-    float newTop = DropDownSizing.ListTopAfterResize(listTop, newHeight, comboBoxTop);
+    float newTop = DropDownSizing.ListTop(listTop, list.AbsoluteHeight, box.AbsoluteTop, box.AbsoluteTop + box.AbsoluteHeight);
+    list.Y += newTop - listTop; // Y grows downward whatever the list's Y units
+  }
 
-    list.HeightUnits = DimensionUnitType.Absolute;
-    list.Height = newHeight;
-    list.Y += newTop - listTop; // the popup's Y counts pixels from the top
+  /// <summary>
+  /// Limits the dropdown's clip container to <see cref="DropDownMaxVisibleRows"/> rows; past that
+  /// the list scrolls. The row height is measured here, because it follows the theme font and
+  /// rows are laid out only once the list is shown.
+  /// </summary>
+  /// <param name="listBox">Dropdown list box (visible and laid out).</param>
+  private static void CapDropDownHeight(ListBox listBox)
+  {
+    if (listBox.ListBoxItems.Count == 0) return; // nothing to measure
+    if (listBox.Visual is not ListBoxVisual listVisual) return; // checked in CreateComboBox
+
+    float rowHeight = listBox.ListBoxItems[0].Visual.AbsoluteHeight;
+    float maxHeight = rowHeight * DropDownMaxVisibleRows;
+    if (listVisual.ClipContainerInstance.MaxHeight == maxHeight) return; // already capped (later opens)
+
+    float clipHeightBefore = listVisual.ClipContainerInstance.AbsoluteHeight;
+    listVisual.ClipContainerInstance.MaxHeight = maxHeight;
+
+    // On the first open Gum has already measured the list uncapped and switched it to a fixed
+    // (absolute) height for the popup; it restores the sized-to-children setting on close, so
+    // later opens are measured with the cap. Shrink that fixed height by what the cap removed,
+    // otherwise empty bars show above and below the rows.
+    float removedHeight = clipHeightBefore - maxHeight;
+    if (removedHeight > 0 && listVisual.HeightUnits == DimensionUnitType.Absolute)
+    {
+      listVisual.Height -= removedHeight;
+    }
   }
 
   /// <summary>
